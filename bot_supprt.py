@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from anthropic import Anthropic
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
     CallbackQueryHandler, ContextTypes, filters
@@ -171,23 +171,29 @@ async def notify_admins(context, text, keyboard=None):
             logger.error(f"Админ {aid}: {e}")
 
 
+# ─── Постоянные клавиатуры ─────────────────────────────────────
+
+ADMIN_KEYBOARD = ReplyKeyboardMarkup(
+    [[KeyboardButton("📊 Сведения"), KeyboardButton("👥 Пользователи")],
+     [KeyboardButton("📋 Заявки"), KeyboardButton("💰 Баланс API")],
+     [KeyboardButton("📖 Команды")]],
+    resize_keyboard=True, is_persistent=True
+)
+
+CLIENT_KEYBOARD = ReplyKeyboardMarkup(
+    [[KeyboardButton("📋 Тарифы"), KeyboardButton("💬 Задать вопрос")],
+     [KeyboardButton("📖 Инструкция"), KeyboardButton("👨‍💻 Человек")],
+     [KeyboardButton("🚀 Открыть ПроУрок")]],
+    resize_keyboard=True, is_persistent=True
+)
+
 # ─── АДМИН-ПАНЕЛЬ ────────────────────────────────────────────
 
 async def admin_start(update, context):
-    """Стартовое меню для админов."""
     name = ADMIN_NAMES.get(update.effective_user.id, "Админ")
-    kb = [
-        [InlineKeyboardButton("📊 Статистика", callback_data="adm_stats"),
-         InlineKeyboardButton("👥 Пользователи", callback_data="adm_users")],
-        [InlineKeyboardButton("💰 Баланс API", callback_data="adm_api_balance"),
-         InlineKeyboardButton("📋 Заявки", callback_data="adm_orders")],
-        [InlineKeyboardButton("📖 Команды", callback_data="adm_help")],
-    ]
     await update.message.reply_text(
-        f"👋 Привет, {name}!\n\n"
-        f"🏫 **Админ-панель «ПроУрок»**\n\n"
-        f"Выберите действие или используйте команды:",
-        reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown'
+        f"👋 Привет, {name}!\n\n🏫 **Админ-панель «ПроУрок»**\n\nКнопки внизу 👇",
+        reply_markup=ADMIN_KEYBOARD, parse_mode='Markdown'
     )
 
 
@@ -466,17 +472,8 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─── КЛИЕНТСКАЯ ЧАСТЬ ─────────────────────────────────────────
 
 async def client_start(update, context):
-    """Стартовое меню для обычных пользователей."""
     uid = update.effective_user.id
     set_mode(uid, "ai")
-    kb = [
-        [InlineKeyboardButton("📋 Тарифы", callback_data="tariffs"),
-         InlineKeyboardButton("💬 Задать вопрос", callback_data="ask_ai")],
-        [InlineKeyboardButton("📖 Как пользоваться", callback_data="how_to"),
-         InlineKeyboardButton("👨‍💻 Связаться с человеком", callback_data="call_human")],
-        [InlineKeyboardButton("💰 Докупить запросы", callback_data="buy_addon")],
-        [InlineKeyboardButton("🚀 Открыть ПроУрок", url=PROUROK_BOT_URL)],
-    ]
     await update.message.reply_text(
         "🏫 **Поддержка «ПроУрок»**\n\n"
         "Я помогу разобраться с ботом-помощником.\n\n"
@@ -484,8 +481,8 @@ async def client_start(update, context):
         "📋 Показать тарифы\n"
         "📖 Объяснить как пользоваться\n"
         "👨‍💻 Переключить на специалиста\n\n"
-        "Выберите или просто напишите вопрос:",
-        reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown'
+        "Используйте кнопки внизу или напишите вопрос 👇",
+        reply_markup=CLIENT_KEYBOARD, parse_mode='Markdown'
     )
 
 
@@ -675,19 +672,139 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     text = update.message.text
 
-    # Админ
+    # ═══ АДМИНСКИЕ КНОПКИ ═══
     if uid in ADMIN_IDS:
-        await update.message.reply_text(
-            "👤 Вы админ. Используйте кнопки из /start или команды.\n\n"
-            "Быстрые: `/reply ID текст` • `/confirm ID` • `/stats`",
-            parse_mode='Markdown'
-        ); return
+        if text == "📊 Сведения":
+            # Полная сводка
+            prourok = load_prourok_data()
+            total = len(prourok); tc = {}; tq = 0; tg = 0
+            for ud in prourok.values():
+                t = ud.get("tariff", "demo"); tc[t] = tc.get(t, 0) + 1
+                tq += ud.get("queries_used", 0); tg += ud.get("generations_used", 0)
+            est = (tq * 1000 + tg * 2000) / 1e6 * 0.25 + (tq * 2000 + tg * 4000) / 1e6 * 1.25
 
+            msg = f"📊 **Сведения «ПроУрок»**\n\n"
+            msg += f"👥 Пользователей: {total}\n"
+            for tk, td in TARIFFS.items(): msg += f"  {td['name']}: {tc.get(tk, 0)}\n"
+            msg += f"\n💬 Запросов всего: {tq}\n📄 Оформлений: {tg}\n"
+            msg += f"💵 API расход: ~${est:.2f}\n"
+            msg += f"💵 API остаток: ~${10 - est:.2f}\n\n"
+            msg += f"👨‍💻 Ожидают человека: {sum(1 for m in user_modes.values() if m == 'human')}\n"
+            msg += f"📋 Заявок: {len(user_selected_tariff)}"
+            await update.message.reply_text(msg, parse_mode='Markdown')
+            return
+
+        if text == "👥 Пользователи":
+            prourok = load_prourok_data()
+            if not prourok: await update.message.reply_text("Пусто."); return
+            msg = "👥 **Пользователи:**\n\n"
+            for u, ud in sorted(prourok.items(), key=lambda x: x[1].get("queries_used", 0), reverse=True)[:20]:
+                tn = TARIFFS.get(ud.get("tariff", "demo"), {}).get("name", "?")
+                msg += f"• {ud.get('name', '?')} — {tn} — 💬{ud.get('queries_used', 0)} 📄{ud.get('generations_used', 0)}\n  `{u}`\n"
+            await update.message.reply_text(msg, parse_mode='Markdown')
+            return
+
+        if text == "📋 Заявки":
+            msg = "📋 **Заявки на оплату:**\n\n"
+            if not user_selected_tariff: msg += "Новых заявок нет."
+            else:
+                prourok = load_prourok_data()
+                for u, tk in user_selected_tariff.items():
+                    ud = prourok.get(str(u), {})
+                    tn = TARIFFS.get(tk, {}).get("name", tk) if tk != "addon" else "Доп.пакет"
+                    msg += f"• {ud.get('name', '?')} → {tn}\n  `/confirm {u}`\n\n"
+            await update.message.reply_text(msg, parse_mode='Markdown')
+            return
+
+        if text == "💰 Баланс API":
+            prourok = load_prourok_data()
+            tq = sum(d.get("queries_used", 0) for d in prourok.values())
+            tg = sum(d.get("generations_used", 0) for d in prourok.values())
+            est = (tq * 1000 + tg * 2000) / 1e6 * 0.25 + (tq * 2000 + tg * 4000) / 1e6 * 1.25
+            msg = f"💰 **Баланс API:**\n\n🔑 ...{ANTHROPIC_API_KEY[-8:]}\n\n"
+            msg += f"📊 Запросов: {tq}, Генераций: {tg}\n"
+            msg += f"💵 Потрачено: ~${est:.2f}\n"
+            msg += f"💵 Осталось: ~${10 - est:.2f} (из $10)\n\n"
+            msg += f"⚠️ Точный баланс: console.anthropic.com"
+            await update.message.reply_text(msg, parse_mode='Markdown')
+            return
+
+        if text == "📖 Команды":
+            msg = (
+                "📖 **Команды:**\n\n"
+                "`/reply ID текст` — ответить\n"
+                "`/confirm ID` — подтвердить оплату\n"
+                "`/set_tariff ID тариф` — назначить\n"
+                "  (demo, start, pro, premium)\n"
+                "`/add_pack ID` — доп.пакет\n"
+                "`/reset ID` — сбросить счётчики\n"
+                "`/user_info ID` — инфо\n"
+                "`/broadcast текст` — рассылка\n"
+            )
+            await update.message.reply_text(msg, parse_mode='Markdown')
+            return
+
+        # Админ написал что-то другое
+        await update.message.reply_text("👤 Используйте кнопки или команды 👇", reply_markup=ADMIN_KEYBOARD)
+        return
+
+    # ═══ КЛИЕНТСКИЕ КНОПКИ ═══
+    if text == "📋 Тарифы":
+        msg = "📋 **Тарифы «ПроУрок»:**\n\n"
+        for key, t in TARIFFS.items():
+            if key == "demo": continue
+            is_p = key == "premium"
+            msg += f"**{t['name']}** — {t['price']}\n"
+            msg += f"  💬 {'♾' if is_p else t['queries']} запросов/мес\n"
+            msg += f"  📄 {'♾' if is_p else t['gens']} оформлений/мес\n\n"
+        msg += f"**Доп.пакет:** {ADDON_PRICE} — +{ADDON_QUERIES} запросов, +{ADDON_GENS} оформлений"
+        kb = [
+            [InlineKeyboardButton("🟢 Старт — 490₽", callback_data="buy_start"),
+             InlineKeyboardButton("🔵 Про — 890₽", callback_data="buy_pro")],
+            [InlineKeyboardButton("🟡 Премиум — 1 490₽", callback_data="buy_premium")],
+            [InlineKeyboardButton("💰 Доп.пакет — 100₽", callback_data="buy_addon")],
+        ]
+        await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
+        return
+
+    if text == "💬 Задать вопрос":
+        set_mode(uid, "ai")
+        await update.message.reply_text("💬 Задайте вопрос — я постараюсь помочь!\n\nНапишите «позови человека» если нужен специалист.")
+        return
+
+    if text == "📖 Инструкция":
+        msg = (
+            f"📖 **Как пользоваться:**\n\n"
+            f"1️⃣ Откройте @pro_lesson_bot\n"
+            "2️⃣ Нажмите /start\n"
+            "3️⃣ Напишите запрос:\n"
+            "   • «Тест: дроби, 5 класс»\n"
+            "   • «План урока: Фотосинтез, биология»\n"
+            "4️⃣ Обсуждайте, уточняйте\n"
+            "5️⃣ Нажмите оформление:\n"
+            "   📽 Презентация • 📄 Word • 📊 Excel\n\n"
+            "📸 Фото • 🎙 Голос • 📄 Файлы — тоже работает!"
+        )
+        await update.message.reply_text(msg, parse_mode='Markdown')
+        return
+
+    if text == "👨‍💻 Человек":
+        set_mode(uid, "human")
+        name, uname, uid2 = get_user_info(update)
+        await notify_admins(context, f"📩 **Запрос на связь**\n👤 {name} ({uname})\n🆔 `{uid2}`\n\nОтвет: `/reply {uid2} текст`")
+        await update.message.reply_text("👨‍💻 Переключаю на специалиста.\nНапишите вопрос — ответим скоро!\nДля ИИ → /start")
+        return
+
+    if text == "🚀 Открыть ПроУрок":
+        await update.message.reply_text(f"👉 {PROUROK_BOT_URL}")
+        return
+
+    # ═══ ОБЫЧНЫЕ СООБЩЕНИЯ ═══
     mode = get_mode(uid)
     tl = text.lower()
 
     # Просьба позвать человека
-    if any(kw in tl for kw in ['позови человека', 'человек', 'оператор', 'менеджер', 'администратор', 'живой']):
+    if any(kw in tl for kw in ['позови человека', 'оператор', 'менеджер', 'администратор', 'живой']):
         set_mode(uid, "human")
         name, uname, uid2 = get_user_info(update)
         await notify_admins(context, f"📩 **Просит человека**\n👤 {name} ({uname})\n🆔 `{uid2}`\n💬 «{text}»\n\nОтвет: `/reply {uid2} текст`")
