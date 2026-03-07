@@ -31,7 +31,7 @@ ADMIN_NAMES = {1306327841: "Пётр", 5185799596: "Алевтина"}
 
 # ─── Ссылки и реквизиты ──────────────────────────────────────
 PROUROK_BOT_URL = "https://t.me/pro_lesson_bot"
-CARD_NUMBER = "4081 7810 6096 6003 4765"  # TODO: заменить
+CARD_NUMBER = "XXXX-XXXX-XXXX-XXXX"  # TODO: заменить
 CARD_HOLDER = "Имя Фамилия"  # TODO: заменить
 
 # ─── Тарифы ───────────────────────────────────────────────────
@@ -156,8 +156,14 @@ def ask_support(uid, msg):
         logger.error(f"Claude: {e}")
         return "⚠️ Ошибка. Попробуйте позже или напишите «позови человека»."
 
-def get_user_info(update):
-    u = update.effective_user
+def get_user_info(obj):
+    """Получает инфо о пользователе из Update или CallbackQuery."""
+    if hasattr(obj, 'effective_user'):
+        u = obj.effective_user
+    elif hasattr(obj, 'from_user'):
+        u = obj.from_user
+    else:
+        return "Неизвестно", "нет", 0
     name = f"{u.first_name or ''} {u.last_name or ''}".strip() or "Неизвестно"
     uname = f"@{u.username}" if u.username else "нет"
     return name, uname, u.id
