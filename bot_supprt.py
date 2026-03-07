@@ -171,10 +171,16 @@ def get_user_info(obj):
 async def notify_admins(context, text, keyboard=None):
     for aid in ADMIN_IDS:
         try:
-            await context.bot.send_message(chat_id=aid, text=text, parse_mode='Markdown',
+            await context.bot.send_message(chat_id=aid, text=text,
                                            reply_markup=keyboard)
         except Exception as e:
             logger.error(f"Админ {aid}: {e}")
+            # Попробуем без форматирования
+            try:
+                clean = text.replace('*', '').replace('`', '').replace('_', '')
+                await context.bot.send_message(chat_id=aid, text=clean, reply_markup=keyboard)
+            except Exception as e2:
+                logger.error(f"Админ {aid} повторно: {e2}")
 
 
 # ─── Постоянные клавиатуры ─────────────────────────────────────
