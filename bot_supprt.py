@@ -31,7 +31,7 @@ ADMIN_NAMES = {1306327841: "Пётр", 5185799596: "Алевтина"}
 
 # ─── Ссылки и реквизиты ──────────────────────────────────────
 PROUROK_BOT_URL = "https://t.me/pro_lesson_bot"
-CARD_NUMBER = "4081-7810-6096-6003-4765"  # TODO: заменить
+CARD_NUMBER = "4081 7810 6096 6003 4765"  # TODO: заменить
 CARD_HOLDER = "Имя Фамилия"  # TODO: заменить
 
 # ─── Тарифы ───────────────────────────────────────────────────
@@ -575,19 +575,22 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tkey = user_selected_tariff.get(uid, "start")
         tariff = TARIFFS.get(tkey, TARIFFS["start"])
         admin_msg = (
-            f"💰 **ЗАЯВКА НА ОПЛАТУ!**\n\n"
+            f"🔔💰 **НОВАЯ ЗАЯВКА НА ОПЛАТУ!**\n\n"
             f"👤 {name} ({uname})\n"
             f"🆔 `{uid2}`\n"
             f"📋 Тариф: {tariff['name']} — {tariff['price']}\n"
             f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-            f"Подтвердить: `/confirm {uid2}`"
+            f"Проверьте поступление и нажмите кнопку:"
         )
-        await notify_admins(context, admin_msg)
+        admin_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"✅ Подтвердить оплату {uid2}", callback_data=f"adm_confirm_{uid2}")],
+        ])
+        await notify_admins(context, admin_msg, keyboard=admin_kb)
         await query.message.reply_text(
-            "🎉 **Заявка отправлена!**\n\n"
-            "Мы проверим оплату и откроем доступ.\n"
-            "Обычно в течение часа.\n\n"
-            "Вам придёт уведомление здесь.",
+            "⏳ **Заявка отправлена!**\n\n"
+            "Как только мы подтвердим оплату — вам придёт уведомление прямо сюда.\n"
+            "Обычно это занимает не более часа.\n\n"
+            "Спасибо за терпение! 🙏",
             parse_mode='Markdown'
         )
 
@@ -595,20 +598,63 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "paid_addon":
         name, uname, uid2 = get_user_info(query)
         admin_msg = (
-            f"💰 **ЗАЯВКА — ДОП.ПАКЕТ!**\n\n"
+            f"🔔💰 **ЗАЯВКА — ДОП.ПАКЕТ!**\n\n"
             f"👤 {name} ({uname})\n"
             f"🆔 `{uid2}`\n"
             f"📋 +{ADDON_QUERIES} запросов, +{ADDON_GENS} оформлений\n"
             f"💵 {ADDON_PRICE}\n"
             f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
-            f"Подтвердить: `/add_pack {uid2}`"
+            f"Проверьте и нажмите:"
         )
-        await notify_admins(context, admin_msg)
+        admin_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"✅ Подтвердить доп.пакет {uid2}", callback_data=f"adm_addon_{uid2}")],
+        ])
+        await notify_admins(context, admin_msg, keyboard=admin_kb)
         await query.message.reply_text(
-            "🎉 **Заявка на доп.пакет отправлена!**\n\n"
-            "Проверим и активируем.",
+            "⏳ **Заявка на доп.пакет отправлена!**\n\n"
+            "Как только подтвердим — вам придёт уведомление.\n"
+            "Спасибо! 🙏",
             parse_mode='Markdown'
         )
+
+    # ─── АДМИН: кнопка подтверждения оплаты ───
+    elif data.startswith("adm_confirm_") and uid in ADMIN_IDS:
+        target = int(data.replace("adm_confirm_", ""))
+        tariff_key = user_selected_tariff.get(target, "start")
+        tariff = TARIFFS.get(tariff_key, TARIFFS["start"])
+        set_user_tariff(target, tariff_key)
+        user_selected_tariff.pop(target, None)
+        try:
+            await context.bot.send_message(chat_id=target, text=(
+                f"🎉 **Оплата подтверждена! Доступ активирован!**\n\n"
+                f"📋 Тариф: {tariff['name']} ({tariff['price']})\n"
+                f"💬 Запросов: {tariff['queries']}\n"
+                f"📄 Оформлений: {tariff['gens']}\n"
+                f"📅 Начало: {datetime.now().strftime('%d.%m.%Y')}\n\n"
+                f"Откройте бот и пользуйтесь:\n👉 {PROUROK_BOT_URL}\n\n"
+                f"Спасибо что выбрали «ПроУрок»! 🏫"
+            ), parse_mode='Markdown')
+        except Exception as e:
+            logger.error(f"Отправка клиенту: {e}")
+        admin_name = ADMIN_NAMES.get(uid, "Админ")
+        await query.message.reply_text(f"✅ {admin_name} подтвердил оплату.\n{tariff['name']} активирован для `{target}`.", parse_mode='Markdown')
+
+    elif data.startswith("adm_addon_") and uid in ADMIN_IDS:
+        target = int(data.replace("adm_addon_", ""))
+        if add_addon(target):
+            try:
+                await context.bot.send_message(chat_id=target, text=(
+                    f"✅ **Доп.пакет активирован!**\n\n"
+                    f"➕ {ADDON_QUERIES} запросов + {ADDON_GENS} оформлений\n\n"
+                    f"Нажмите 💰 Баланс в ПроУрок чтобы проверить.\n"
+                    f"👉 {PROUROK_BOT_URL}"
+                ), parse_mode='Markdown')
+            except Exception as e:
+                logger.error(f"Отправка клиенту: {e}")
+            user_selected_tariff.pop(target, None)
+            await query.message.reply_text(f"✅ Доп.пакет добавлен для `{target}`.", parse_mode='Markdown')
+        else:
+            await query.message.reply_text(f"⚠️ Пользователь `{target}` не найден.", parse_mode='Markdown')
 
     # ─── КАК ПОЛЬЗОВАТЬСЯ ───
     elif data == "how_to":
