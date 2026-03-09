@@ -1,6 +1,6 @@
 """
 🏫 ПроУрок v1.3 — Telegram-бот помощник для учителей
-Испправления: Markdown баги, баланс по кнопке, убрана кнопка Материал
+Исправления: Markdown баги, баланс по кнопке, убрана кнопка Материал
 Новое: улучшенные презентации, диаграммы Excel, интерактивные HTML тесты
 """
 
@@ -24,7 +24,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-import csv  # для чтения ФИПИ CSV
+import csv
+import random
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
@@ -46,7 +47,10 @@ from pptx.dml.color import RGBColor as PptxRGB
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 # ─── ФИПИ: задания по географии ОГЭ ─────────────────────────────
@@ -67,6 +71,7 @@ def load_fipi_tasks_geography_oge():
 def get_fipi_task_geography_oge(kim_number=None, difficulty=None, topic=None):
     tasks = load_fipi_tasks_geography_oge()
     filtered = []
+
     for t in tasks:
         if kim_number is not None and str(t.get("kim_number")) != str(kim_number):
             continue
@@ -75,10 +80,52 @@ def get_fipi_task_geography_oge(kim_number=None, difficulty=None, topic=None):
         if topic is not None and topic.lower() not in (t.get("topic") or "").lower():
             continue
         filtered.append(t)
+
     if not filtered:
         return None
-    import random
+
     return random.choice(filtered)
+
+def parse_fipi_command(text):
+    parts = text.lower().strip().split()
+    if len(parts) < 3:
+        return None
+
+    if parts[0] != "фипи":
+        return None
+
+    subject = parts[1]
+    exam = parts[2]
+    kim_number = None
+
+    if len(parts) >= 4 and parts[3].isdigit():
+        kim_number = int(parts[3])
+
+    return {
+        "subject": subject,
+        "exam": exam,
+        "kim_number": kim_number,
+    }
+
+def format_fipi_task(task):
+    text_task = task.get("text") or ""
+    options = task.get("options") or ""
+    answer = task.get("answer") or ""
+    diff = task.get("difficulty") or ""
+    topic = task.get("topic") or ""
+    kim = task.get("kim_number") or ""
+
+    stars = "★" * int(diff) if str(diff).isdigit() else str(diff)
+
+    msg = f"КИМ {kim}, тема: {topic}, сложность: {stars}\n\n{text_task}"
+
+    if options:
+        opts_list = [opt.strip() for opt in options.split("|") if opt.strip()]
+        if opts_list:
+            msg += "\n\nВарианты ответа:\n" + "\n".join(opts_list)
+
+    msg += f"\n\nПравильный ответ: {answer}"
+    return msg
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -102,7 +149,7 @@ def load_all_limits():
         try:
             with open(LIMITS_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
     return {}
 
@@ -281,6 +328,7 @@ def ask_claude(uid, msg, image_data=None, max_tokens=4096):
     else:
         add_to_history(uid, "user", msg)
         messages = get_history(uid)
+
     try:
         r = client.messages.create(
             model="claude-3-haiku-20240307",
@@ -306,7 +354,6 @@ def clean_for_chat(text):
     return re.sub(r'\n{3,}', '\n\n', c).strip()
 
 async def safe_reply(update, text):
-    """Отправка без Markdown — безопасно от спецсимволов."""
     if len(text) > 4000:
         for i in range(0, len(text), 4000):
             await update.message.reply_text(text[i:i+4000])
@@ -351,14 +398,16 @@ def download_image(query):
                         ir = requests.get(pd["imageinfo"][0]["url"], timeout=15)
                         if ir.status_code == 200:
                             return io.BytesIO(ir.content)
-    except:
+    except Exception:
         pass
+
     try:
         r = requests.get(f"https://source.unsplash.com/800x500/?{query}", timeout=15, allow_redirects=True)
         if r.status_code == 200 and len(r.content) > 1000:
             return io.BytesIO(r.content)
-    except:
+    except Exception:
         pass
+
     return None
 
 # ─── Диаграммы matplotlib ─────────────────────────────────────
@@ -366,8 +415,10 @@ def download_image(query):
 def create_chart_image(ct, title, labels, values, units="", tc=None):
     if not tc:
         tc = ['#4A90D9', '#50C878', '#FF6B6B', '#FFD93D', '#6C5CE7', '#A8E6CF', '#FF8A80', '#82B1FF']
+
     plt.rcParams['font.size'] = 14
     fig, ax = plt.subplots(figsize=(8, 5))
+
     if ct == 'bar':
         bars = ax.bar(labels, values, color=tc[:len(labels)], edgecolor='white')
         for b, v in zip(bars, values):
@@ -385,6 +436,7 @@ def create_chart_image(ct, title, labels, values, units="", tc=None):
         ax.spines['right'].set_visible(False)
         if any(len(str(l)) > 8 for l in labels):
             plt.xticks(rotation=30, ha='right')
+
     elif ct == 'pie':
         ax.pie(
             values,
@@ -394,6 +446,7 @@ def create_chart_image(ct, title, labels, values, units="", tc=None):
             startangle=90,
             wedgeprops={'edgecolor': 'white', 'linewidth': 2},
         )
+
     elif ct == 'line':
         ax.plot(labels, values, color=tc[0], linewidth=3, marker='o', markersize=8, markerfacecolor=tc[1])
         ax.fill_between(range(len(labels)), values, alpha=0.1, color=tc[0])
@@ -401,8 +454,10 @@ def create_chart_image(ct, title, labels, values, units="", tc=None):
         ax.grid(axis='y', alpha=0.3)
         if any(len(str(l)) > 8 for l in labels):
             plt.xticks(rotation=30, ha='right')
+
     ax.set_title(title, fontsize=16, fontweight='bold', pad=15, color='#1E293B')
     plt.tight_layout()
+
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white')
     plt.close(fig)
@@ -468,7 +523,7 @@ def parse_chart(text):
             elif l.startswith('ЗНАЧЕНИЯ:'):
                 try:
                     c['values'] = [float(x.strip().replace(' ', '')) for x in l[9:].split(',')]
-                except:
+                except Exception:
                     pass
             elif l.startswith('ЕДИНИЦЫ:'):
                 c['units'] = l[8:].strip()
@@ -508,7 +563,14 @@ def parse_slides(content):
         if '[/SLIDE]' not in part:
             continue
         st = part.split('[/SLIDE]')[0].strip()
-        sl = {'title': '', 'subtitle': '', 'content': [], 'notes': '', 'charts': parse_chart(st), 'images': parse_image(st)}
+        sl = {
+            'title': '',
+            'subtitle': '',
+            'content': [],
+            'notes': '',
+            'charts': parse_chart(st),
+            'images': parse_image(st)
+        }
         clean = re.sub(r'\[CHART\].*?\[/CHART\]', '', st, flags=re.DOTALL)
         clean = re.sub(r'\[IMAGE\].*?\[/IMAGE\]', '', clean, flags=re.DOTALL)
         sec = None
@@ -548,7 +610,14 @@ def create_slides_from_text(title, content):
                 cur['content'].append(s[2:])
             elif len(s) > 5:
                 cur['content'].append(s)
-    return slides if len(slides) > 1 else [{'title': title, 'subtitle': '', 'content': [content[:200]], 'notes': '', 'charts': [], 'images': []}]
+    return slides if len(slides) > 1 else [{
+        'title': title,
+        'subtitle': '',
+        'content': [content[:200]],
+        'notes': '',
+        'charts': [],
+        'images': []
+    }]
 
 # ─── PowerPoint ───────────────────────────────────────────────
 
@@ -557,18 +626,22 @@ def add_slide_number(sl, num, theme, sw, sh):
     fill = bg.fill
     fill.solid()
     fill.fore_color.rgb = theme['bg_light']
+
     bar = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, PptxInches(0.3), sh)
     bar.fill.solid()
     bar.fill.fore_color.rgb = theme['bg_dark']
     bar.line.fill.background()
+
     acc = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, PptxInches(0.3), 0, PptxInches(0.05), sh)
     acc.fill.solid()
     acc.fill.fore_color.rgb = theme['accent']
     acc.line.fill.background()
+
     ns = sl.shapes.add_shape(MSO_SHAPE.OVAL, PptxInches(0.65), PptxInches(0.35), PptxInches(0.55), PptxInches(0.55))
     ns.fill.solid()
     ns.fill.fore_color.rgb = theme['bg_dark']
     ns.line.fill.background()
+
     ntf = ns.text_frame
     ntf.paragraphs[0].text = str(num)
     ntf.paragraphs[0].font.size = PptxPt(18)
@@ -580,6 +653,7 @@ def create_pptx_presentation(title, content, user_photo=None):
     sd = parse_slides(content)
     if not sd:
         sd = create_slides_from_text(title, content)
+
     theme = choose_theme(title)
     prs = Presentation()
     prs.slide_width = PptxInches(13.333)
@@ -587,36 +661,42 @@ def create_pptx_presentation(title, content, user_photo=None):
     sw = prs.slide_width
     sh = prs.slide_height
 
-    # Титульный
+    # Титульный слайд
     sl = prs.slides.add_slide(prs.slide_layouts[6])
     bg = sl.background
     fill = bg.fill
     fill.solid()
     fill.fore_color.rgb = theme['bg_dark']
+
     s = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, sw, PptxInches(0.12))
     s.fill.solid()
     s.fill.fore_color.rgb = theme['accent']
     s.line.fill.background()
+
     d = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, PptxInches(0.8), PptxInches(1.5), PptxInches(0.12), PptxInches(3))
     d.fill.solid()
     d.fill.fore_color.rgb = theme['accent']
     d.line.fill.background()
+
     ft = sd[0]['title'] if sd else title
     tb = sl.shapes.add_textbox(PptxInches(1.3), PptxInches(1.8), PptxInches(10), PptxInches(2))
     tf = tb.text_frame
     tf.word_wrap = True
+
     p = tf.paragraphs[0]
     p.text = ft
     p.font.size = PptxPt(44)
     p.font.bold = True
     p.font.color.rgb = theme['text_light']
     p.font.name = "Georgia"
+
     if sd and sd[0].get('subtitle'):
         p2 = tf.add_paragraph()
         p2.text = sd[0]['subtitle']
         p2.font.size = PptxPt(22)
         p2.font.color.rgb = theme['subtitle']
         p2.font.name = "Calibri"
+
     tb2 = sl.shapes.add_textbox(PptxInches(1.3), PptxInches(5.5), PptxInches(8), PptxInches(0.8))
     p3 = tb2.text_frame.paragraphs[0]
     p3.text = f"Подготовлено в {BOT_NAME}  {datetime.now().strftime('%d.%m.%Y')}"
@@ -626,40 +706,46 @@ def create_pptx_presentation(title, content, user_photo=None):
     if user_photo:
         try:
             sl.shapes.add_picture(user_photo, PptxInches(8.5), PptxInches(1.5), PptxInches(4), PptxInches(4))
-        except:
+        except Exception:
             pass
     elif sd and sd[0].get('images'):
         img = download_image(sd[0]['images'][0]['query'])
         if img:
             try:
                 sl.shapes.add_picture(img, PptxInches(8.5), PptxInches(1.5), PptxInches(4), PptxInches(4))
-            except:
+            except Exception:
                 pass
+
     s2 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, sh - PptxInches(0.12), sw, PptxInches(0.12))
     s2.fill.solid()
     s2.fill.fore_color.rgb = theme['accent']
     s2.line.fill.background()
 
-    # Слайды
+    # Основные слайды
     cs = sd[1:] if len(sd) > 1 else sd
     for i, sdata in enumerate(cs):
         sl = prs.slides.add_slide(prs.slide_layouts[6])
         add_slide_number(sl, i + 1, theme, sw, sh)
+
         hv = bool(sdata.get('charts') or sdata.get('images'))
         cw = PptxInches(6) if hv else PptxInches(11)
+
         tb = sl.shapes.add_textbox(PptxInches(1.5), PptxInches(0.3), PptxInches(11), PptxInches(0.8))
         ttf = tb.text_frame
         ttf.word_wrap = True
+
         tp = ttf.paragraphs[0]
         tp.text = sdata['title']
         tp.font.size = PptxPt(30)
         tp.font.bold = True
         tp.font.color.rgb = theme['text_dark']
         tp.font.name = "Georgia"
+
         ln = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, PptxInches(1.5), PptxInches(1.15), PptxInches(2.5), PptxInches(0.04))
         ln.fill.solid()
         ln.fill.fore_color.rgb = theme['accent']
         ln.line.fill.background()
+
         if sdata['content']:
             cb = sl.shapes.add_textbox(PptxInches(1.5), PptxInches(1.5), cw, PptxInches(5))
             ctf = cb.text_frame
@@ -671,11 +757,20 @@ def create_pptx_presentation(title, content, user_photo=None):
                 pp.font.color.rgb = theme['text_dark']
                 pp.font.name = "Calibri"
                 pp.space_after = PptxPt(10)
+
         if sdata.get('charts'):
             cd = sdata['charts'][0]
-            ci = create_chart_image(cd['type'], cd['title'], cd['labels'], cd['values'], cd.get('units', ''), theme.get('chart_colors'))
+            ci = create_chart_image(
+                cd['type'],
+                cd['title'],
+                cd['labels'],
+                cd['values'],
+                cd.get('units', ''),
+                theme.get('chart_colors')
+            )
             if ci:
                 sl.shapes.add_picture(ci, PptxInches(7.5), PptxInches(1.3), PptxInches(5.3), PptxInches(3.5))
+
         elif sdata.get('images'):
             img = download_image(sdata['images'][0]['query'])
             if img:
@@ -688,29 +783,34 @@ def create_pptx_presentation(title, content, user_photo=None):
                     cp.font.italic = True
                     cp.font.color.rgb = PptxRGB(140, 140, 140)
                     cp.alignment = PP_ALIGN.CENTER
-                except:
+                except Exception:
                     pass
+
         if sdata.get('notes'):
             sl.notes_slide.notes_text_frame.text = sdata['notes']
+
         ft2 = sl.shapes.add_textbox(PptxInches(0.7), PptxInches(6.95), PptxInches(12), PptxInches(0.35))
         fp = ft2.text_frame.paragraphs[0]
         fp.text = f"{BOT_NAME}  {sdata['title'][:50]}"
         fp.font.size = PptxPt(9)
         fp.font.color.rgb = PptxRGB(170, 170, 170)
 
-    # Финальный
+    # Финальный слайд
     sl = prs.slides.add_slide(prs.slide_layouts[6])
     bg = sl.background
     fill = bg.fill
     fill.solid()
     fill.fore_color.rgb = theme['bg_dark']
+
     s = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, sw, PptxInches(0.12))
     s.fill.solid()
     s.fill.fore_color.rgb = theme['accent']
     s.line.fill.background()
+
     tb = sl.shapes.add_textbox(PptxInches(1), PptxInches(2.2), PptxInches(11.333), PptxInches(2.5))
     tf = tb.text_frame
     tf.word_wrap = True
+
     p = tf.paragraphs[0]
     p.text = "Спасибо за внимание!"
     p.font.size = PptxPt(44)
@@ -718,15 +818,18 @@ def create_pptx_presentation(title, content, user_photo=None):
     p.font.color.rgb = theme['text_light']
     p.font.name = "Georgia"
     p.alignment = PP_ALIGN.CENTER
+
     p2 = tf.add_paragraph()
     p2.text = f"Создано в {BOT_NAME}"
     p2.font.size = PptxPt(18)
     p2.font.color.rgb = theme['subtitle']
     p2.alignment = PP_ALIGN.CENTER
+
     s2 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, sh - PptxInches(0.12), sw, PptxInches(0.12))
     s2.fill.solid()
     s2.fill.fore_color.rgb = theme['accent']
     s2.line.fill.background()
+
     buf = io.BytesIO()
     prs.save(buf)
     buf.seek(0)
@@ -738,16 +841,20 @@ def create_word_document(title, content):
     doc = Document()
     doc.styles['Normal'].font.name = 'Times New Roman'
     doc.styles['Normal'].font.size = Pt(12)
+
     h = doc.add_heading(title, level=0)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     for r in h.runs:
         r.font.color.rgb = RGBColor(26, 54, 93)
+
     dp = doc.add_paragraph()
     dp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     dr = dp.add_run(f"Дата: {datetime.now().strftime('%d.%m.%Y')}")
     dr.font.size = Pt(10)
     dr.font.color.rgb = RGBColor(128, 128, 128)
+
     doc.add_paragraph()
+
     for line in content.split('\n'):
         s = line.strip()
         if not s:
@@ -767,6 +874,7 @@ def create_word_document(title, content):
                 if part:
                     run = p.add_run(part)
                     run.bold = (idx % 2 == 1)
+
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
@@ -778,13 +886,18 @@ def create_excel_document(title, content):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = title[:31]
+
     hf = Font(name='Arial', size=12, bold=True, color='FFFFFF')
     hfl = PatternFill(start_color='1A365D', end_color='1A365D', fill_type='solid')
     ha = Alignment(horizontal='center', vertical='center', wrap_text=True)
     cf = Font(name='Arial', size=11)
     ca = Alignment(vertical='center', wrap_text=True)
-    bd = Border(left=Side(style='thin'), right=Side(style='thin'),
-                top=Side(style='thin'), bottom=Side(style='thin'))
+    bd = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
     alt_fill = PatternFill(start_color='F0F4FA', end_color='F0F4FA', fill_type='solid')
 
     chart_info = parse_excel_chart(content)
@@ -792,6 +905,7 @@ def create_excel_document(title, content):
 
     tl = [l.strip() for l in clean_content.split('\n') if l.strip() and '|' in l]
     rn = 0
+
     if tl:
         for line in tl:
             if all(c in '-| ' for c in line):
@@ -810,7 +924,7 @@ def create_excel_document(title, content):
                     try:
                         num = float(v.replace(' ', '').replace(',', '.'))
                         cell.value = num
-                    except:
+                    except Exception:
                         pass
 
     for col in ws.columns:
@@ -831,13 +945,16 @@ def create_excel_document(title, content):
                 else:
                     chart = BarChart()
                     chart.style = 10
+
                 chart.title = chart_info.get('title', 'Диаграмма')
                 chart.width = 20
                 chart.height = 12
+
                 data = Reference(ws, min_col=2, min_row=1, max_col=max_col, max_row=max_row)
                 cats = Reference(ws, min_col=1, min_row=2, max_row=max_row)
                 chart.add_data(data, titles_from_data=True)
                 chart.set_categories(cats)
+
                 ws_chart = wb.create_sheet("Диаграмма")
                 ws_chart.add_chart(chart, "A1")
         except Exception as e:
@@ -867,6 +984,7 @@ def detect_document_request(text):
                 t = s[:60]
                 break
         return ('pptx', t, c)
+
     elif '[WORD_DOC]' in text:
         parts = text.split('[WORD_DOC]', 1)
         c = parts[1].strip() if len(parts) > 1 else text
@@ -879,6 +997,7 @@ def detect_document_request(text):
                 t = l.strip()[:60]
                 break
         return ('word', t, c)
+
     elif '[EXCEL_DOC]' in text:
         parts = text.split('[EXCEL_DOC]', 1)
         c = parts[1].strip() if len(parts) > 1 else text
@@ -888,10 +1007,12 @@ def detect_document_request(text):
                 t = l.strip()[:31]
                 break
         return ('excel', t, c)
+
     elif '[HTML_TEST]' in text:
         parts = text.split('[HTML_TEST]', 1)
         c = parts[1].strip() if len(parts) > 1 else text
         return ('html', 'Интерактивный тест', c)
+
     return (None, '', '')
 
 # ─── Клавиатура ───────────────────────────────────────────────
@@ -913,36 +1034,55 @@ async def generate_document(update, context, uid, fmt, topic=None):
     if not check_generation_limit(uid):
         await safe_reply(update, GENERATION_LIMIT_MESSAGE)
         return
+
     h = get_history(uid)
     has = any(m['role'] == 'assistant' for m in h)
-    prompts = {'pptx': PPTX_PROMPT, 'word': WORD_PROMPT, 'excel': EXCEL_PROMPT, 'html': HTML_TEST_PROMPT}
+
+    prompts = {
+        'pptx': PPTX_PROMPT,
+        'word': WORD_PROMPT,
+        'excel': EXCEL_PROMPT,
+        'html': HTML_TEST_PROMPT
+    }
     labels = {
         'pptx': 'Создаю презентацию...',
         'word': 'Создаю Word...',
         'excel': 'Создаю Excel...',
         'html': 'Создаю интерактивный тест (может занять минуту)...',
     }
+
     await safe_reply(update, labels.get(fmt, 'Создаю...'))
-    base = f"На основе нашего диалога создай {fmt}." if has and not topic else f"Создай по теме: {topic or 'материал'}"
+
+    base = (
+        f"На основе нашего диалога создай {fmt}."
+        if has and not topic
+        else f"Создай по теме: {topic or 'материал'}"
+    )
+
     tok = 4096
     answer = ask_claude(uid, base + prompts.get(fmt, ''), max_tokens=tok)
     dt, dtitle, dcontent = detect_document_request(answer)
+
     if not dt:
         await safe_reply(update, "Не удалось. Обсудите тему подробнее и попробуйте снова.")
         return
+
     use_generation(uid)
     user_photo = context.user_data.get('last_photo_for_pptx')
+
     if dt == 'pptx':
         photo_io = None
         if user_photo:
             photo_io = io.BytesIO(base64.b64decode(user_photo['base64']))
             context.user_data['last_photo_for_pptx'] = None
+
         buf = create_pptx_presentation(dtitle, dcontent, user_photo=photo_io)
         await update.message.reply_document(
             document=buf,
             filename=f"{dtitle[:30].replace(' ', '_')}.pptx",
             caption=f"{dtitle}",
         )
+
     elif dt == 'word':
         buf = create_word_document(dtitle, dcontent)
         await update.message.reply_document(
@@ -950,6 +1090,7 @@ async def generate_document(update, context, uid, fmt, topic=None):
             filename=f"{dtitle[:30].replace(' ', '_')}.docx",
             caption=f"{dtitle}",
         )
+
     elif dt == 'excel':
         buf = create_excel_document(dtitle, dcontent)
         await update.message.reply_document(
@@ -957,16 +1098,20 @@ async def generate_document(update, context, uid, fmt, topic=None):
             filename=f"{dtitle[:30].replace(' ', '_')}.xlsx",
             caption=f"{dtitle}",
         )
+
     elif dt == 'html':
         html_content = dcontent.strip()
         html_content = re.sub(r'^```\\w*\\n?', '', html_content)
         if html_content.endswith('```'):
             html_content = html_content[:-3]
+
         if not html_content.strip().lower().startswith('<!doctype') and not html_content.strip().startswith('<html'):
             html_content = '<!DOCTYPE html>\n<html lang="ru">\n<head><meta charset="UTF-8"></head>\n<body>\n' + html_content + '\n</body></html>'
+
         html_buf = io.BytesIO(html_content.encode('utf-8'))
         safe_title = re.sub(r'[^\w\s-]', '', dtitle)[:20].replace(' ', '_') or 'Test'
         html_buf.name = f"Тест_{safe_title}.html"
+
         await update.message.reply_document(
             document=html_buf,
             filename=html_buf.name,
@@ -980,10 +1125,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_user_info(uid, update.effective_user.first_name, update.effective_user.username)
     ql, gl = get_limit_status(uid)
     tariff = get_tariff(uid)
+
     kb = [
         [InlineKeyboardButton("План урока", callback_data="plan"), InlineKeyboardButton("Тест", callback_data="test")],
         [InlineKeyboardButton("Идеи", callback_data="ideas"), InlineKeyboardButton("ОГЭ/ЕГЭ", callback_data="ege")],
     ]
+
     w = (
         f"Добро пожаловать в {BOT_NAME}!\n\n"
         "ИИ-помощник для учителей любого предмета.\n\n"
@@ -997,6 +1144,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Тариф: {tariff['name']}\n"
         f"Запросов: {ql} | Оформлений: {gl}"
     )
+
     await update.message.reply_text(w, reply_markup=InlineKeyboardMarkup(kb))
     await update.message.reply_text("Кнопки:", reply_markup=PERSISTENT_KEYBOARD)
 
@@ -1036,7 +1184,7 @@ async def word_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await generate_document(update, context, update.effective_user.id, 'word', ' '.join(context.args) if context.args else None)
 
 async def excel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await generate_document(update, context, update.effective_user.id, 'excel', ' '.join(context.args) если context.args else None)
+    await generate_document(update, context, update.effective_user.id, 'excel', ' '.join(context.args) if context.args else None)
 
 BUTTON_PROMPTS = {
     "plan": "Тема, предмет, класс:\nПлан урока: Фотосинтез, биология, 6 класс",
@@ -1056,20 +1204,26 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not check_query_limit(uid):
         await safe_reply(update, LIMIT_MESSAGE)
         return
+
     doc = update.message.document
     caption = update.message.caption or ""
     fn = doc.file_name or "file"
     ext = fn.rsplit('.', 1)[-1].lower() if '.' in fn else ""
+
     if ext not in ['docx', 'doc', 'pdf', 'xlsx', 'xls', 'txt', 'csv']:
         await safe_reply(update, f".{ext} не поддерживается.")
         return
+
     await update.message.chat.send_action('typing')
     await safe_reply(update, f"Читаю {fn}...")
+
     try:
         file = await doc.get_file()
         fp = f"/tmp/doc_{uid}.{ext}"
         await file.download_to_drive(fp)
+
         et = ""
+
         if ext == 'docx':
             try:
                 d = DocxDocument(fp)
@@ -1082,6 +1236,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 et = '\n'.join(parts)
             except Exception as e:
                 logger.error(f"docx:{e}")
+
         elif ext == 'pdf':
             try:
                 with open(fp, 'rb') as f:
@@ -1089,6 +1244,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     et = '\n'.join(pg.extract_text() or '' for pg in reader.pages)
             except Exception as e:
                 logger.error(f"pdf:{e}")
+
         elif ext in ['xlsx', 'xls']:
             try:
                 wb2 = openpyxl.load_workbook(fp, read_only=True)
@@ -1104,23 +1260,29 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 wb2.close()
             except Exception as e:
                 logger.error(f"xlsx:{e}")
+
         elif ext in ['txt', 'csv']:
             try:
                 with open(fp, 'r', encoding='utf-8') as f:
                     et = f.read()
-            except:
+            except Exception:
                 with open(fp, 'r', encoding='cp1251') as f:
                     et = f.read()
+
         try:
             os.remove(fp)
-        except:
+        except Exception:
             pass
+
         if not et or len(et.strip()) < 10:
             await safe_reply(update, "Не удалось извлечь текст.")
             return
+
         if len(et) > 12000:
             et = et[:12000] + "\n\n[...обрезано...]"
+
         await safe_reply(update, f"Извлечено {len(et)} символов")
+
         if caption:
             use_query(uid)
             answer = ask_claude(uid, f"Документ {fn}:\n\n{et}\n\n{caption}")
@@ -1129,6 +1291,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['last_document'] = et
             context.user_data['last_document_name'] = fn
             await safe_reply(update, "Файл прочитан! Что сделать?\n- Создай тест\n- План урока\n- Выбери ключевые темы")
+
     except Exception as e:
         logger.error(f"Doc:{e}")
         await safe_reply(update, "Ошибка при обработке файла.")
@@ -1138,31 +1301,40 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not check_query_limit(uid):
         await safe_reply(update, LIMIT_MESSAGE)
         return
+
     await update.message.chat.send_action('typing')
     await safe_reply(update, "Распознаю...")
+
     try:
         v = update.message.voice or update.message.audio
         f = await v.get_file()
         op = f"/tmp/voice_{uid}.ogg"
         wp = f"/tmp/voice_{uid}.wav"
+
         await f.download_to_drive(op)
         subprocess.run(['ffmpeg', '-y', '-i', op, '-ar', '16000', '-ac', '1', wp], capture_output=True, timeout=30)
+
         rec = sr.Recognizer()
         with sr.AudioFile(wp) as src:
             audio = rec.record(src)
+
         text = rec.recognize_google(audio, language="ru-RU")
+
         try:
             os.remove(op)
             os.remove(wp)
-        except:
+        except Exception:
             pass
+
         if not text:
             await safe_reply(update, "Не удалось распознать.")
             return
+
         await safe_reply(update, f"Распознано: {text}")
         use_query(uid)
         answer = ask_claude(uid, text)
         await safe_reply(update, clean_for_chat(answer))
+
     except sr.UnknownValueError:
         await safe_reply(update, "Не распознано.")
     except Exception as e:
@@ -1174,12 +1346,15 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not check_query_limit(uid):
         await safe_reply(update, LIMIT_MESSAGE)
         return
+
     caption = update.message.caption or ""
     await update.message.chat.send_action('typing')
+
     photo = update.message.photo[-1]
     f = await photo.get_file()
     pb = await f.download_as_bytearray()
     idata = {'base64': base64.b64encode(bytes(pb)).decode('utf-8'), 'mime': 'image/jpeg'}
+
     if not caption:
         await safe_reply(
             update,
@@ -1193,11 +1368,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['last_photo'] = idata
         context.user_data['last_photo_for_pptx'] = idata
         return
+
     cl = caption.lower()
     if any(kw in cl for kw in ['вставь в презентац', 'добавь в презентац', 'в слайд']):
         context.user_data['last_photo_for_pptx'] = idata
         await safe_reply(update, "Фото сохранено! Теперь нажмите 'Оформить презентацию' и оно будет вставлено на титульный слайд.")
         return
+
     await safe_reply(update, "Анализирую...")
     use_query(uid)
     answer = ask_claude(uid, f"Изображение. {caption}\n\nПроанализируй и ответь.", image_data=idata)
@@ -1215,48 +1392,40 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await update.message.reply_text("Выберите:", reply_markup=InlineKeyboardMarkup(kb))
         return
+
     if text == "💰 Баланс":
         await safe_reply(update, get_balance_text(uid))
         return
+
     if text == "📽 Оформить презентацию":
         await generate_document(update, context, uid, 'pptx')
         return
+
     if text == "📄 Оформить Word":
         await generate_document(update, context, uid, 'word')
         return
+
     if text == "📊 Оформить Excel":
         await generate_document(update, context, uid, 'excel')
         return
+
     if text == "🧪 Тест HTML":
         await generate_document(update, context, uid, 'html')
         return
+
     if text == "❓ Помощь":
         await help_command(update, context)
         return
 
     # ФИПИ: формат "фипи география огэ 1"
-    low = text.lower().strip()
-    if low.startswith("фипи география огэ"):
-        parts = low.split()
-        kim_num = None
-        if len(parts) >= 4 and parts[3].isdigit():
-            kim_num = int(parts[3])
-        task = get_fipi_task_geography_oge(kim_num) if kim_num else get_fipi_task_geography_oge()
+    cmd = parse_fipi_command(text)
+    if cmd and cmd["subject"] == "география" and cmd["exam"] == "огэ":
+        task = get_fipi_task_geography_oge(cmd["kim_number"])
         if not task:
             await safe_reply(update, "Не нашёл заданий по таким параметрам.")
             return
-        text_task = task.get("text") or ""
-        options = task.get("options") or ""
-        answer = task.get("answer") or ""
-        diff = task.get("difficulty") or ""
-        topic = task.get("topic") or ""
-        kim = task.get("kim_number") or ""
-        msg = f"КИМ {kim}, тема: {topic}, сложность: {diff}★\n\n{text_task}"
-        if options:
-            opts_list = options.split("|")
-            msg += "\n\nВарианты ответа:\n" + "\n".join(opts_list)
-        msg += f"\n\nПравильный ответ: {answer}"
-        await safe_reply(update, msg)
+
+        await safe_reply(update, format_fipi_task(task))
         return
 
     if not check_query_limit(uid):
@@ -1301,6 +1470,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
         answer = ask_claude(uid, chart_prompt)
         chart_match = re.findall(r'\[CHART_DATA\](.*?)\[/CHART_DATA\]', answer, re.DOTALL)
+
         if chart_match:
             cd = {'type': 'bar', 'title': '', 'labels': [], 'values': [], 'units': ''}
             for l in chart_match[0].strip().split('\n'):
@@ -1314,17 +1484,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 elif l.startswith('ЗНАЧЕНИЯ:'):
                     try:
                         cd['values'] = [float(x.strip().replace(' ', '')) for x in l[9:].split(',')]
-                    except:
+                    except Exception:
                         pass
                 elif l.startswith('ЕДИНИЦЫ:'):
                     cd['units'] = l[8:].strip()
+
             if cd['labels'] and cd['values']:
                 clean = re.sub(r'\[CHART_DATA\].*?\[/CHART_DATA\]', '', answer, flags=re.DOTALL).strip()
                 if clean:
                     await safe_reply(update, clean)
+
                 chart_img = create_chart_image(cd['type'], cd['title'], cd['labels'], cd['values'], cd['units'])
                 await update.message.reply_photo(photo=chart_img, caption=cd['title'])
                 return
+
         await safe_reply(update, clean_for_chat(answer))
         return
 
@@ -1337,15 +1510,18 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update and update.message:
         try:
             await update.message.reply_text("Ошибка. Попробуйте /clear и повторите.")
-        except:
+        except Exception:
             pass
 
 def main():
     if not TELEGRAM_TOKEN or not ANTHROPIC_API_KEY:
         print("Нет токенов!")
         return
+
     print(f"{BOT_NAME} v{BOT_VERSION} запускается...")
+
     app = Application.builder().token(TELEGRAM_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("clear", clear_history_cmd))
@@ -1354,12 +1530,15 @@ def main():
     app.add_handler(CommandHandler("pptx", pptx_command))
     app.add_handler(CommandHandler("word", word_command))
     app.add_handler(CommandHandler("excel", excel_command))
+
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
     app.add_error_handler(error_handler)
+
     print(f"{BOT_NAME} v{BOT_VERSION} запущен!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
