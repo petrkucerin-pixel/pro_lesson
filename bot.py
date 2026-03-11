@@ -132,7 +132,7 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
 BOT_NAME = "ПроУрок"
-BOT_VERSION = "1.3"
+BOT_VERSION = "1.4"
 SUPPORT_BOT_URL = "https://t.me/pro_lessen_help_bot"
 
 TARIFFS = {
@@ -483,6 +483,49 @@ def add_to_history(uid, role, content):
     h.append({"role": role, "content": content})
     if len(h) > MAX_HISTORY:
         user_conversations[uid] = h[-MAX_HISTORY:]
+
+
+# ─── Предобработка запросов ───────────────────────────────────
+
+SUBJECT_FIXES = {
+    'обж': 'Основы безопасности и защиты Родины',
+    'по обж': 'по Основам безопасности и защиты Родины',
+    'урок обж': 'урок Основ безопасности и защиты Родины',
+    'технологи': 'Труду (технологии)',  # частичное совпадение
+}
+
+def preprocess_message(text):
+    """
+    Проверяет сообщение до отправки в Claude.
+    Возвращает (modified_text, early_reply) где:
+      - modified_text: текст для отправки в Claude (с исправлениями)
+      - early_reply: строка для немедленного ответа пользователю (или None)
+    """
+    tl = text.lower()
+
+    # Математика без уточнения курса
+    math_words = ['математик', 'по матем', 'урок матем', 'контрольн', 'тест по матем', 'план урока по матем', 'кр по матем']
+    course_words = ['алгебр', 'геометр', 'вероятност', 'статистик']
+    if any(w in tl for w in math_words) and not any(w in tl for w in course_words):
+        return text, (
+            "Уточните, пожалуйста, по какому курсу:\n\n"
+            "• Алгебра\n"
+            "• Геометрия\n"
+            "• Вероятность и статистика\n\n"
+            "Напишите, например: «контрольная по алгебре, 8 класс»"
+        )
+
+    # Автозамена ОБЖ → правильное название
+    modified = text
+    if 'обж' in tl:
+        modified = re.sub(r'(?i)\bобж\b', 'Основы безопасности и защиты Родины', modified)
+
+    # Автозамена Технология → Труд (технология)
+    if re.search(r'(?i)\bтехнологи[яиюей]\b', modified):
+        modified = re.sub(r'(?i)\bтехнологи([яиюей])\b', r'Труду (технологии)', modified)
+        modified = re.sub(r'(?i)\bтехнологи([яиюей])\b', r'Труд (технология)', modified)
+
+    return modified, None
 
 def ask_claude(uid, msg, image_data=None, max_tokens=4096):
     if image_data:
@@ -1668,8 +1711,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_reply(update, clean_for_chat(answer))
         return
 
+    # Предобработка: проверка предмета и автозамена
+    processed_text, early_reply = preprocess_message(text)
+    if early_reply:
+        await safe_reply(update, early_reply)
+        return
+
     use_query(uid)
-    answer = ask_claude(uid, text)
+    answer = ask_claude(uid, processed_text)
     await safe_reply(update, clean_for_chat(answer))
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1691,7 +1740,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("clear", clear_history_cmd))
+    app.add_handler(CommandHandler("clear", clean_history_cmd))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("balance", balance_command))
     app.add_handler(CommandHandler("pptx", pptx_command))
