@@ -1229,9 +1229,9 @@ def detect_document_request(text):
 
 PERSISTENT_KEYBOARD = ReplyKeyboardMarkup(
     [
-        [KeyboardButton("? Меню"), KeyboardButton("? Баланс")],
-        [KeyboardButton("? Оформить презентацию"), KeyboardButton("? Оформить Word")],
-        [KeyboardButton("? Оформить Excel"), KeyboardButton("? Тест HTML")],
+        [KeyboardButton("📋 Меню"), KeyboardButton("💰 Баланс")],
+        [KeyboardButton("📽 Оформить презентацию"), KeyboardButton("📄 Оформить Word")],
+        [KeyboardButton("📊 Оформить Excel"), KeyboardButton("🧪 Тест HTML")],
         [KeyboardButton("❓ Помощь")],
     ],
     resize_keyboard=True,
@@ -1595,7 +1595,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     # Кнопки
-    if text == "? Меню":
+    if text == "📋 Меню":
         kb = [
             [InlineKeyboardButton("План урока", callback_data="plan"), InlineKeyboardButton("Тест", callback_data="test")],
             [InlineKeyboardButton("Идеи", callback_data="ideas"), InlineKeyboardButton("ОГЭ/ЕГЭ", callback_data="ege")],
@@ -1603,23 +1603,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Выберите:", reply_markup=InlineKeyboardMarkup(kb))
         return
 
-    if text == "? Баланс":
+    if text == "💰 Баланс":
         await safe_reply(update, get_balance_text(uid))
         return
 
-    if text == "? Оформить презентацию":
+    if text == "📽 Оформить презентацию":
         await generate_document(update, context, uid, 'pptx')
         return
 
-    if text == "? Оформить Word":
+    if text == "📄 Оформить Word":
         await generate_document(update, context, uid, 'word')
         return
 
-    if text == "? Оформить Excel":
+    if text == "📊 Оформить Excel":
         await generate_document(update, context, uid, 'excel')
         return
 
-    if text == "? Тест HTML":
+    if text == "🧪 Тест HTML":
         await generate_document(update, context, uid, 'html')
         return
 
