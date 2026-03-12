@@ -16,6 +16,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
+import threading
 
 # ─────────────────────────────────────────────────────────────
 # КОНФИГ
@@ -199,21 +200,25 @@ def verify_reset_token(token: str):
 # EMAIL
 # ─────────────────────────────────────────────────────────────
 
-def send_email(to: str, subject: str, html: str) -> bool:
+def _send_email_sync(to: str, subject: str, html: str):
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"ПроУрок <{SMTP_EMAIL}>"
         msg["To"] = to
-        msg.attach(MIMEText(html, "html", "utf-8"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+        msg.attach(MIMEText(html, "utf-8"))
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
             s.starttls()
             s.login(SMTP_EMAIL, SMTP_PASSWORD)
             s.sendmail(SMTP_EMAIL, to, msg.as_string())
-        return True
+        print(f"Email sent to {to}")
     except Exception as e:
         print(f"Email error: {e}")
-        return False
+
+def send_email(to: str, subject: str, html: str) -> bool:
+    t = threading.Thread(target=_send_email_sync, args=(to, subject, html), daemon=True)
+    t.start()
+    return True
 
 def send_reset_email(email: str, token: str) -> bool:
     link = f"{BASE_URL}/reset.html?token={token}"
