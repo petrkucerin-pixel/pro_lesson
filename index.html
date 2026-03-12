@@ -7,153 +7,182 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #181c27;
-    --surface2: #1e2435;
-    --border: #2a3045;
-    --accent: #4f7cff;
-    --accent2: #7c5cfc;
-    --gold: #e8c87a;
-    --text: #e8eaf0;
-    --muted: #7a8099;
-    --success: #4ade80;
-    --error: #f87171;
+    --bg: #0f1117; --surface: #181c27; --surface2: #1e2435;
+    --border: #2a3045; --accent: #4f7cff; --accent2: #7c5cfc;
+    --gold: #e8c87a; --text: #e8eaf0; --muted: #7a8099;
+    --success: #4ade80; --error: #f87171; --teal: #5bb8b0;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Geologica', sans-serif;
-    font-weight: 300;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 32px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(15,17,23,0.85);
-    backdrop-filter: blur(12px);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-icon {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-  }
-  .logo-text { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-  .logo-text span { color: var(--gold); }
-  .logo-badge { font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-left: 2px; vertical-align: super; }
-  .header-right { display: flex; align-items: center; gap: 20px; }
-  .tariff-badge { font-size: 12px; font-weight: 500; color: var(--gold); background: rgba(232,200,122,0.1); border: 1px solid rgba(232,200,122,0.2); padding: 4px 12px; border-radius: 20px; }
-  .balance-info { font-size: 12px; color: var(--muted); }
-  .balance-info b { color: var(--text); font-weight: 500; }
-  .app { display: grid; grid-template-columns: 260px 1fr 280px; flex: 1; position: relative; z-index: 1; }
-  .sidebar { border-right: 1px solid var(--border); padding: 24px 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(24,28,39,0.6); }
-  .sidebar-label { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; padding: 8px 12px 4px; }
-  .mode-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: all 0.2s; font-size: 14px; border: 1px solid transparent; background: transparent; color: var(--muted); text-align: left; width: 100%; font-family: 'Geologica', sans-serif; }
-  .mode-btn:hover { background: var(--surface2); color: var(--text); }
-  .mode-btn.active { background: linear-gradient(135deg, rgba(79,124,255,0.15), rgba(124,92,252,0.15)); border-color: rgba(79,124,255,0.3); color: var(--text); }
-  .mode-btn .icon { font-size: 18px; width: 24px; text-align: center; }
-  .mode-btn .label { flex: 1; font-weight: 400; }
-  .sidebar-divider { height: 1px; background: var(--border); margin: 8px 0; }
-  .chat-area { display: flex; flex-direction: column; height: calc(100vh - 61px); }
-  .chat-messages { flex: 1; overflow-y: auto; padding: 32px 40px; display: flex; flex-direction: column; gap: 24px; }
-  .chat-messages::-webkit-scrollbar { width: 4px; }
-  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 16px; text-align: center; padding: 60px 40px; animation: fadeUp 0.6s ease forwards; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .welcome-icon { font-size: 48px; margin-bottom: 8px; }
-  .welcome h2 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-  .welcome p { color: var(--muted); font-size: 15px; max-width: 400px; line-height: 1.6; }
-  .quick-prompts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; width: 100%; max-width: 560px; }
-  .quick-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: left; cursor: pointer; transition: all 0.2s; color: var(--text); font-family: 'Geologica', sans-serif; font-size: 13px; line-height: 1.4; }
-  .quick-btn:hover { background: var(--surface2); border-color: rgba(79,124,255,0.4); transform: translateY(-1px); }
-  .quick-btn .q-icon { font-size: 20px; display: block; margin-bottom: 6px; }
-  .quick-btn .q-text { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .message { display: flex; gap: 14px; animation: fadeUp 0.3s ease forwards; }
-  .message.user { flex-direction: row-reverse; }
-  .msg-avatar { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-  .msg-avatar.bot { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
-  .msg-avatar.user-av { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: 13px; font-weight: 600; }
-  .msg-bubble { max-width: 72%; padding: 14px 18px; border-radius: 16px; font-size: 14px; line-height: 1.65; }
-  .message.bot .msg-bubble { background: var(--surface); border: 1px solid var(--border); border-top-left-radius: 4px; white-space: pre-wrap; }
-  .message.user .msg-bubble { background: linear-gradient(135deg, rgba(79,124,255,0.2), rgba(124,92,252,0.2)); border: 1px solid rgba(79,124,255,0.25); border-top-right-radius: 4px; }
-  .msg-meta { font-size: 11px; color: var(--muted); margin-top: 6px; padding: 0 4px; }
-  .message.user .msg-meta { text-align: right; }
-  .output-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-  .out-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-family: 'Geologica', sans-serif; }
-  .out-btn:hover { color: var(--text); border-color: var(--accent); }
-  .input-area { padding: 20px 40px 28px; border-top: 1px solid var(--border); background: rgba(15,17,23,0.8); backdrop-filter: blur(12px); }
-  .input-wrap { display: flex; align-items: flex-end; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px; transition: border-color 0.2s; }
-  .input-wrap:focus-within { border-color: rgba(79,124,255,0.5); }
-  .chat-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: 'Geologica', sans-serif; font-size: 14px; font-weight: 300; resize: none; min-height: 22px; max-height: 140px; line-height: 1.5; }
-  .chat-input::placeholder { color: var(--muted); }
-  .send-btn { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 16px; }
-  .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(79,124,255,0.4); }
-  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .input-hint { font-size: 11px; color: var(--muted); margin-top: 10px; text-align: center; }
-  .right-panel { border-left: 1px solid var(--border); padding: 24px 20px; background: rgba(24,28,39,0.6); display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-  .panel-section h4 { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
-  .subject-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .subj-btn { padding: 8px 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-family: 'Geologica', sans-serif; }
-  .subj-btn:hover, .subj-btn.active { border-color: rgba(79,124,255,0.4); color: var(--text); background: var(--surface2); }
-  .subj-btn .s-icon { font-size: 16px; display: block; margin-bottom: 3px; }
-  .fgos-card { background: linear-gradient(135deg, rgba(79,124,255,0.08), rgba(124,92,252,0.08)); border: 1px solid rgba(79,124,255,0.2); border-radius: 12px; padding: 14px; font-size: 12px; line-height: 1.6; color: var(--muted); }
-  .fgos-card .fgos-title { color: var(--accent); font-weight: 600; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
-  .stat-card .stat-val { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: var(--text); }
-  .stat-card .stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .history-item { padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; margin-bottom: 6px; }
-  .history-item:hover { border-color: rgba(79,124,255,0.3); }
-  .history-item .h-subj { font-size: 10px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-  .history-item .h-text { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .typing { display: flex; gap: 4px; align-items: center; padding: 16px 18px; }
-  .typing span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: bounce 1.2s infinite; }
-  .typing span:nth-child(2) { animation-delay: 0.2s; }
-  .typing span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
-  .glow-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; box-shadow: 0 0 6px var(--success); animation: pulse 2s infinite; display: inline-block; margin-right: 6px; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .status-line { font-size: 11px; color: var(--muted); display: flex; align-items: center; }
-  .error-msg { color: var(--error); font-size: 13px; padding: 12px 16px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Geologica',sans-serif; font-weight:300; min-height:100vh; display:flex; flex-direction:column; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:0.4; }
+
+  /* ── LOGIN SCREEN ── */
+  #loginScreen { position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; align-items:center; justify-content:center; }
+  .login-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:48px 40px; width:100%; max-width:420px; text-align:center; animation:fadeUp 0.5s ease forwards; }
+  .login-logo { margin-bottom:24px; }
+  .login-logo svg { width:64px; height:64px; }
+  .login-title { font-family:'Playfair Display',serif; font-size:28px; font-weight:700; letter-spacing:-0.5px; margin-bottom:6px; }
+  .login-title span { color:var(--gold); }
+  .login-sub { color:var(--muted); font-size:14px; margin-bottom:32px; line-height:1.5; }
+  .login-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; color:var(--text); font-family:'Geologica',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; margin-bottom:12px; }
+  .login-input:focus { border-color:rgba(79,124,255,0.5); }
+  .login-input::placeholder { color:var(--muted); }
+  .login-btn { width:100%; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:12px; padding:14px; color:#fff; font-family:'Geologica',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .login-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(79,124,255,0.35); }
+  .login-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  .login-msg { font-size:13px; margin-top:14px; min-height:20px; }
+  .login-msg.ok { color:var(--success); }
+  .login-msg.err { color:var(--error); }
+  .login-hint { font-size:11px; color:var(--muted); margin-top:20px; line-height:1.6; }
+
+  /* ── HEADER ── */
+  header { display:flex; align-items:center; justify-content:space-between; padding:14px 32px; border-bottom:1px solid var(--border); background:rgba(15,17,23,0.85); backdrop-filter:blur(12px); position:sticky; top:0; z-index:100; }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo svg { width:32px; height:32px; }
+  .logo-text { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; letter-spacing:-0.5px; }
+  .logo-text span { color:var(--gold); }
+  .logo-badge { font-size:10px; font-weight:500; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-left:2px; vertical-align:super; }
+  .header-right { display:flex; align-items:center; gap:16px; }
+  .tariff-badge { font-size:12px; font-weight:500; color:var(--gold); background:rgba(232,200,122,0.1); border:1px solid rgba(232,200,122,0.2); padding:4px 12px; border-radius:20px; }
+  .balance-info { font-size:12px; color:var(--muted); }
+  .balance-info b { color:var(--text); font-weight:500; }
+  .user-email { font-size:12px; color:var(--muted); }
+  .logout-btn { font-size:12px; color:var(--muted); background:none; border:1px solid var(--border); border-radius:8px; padding:4px 10px; cursor:pointer; font-family:'Geologica',sans-serif; transition:all 0.2s; }
+  .logout-btn:hover { color:var(--text); border-color:var(--accent); }
+  .glow-dot { width:6px; height:6px; background:var(--success); border-radius:50%; box-shadow:0 0 6px var(--success); animation:pulse 2s infinite; display:inline-block; margin-right:6px; }
+  .status-line { font-size:11px; color:var(--muted); display:flex; align-items:center; }
+
+  /* ── APP ── */
+  .app { display:grid; grid-template-columns:260px 1fr 280px; flex:1; position:relative; z-index:1; }
+  .sidebar { border-right:1px solid var(--border); padding:24px 16px; display:flex; flex-direction:column; gap:8px; background:rgba(24,28,39,0.6); }
+  .sidebar-label { font-size:10px; font-weight:600; color:var(--muted); letter-spacing:2px; text-transform:uppercase; padding:8px 12px 4px; }
+  .mode-btn { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; cursor:pointer; transition:all 0.2s; font-size:14px; border:1px solid transparent; background:transparent; color:var(--muted); text-align:left; width:100%; font-family:'Geologica',sans-serif; }
+  .mode-btn:hover { background:var(--surface2); color:var(--text); }
+  .mode-btn.active { background:linear-gradient(135deg,rgba(79,124,255,0.15),rgba(124,92,252,0.15)); border-color:rgba(79,124,255,0.3); color:var(--text); }
+  .mode-btn .icon { font-size:18px; width:24px; text-align:center; }
+  .mode-btn .label { flex:1; font-weight:400; }
+  .sidebar-divider { height:1px; background:var(--border); margin:8px 0; }
+  .chat-area { display:flex; flex-direction:column; height:calc(100vh - 61px); }
+  .chat-messages { flex:1; overflow-y:auto; padding:32px 40px; display:flex; flex-direction:column; gap:24px; }
+  .chat-messages::-webkit-scrollbar { width:4px; }
+  .chat-messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .welcome { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:16px; text-align:center; padding:60px 40px; animation:fadeUp 0.6s ease forwards; }
+  .welcome-icon { font-size:48px; margin-bottom:8px; }
+  .welcome h2 { font-family:'Playfair Display',serif; font-size:28px; font-weight:700; letter-spacing:-0.5px; }
+  .welcome p { color:var(--muted); font-size:15px; max-width:400px; line-height:1.6; }
+  .quick-prompts { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; width:100%; max-width:560px; }
+  .quick-btn { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:left; cursor:pointer; transition:all 0.2s; color:var(--text); font-family:'Geologica',sans-serif; font-size:13px; line-height:1.4; }
+  .quick-btn:hover { background:var(--surface2); border-color:rgba(79,124,255,0.4); transform:translateY(-1px); }
+  .quick-btn .q-icon { font-size:20px; display:block; margin-bottom:6px; }
+  .quick-btn .q-text { color:var(--muted); font-size:12px; margin-top:2px; }
+  .message { display:flex; gap:14px; animation:fadeUp 0.3s ease forwards; }
+  .message.user { flex-direction:row-reverse; }
+  .msg-avatar { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .msg-avatar.bot { background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+  .msg-avatar.user-av { background:var(--surface2); border:1px solid var(--border); color:var(--muted); font-size:13px; font-weight:600; }
+  .msg-bubble { max-width:72%; padding:14px 18px; border-radius:16px; font-size:14px; line-height:1.65; }
+  .message.bot .msg-bubble { background:var(--surface); border:1px solid var(--border); border-top-left-radius:4px; white-space:pre-wrap; }
+  .message.user .msg-bubble { background:linear-gradient(135deg,rgba(79,124,255,0.2),rgba(124,92,252,0.2)); border:1px solid rgba(79,124,255,0.25); border-top-right-radius:4px; }
+  .msg-meta { font-size:11px; color:var(--muted); margin-top:6px; padding:0 4px; }
+  .message.user .msg-meta { text-align:right; }
+  .output-actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .out-btn { display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.2s; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'Geologica',sans-serif; }
+  .out-btn:hover { color:var(--text); border-color:var(--accent); }
+  .input-area { padding:20px 40px 28px; border-top:1px solid var(--border); background:rgba(15,17,23,0.8); backdrop-filter:blur(12px); }
+  .input-wrap { display:flex; align-items:flex-end; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px 16px; transition:border-color 0.2s; }
+  .input-wrap:focus-within { border-color:rgba(79,124,255,0.5); }
+  .chat-input { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:'Geologica',sans-serif; font-size:14px; font-weight:300; resize:none; min-height:22px; max-height:140px; line-height:1.5; }
+  .chat-input::placeholder { color:var(--muted); }
+  .send-btn { width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; font-size:16px; }
+  .send-btn:hover { transform:scale(1.05); box-shadow:0 4px 16px rgba(79,124,255,0.4); }
+  .send-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+  .input-hint { font-size:11px; color:var(--muted); margin-top:10px; text-align:center; }
+  .right-panel { border-left:1px solid var(--border); padding:24px 20px; background:rgba(24,28,39,0.6); display:flex; flex-direction:column; gap:20px; overflow-y:auto; }
+  .panel-section h4 { font-size:10px; font-weight:600; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+  .subject-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .subj-btn { padding:8px 6px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:12px; cursor:pointer; text-align:center; transition:all 0.2s; font-family:'Geologica',sans-serif; }
+  .subj-btn:hover,.subj-btn.active { border-color:rgba(79,124,255,0.4); color:var(--text); background:var(--surface2); }
+  .subj-btn .s-icon { font-size:16px; display:block; margin-bottom:3px; }
+  .fgos-card { background:linear-gradient(135deg,rgba(79,124,255,0.08),rgba(124,92,252,0.08)); border:1px solid rgba(79,124,255,0.2); border-radius:12px; padding:14px; font-size:12px; line-height:1.6; color:var(--muted); }
+  .fgos-card .fgos-title { color:var(--accent); font-weight:600; font-size:11px; letter-spacing:0.5px; margin-bottom:6px; }
+  .stats-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; }
+  .stat-card .stat-val { font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:var(--text); }
+  .stat-card .stat-label { font-size:10px; color:var(--muted); margin-top:2px; }
+  .typing { display:flex; gap:4px; align-items:center; padding:16px 18px; }
+  .typing span { width:6px; height:6px; background:var(--accent); border-radius:50%; animation:bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay:0.2s; }
+  .typing span:nth-child(3) { animation-delay:0.4s; }
+  .error-msg { color:var(--error); font-size:13px; padding:12px 16px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); border-radius:10px; }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes bounce { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-6px); opacity:1; } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 </style>
 </head>
 <body>
 
+<!-- ── LOGIN SCREEN ── -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 75 Q10 75 10 65 L10 35 Q10 25 20 25 L45 20 L55 20 L80 25 Q90 25 90 35 L90 65 Q90 75 80 75 Z" fill="white" stroke="#2a3045" stroke-width="3"/>
+        <path d="M50 20 L50 75" stroke="#2a3045" stroke-width="3"/>
+        <path d="M10 50 Q20 45 30 50 Q40 55 50 50" stroke="#5bb8b0" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M50 50 Q60 45 70 50 Q80 55 90 50" stroke="#5bb8b0" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M10 60 Q20 55 30 60 Q40 65 50 60" stroke="#5bb8b0" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <path d="M50 60 Q60 55 70 60 Q80 65 90 60" stroke="#5bb8b0" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <path d="M25 18 Q30 10 35 6 Q40 2 50 0 Q60 2 65 6 Q70 10 75 18" fill="#5bb8b0" stroke="none"/>
+        <circle cx="50" cy="14" r="7" fill="white" stroke="#2a3045" stroke-width="2.5"/>
+        <circle cx="50" cy="14" r="3" fill="#2a3045"/>
+      </svg>
+    </div>
+    <div class="login-title">Про<span>Урок</span></div>
+    <div class="login-sub">AI-помощник учителя по ФГОС<br>Введите email для входа</div>
+
+    <div id="loginForm">
+      <input class="login-input" type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email"/>
+      <button class="login-btn" id="loginBtn" onclick="requestMagicLink()">Получить ссылку для входа</button>
+      <div class="login-msg" id="loginMsg"></div>
+      <div class="login-hint">На вашу почту придёт письмо со ссылкой.<br>Никакого пароля — просто кликните по ссылке.</div>
+    </div>
+
+    <div id="loginSent" style="display:none;">
+      <div style="font-size:40px;margin-bottom:16px;">📬</div>
+      <div style="color:var(--success);font-size:15px;font-weight:500;margin-bottom:10px;">Письмо отправлено!</div>
+      <div style="color:var(--muted);font-size:13px;line-height:1.6;">Проверьте почту и нажмите на ссылку в письме.<br>Ссылка действительна 24 часа.</div>
+      <button class="login-btn" style="margin-top:20px;background:var(--surface2);color:var(--muted);" onclick="document.getElementById('loginSent').style.display='none';document.getElementById('loginForm').style.display='block';">Отправить снова</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
 <header>
   <div class="logo">
-    <div class="logo-icon">📚</div>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 75 Q10 75 10 65 L10 35 Q10 25 20 25 L45 20 L55 20 L80 25 Q90 25 90 35 L90 65 Q90 75 80 75 Z" fill="white" stroke="#2a3045" stroke-width="3"/>
+      <path d="M50 20 L50 75" stroke="#2a3045" stroke-width="3"/>
+      <path d="M10 50 Q20 45 30 50 Q40 55 50 50" stroke="#5bb8b0" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M50 50 Q60 45 70 50 Q80 55 90 50" stroke="#5bb8b0" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M25 18 Q30 10 35 6 Q40 2 50 0 Q60 2 65 6 Q70 10 75 18" fill="#5bb8b0" stroke="none"/>
+      <circle cx="50" cy="14" r="7" fill="white" stroke="#2a3045" stroke-width="2.5"/>
+      <circle cx="50" cy="14" r="3" fill="#2a3045"/>
+    </svg>
     <div>
-      <div class="logo-text">Про<span>Урок</span><span class="logo-badge">v1.5</span></div>
+      <div class="logo-text">Про<span>Урок</span><span class="logo-badge">v2.0</span></div>
     </div>
   </div>
   <div class="header-right">
-    <div class="status-line"><span class="glow-dot"></span> Онлайн</div>
+    <div class="status-line"><span class="glow-dot"></span>Онлайн</div>
     <div class="tariff-badge" id="tariffBadge">✦ DEMO</div>
     <div class="balance-info">Запросов: <b id="balanceUsed">0</b> / <b id="balanceLimit">20</b></div>
+    <div class="user-email" id="userEmail"></div>
+    <button class="logout-btn" onclick="logout()">Выйти</button>
   </div>
 </header>
 
+<!-- ── APP ── -->
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-label">Режим</div>
@@ -165,45 +194,34 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-label">Сессия</div>
     <button class="mode-btn" onclick="clearHistory()"><span class="icon">🗑</span><span class="label">Очистить чат</span></button>
-    <div class="sidebar-divider"></div>
-    <button class="mode-btn" onclick=""><span class="icon">💰</span><span class="label">Тариф и баланс</span></button>
   </aside>
 
   <main class="chat-area">
     <div class="chat-messages" id="messages">
       <div class="welcome" id="welcome">
         <div class="welcome-icon">🎓</div>
-        <h2>Добро пожаловать!</h2>
+        <h2 id="welcomeTitle">Добро пожаловать!</h2>
         <p>AI-помощник учителя по ФГОС. Выберите предмет справа или начните с вопроса.</p>
         <div class="quick-prompts">
           <button class="quick-btn" onclick="sendQuick('Составь план урока по географии 7 класс Климатические пояса')">
-            <span class="q-icon">🗺</span><b>План урока</b>
-            <div class="q-text">География, 7 класс</div>
+            <span class="q-icon">🗺</span><b>План урока</b><div class="q-text">География, 7 класс</div>
           </button>
-          <button class="quick-btn" onclick="sendQuick('Создай тест по истории России 8 класс Эпоха Петра I, 10 вопросов')">
-            <span class="q-icon">📜</span><b>Тест по истории</b>
-            <div class="q-text">Пётр I, 8 класс</div>
+          <button class="quick-btn" onclick="sendQuick('Создай тест по истории России 8 класс Эпоха Петра I 10 вопросов')">
+            <span class="q-icon">📜</span><b>Тест по истории</b><div class="q-text">Пётр I, 8 класс</div>
           </button>
           <button class="quick-btn" onclick="sendQuick('Придумай задания по алгебре 9 класс квадратные уравнения')">
-            <span class="q-icon">📐</span><b>Задания по алгебре</b>
-            <div class="q-text">Квадратные уравнения, 9 класс</div>
+            <span class="q-icon">📐</span><b>Задания по алгебре</b><div class="q-text">9 класс</div>
           </button>
           <button class="quick-btn" onclick="sendQuick('Составь конспект по биологии 6 класс Фотосинтез')">
-            <span class="q-icon">🌿</span><b>Конспект урока</b>
-            <div class="q-text">Фотосинтез, 6 класс</div>
+            <span class="q-icon">🌿</span><b>Конспект урока</b><div class="q-text">Фотосинтез, 6 класс</div>
           </button>
         </div>
       </div>
     </div>
-
     <div class="input-area">
       <div class="input-wrap">
-        <textarea class="chat-input" id="chatInput"
-          placeholder="Напишите запрос... например: «план урока по географии 8 класс»"
-          rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-        <div>
-          <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Отправить">➤</button>
-        </div>
+        <textarea class="chat-input" id="chatInput" placeholder="Напишите запрос..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
       </div>
       <div class="input-hint">ФГОС ООО · Приказ №287 · История нашего края с 01.09.2025</div>
     </div>
@@ -213,252 +231,274 @@
     <div class="panel-section">
       <h4>Предмет</h4>
       <div class="subject-grid">
-        <button class="subj-btn" onclick="selectSubj(this, 'Алгебра')"><span class="s-icon">📐</span>Алгебра</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Геометрия')"><span class="s-icon">📐</span>Геометрия</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'География')"><span class="s-icon">🗺</span>География</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'История')"><span class="s-icon">📜</span>История</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Биология')"><span class="s-icon">🧪</span>Биология</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Химия')"><span class="s-icon">⚗️</span>Химия</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Основы безопасности и защиты Родины')"><span class="s-icon">🛡</span>ОБЗР</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Труд (технология)')"><span class="s-icon">🔨</span>Труд</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Русский язык')"><span class="s-icon">📖</span>Русский</button>
-        <button class="subj-btn" onclick="selectSubj(this, 'Информатика')"><span class="s-icon">💻</span>Инф-ка</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Алгебра')"><span class="s-icon">📐</span>Алгебра</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Геометрия')"><span class="s-icon">📐</span>Геометрия</button>
+        <button class="subj-btn" onclick="selectSubj(this,'География')"><span class="s-icon">🗺</span>География</button>
+        <button class="subj-btn" onclick="selectSubj(this,'История')"><span class="s-icon">📜</span>История</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Биология')"><span class="s-icon">🧪</span>Биология</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Химия')"><span class="s-icon">⚗️</span>Химия</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Основы безопасности и защиты Родины')"><span class="s-icon">🛡</span>ОБЗР</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Труд (технология)')"><span class="s-icon">🔨</span>Труд</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Русский язык')"><span class="s-icon">📖</span>Русский</button>
+        <button class="subj-btn" onclick="selectSubj(this,'Информатика')"><span class="s-icon">💻</span>Инф-ка</button>
       </div>
     </div>
-
     <div class="panel-section">
       <h4>ФГОС — актуально</h4>
       <div class="fgos-card">
         <div class="fgos-title">🟢 Приказ №110 · 01.09.2025</div>
         История: добавлен курс<br>
-        <b style="color: var(--text)">«История нашего края»</b><br>
+        <b style="color:var(--text)">«История нашего края»</b><br>
         обязателен с нового учебного года
       </div>
     </div>
-
     <div class="panel-section">
       <h4>Статистика сессии</h4>
       <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-val" id="statQueries">0</div>
-          <div class="stat-label">запросов</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-val" id="statMessages">0</div>
-          <div class="stat-label">сообщений</div>
-        </div>
+        <div class="stat-card"><div class="stat-val" id="statQueries">0</div><div class="stat-label">запросов</div></div>
+        <div class="stat-card"><div class="stat-val" id="statMessages">0</div><div class="stat-label">сообщений</div></div>
       </div>
     </div>
   </aside>
 </div>
 
 <script>
-  // ─── КОНФИГ ───
-  const API_URL = "http://95.140.147.248:5001";
+const API_URL = "http://95.140.147.248:5001";
+let sessionToken = localStorage.getItem("prourok_session");
+let history = [];
+let sessionQueries = 0;
+let sessionMessages = 0;
+let selectedSubject = "";
 
-  // Генерируем или берём user_id из sessionStorage
-  let userId = sessionStorage.getItem("prourок_uid");
-  if (!userId) {
-    userId = "web_" + Math.random().toString(36).slice(2, 10);
-    sessionStorage.setItem("prourок_uid", userId);
+// ── ИНИЦИАЛИЗАЦИЯ ──
+window.onload = async function() {
+  // Проверяем токен из URL (после клика по магической ссылке)
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get("token");
+  if (urlToken) {
+    await verifyToken(urlToken);
+    window.history.replaceState({}, "", "/");
+    return;
   }
 
-  // История диалога для контекста
-  let history = [];
-  let sessionQueries = 0;
-  let sessionMessages = 0;
-  let selectedSubject = "";
-
-  // ─── БАЛАНС ───
-  async function loadBalance() {
-    try {
-      const r = await fetch(`${API_URL}/api/balance?user_id=${userId}`);
-      const d = await r.json();
-      if (d.ok) {
-        document.getElementById("balanceUsed").textContent = d.queries_used;
-        document.getElementById("balanceLimit").textContent = d.queries_limit;
-        document.getElementById("tariffBadge").textContent = "✦ " + d.tariff.toUpperCase();
-      }
-    } catch(e) {}
+  // Проверяем сохранённую сессию
+  if (sessionToken) {
+    await checkSession();
   }
-  loadBalance();
+};
 
-  // ─── UI ───
-  function autoResize(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
-  }
-
-  function setMode(btn) {
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-
-  function selectSubj(btn, subject) {
-    document.querySelectorAll('.subj-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedSubject = subject;
-    document.getElementById('chatInput').placeholder =
-      `Запрос по предмету: ${subject}... например «план урока 8 класс»`;
-    document.getElementById('chatInput').focus();
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+async function checkSession() {
+  try {
+    const r = await fetch(`${API_URL}/api/auth/me`, {
+      headers: { "X-Session-Token": sessionToken }
+    });
+    const d = await r.json();
+    if (d.ok) {
+      onLoggedIn(d);
+    } else {
+      showLogin();
     }
+  } catch(e) {
+    showLogin();
   }
+}
 
-  function sendQuick(text) {
-    document.getElementById('chatInput').value = text;
-    sendMessage();
-  }
-
-  function clearHistory() {
-    history = [];
-    const msgs = document.getElementById('messages');
-    msgs.innerHTML = '';
-    sessionMessages = 0;
-    document.getElementById('statMessages').textContent = 0;
-  }
-
-  function scrollBottom() {
-    const msgs = document.getElementById('messages');
-    msgs.scrollTop = msgs.scrollHeight;
-  }
-
-  // ─── ОТПРАВКА ───
-  async function sendMessage() {
-    const input = document.getElementById('chatInput');
-    let text = input.value.trim();
-    if (!text) return;
-
-    // Добавляем предмет если выбран
-    if (selectedSubject && !text.toLowerCase().includes(selectedSubject.toLowerCase())) {
-      text = `[Предмет: ${selectedSubject}] ${text}`;
+async function verifyToken(token) {
+  try {
+    const r = await fetch(`${API_URL}/api/auth/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      sessionToken = d.session_token;
+      localStorage.setItem("prourok_session", sessionToken);
+      await checkSession();
+    } else {
+      showLogin();
+      showLoginMsg(d.error || "Ссылка недействительна", "err");
     }
+  } catch(e) {
+    showLogin();
+  }
+}
 
-    // Убираем welcome
-    const welcome = document.getElementById('welcome');
-    if (welcome) welcome.remove();
+function onLoggedIn(data) {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("userEmail").textContent = data.email;
+  document.getElementById("balanceUsed").textContent = data.queries_used;
+  document.getElementById("balanceLimit").textContent = data.queries_limit;
+  document.getElementById("tariffBadge").textContent = "✦ " + data.tariff.toUpperCase();
+  const name = data.email.split("@")[0];
+  document.getElementById("welcomeTitle").textContent = `Добро пожаловать, ${name}!`;
+}
 
-    const msgs = document.getElementById('messages');
+function showLogin() {
+  document.getElementById("loginScreen").style.display = "flex";
+}
 
-    // Сообщение пользователя
-    const userEl = document.createElement('div');
-    userEl.className = 'message user';
-    userEl.innerHTML = `
-      <div>
-        <div class="msg-bubble">${text}</div>
-        <div class="msg-meta">Вы · сейчас</div>
-      </div>
-      <div class="msg-avatar user-av">Я</div>
-    `;
-    msgs.appendChild(userEl);
+// ── МАГИЧЕСКАЯ ССЫЛКА ──
+async function requestMagicLink() {
+  const email = document.getElementById("loginEmail").value.trim();
+  if (!email || !email.includes("@")) {
+    showLoginMsg("Введите корректный email", "err");
+    return;
+  }
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true;
+  btn.textContent = "Отправляем...";
+  showLoginMsg("", "");
 
-    input.value = '';
-    input.style.height = 'auto';
+  try {
+    const r = await fetch(`${API_URL}/api/auth/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("loginSent").style.display = "block";
+    } else {
+      showLoginMsg(d.error || "Ошибка отправки", "err");
+    }
+  } catch(e) {
+    showLoginMsg("Не удалось подключиться к серверу", "err");
+  }
 
-    // Блокируем кнопку
-    const sendBtn = document.getElementById('sendBtn');
-    sendBtn.disabled = true;
+  btn.disabled = false;
+  btn.textContent = "Получить ссылку для входа";
+}
 
-    // Typing
-    const typingEl = document.createElement('div');
-    typingEl.className = 'message bot';
-    typingEl.id = 'typing';
-    typingEl.innerHTML = `
-      <div class="msg-avatar bot">🎓</div>
-      <div class="msg-bubble">
-        <div class="typing"><span></span><span></span><span></span></div>
-      </div>
-    `;
-    msgs.appendChild(typingEl);
-    scrollBottom();
+function showLoginMsg(msg, type) {
+  const el = document.getElementById("loginMsg");
+  el.textContent = msg;
+  el.className = "login-msg " + type;
+}
 
-    // Запрос к API
-    try {
-      const response = await fetch(`${API_URL}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, message: text, history: history })
-      });
+document.getElementById("loginEmail").addEventListener("keydown", e => {
+  if (e.key === "Enter") requestMagicLink();
+});
 
-      const data = await response.json();
-      typingEl.remove();
+// ── ВЫХОД ──
+function logout() {
+  localStorage.removeItem("prourok_session");
+  sessionToken = null;
+  history = [];
+  showLogin();
+}
 
-      if (data.ok) {
-        const reply = data.reply;
+// ── UI ──
+function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 140) + "px"; }
+function setMode(btn) { document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active")); btn.classList.add("active"); }
+function selectSubj(btn, subject) {
+  document.querySelectorAll(".subj-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  selectedSubject = subject;
+  document.getElementById("chatInput").placeholder = `Запрос по предмету: ${subject}...`;
+  document.getElementById("chatInput").focus();
+}
+function handleKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function sendQuick(text) { document.getElementById("chatInput").value = text; sendMessage(); }
+function clearHistory() { history = []; document.getElementById("messages").innerHTML = ""; sessionMessages = 0; document.getElementById("statMessages").textContent = 0; }
+function scrollBottom() { const m = document.getElementById("messages"); m.scrollTop = m.scrollHeight; }
 
-        // Добавляем в историю
-        history.push({ role: "user", content: text });
-        history.push({ role: "assistant", content: reply });
+// ── ОТПРАВКА ──
+async function sendMessage() {
+  const input = document.getElementById("chatInput");
+  let text = input.value.trim();
+  if (!text) return;
 
-        // Обновляем баланс
-        if (data.queries_used !== undefined) {
-          document.getElementById("balanceUsed").textContent = data.queries_used;
-          document.getElementById("balanceLimit").textContent = data.queries_limit;
-          document.getElementById("tariffBadge").textContent = "✦ " + data.tariff.toUpperCase();
-        }
+  if (selectedSubject && !text.toLowerCase().includes(selectedSubject.toLowerCase())) {
+    text = `[Предмет: ${selectedSubject}] ${text}`;
+  }
 
-        // Счётчики сессии
-        if (!data.clarification) {
-          sessionQueries++;
-          document.getElementById('statQueries').textContent = sessionQueries;
-        }
-        sessionMessages += 2;
-        document.getElementById('statMessages').textContent = sessionMessages;
+  const welcome = document.getElementById("welcome");
+  if (welcome) welcome.remove();
 
-        // Ответ бота
-        const botEl = document.createElement('div');
-        botEl.className = 'message bot';
-        botEl.innerHTML = `
-          <div class="msg-avatar bot">🎓</div>
-          <div>
-            <div class="msg-bubble">${reply}</div>
-            <div class="msg-meta">ПроУрок AI · только что</div>
-            <div class="output-actions">
-              <button class="out-btn" onclick="copyText(this)">📋 Копировать</button>
-            </div>
-          </div>
-        `;
-        msgs.appendChild(botEl);
+  const msgs = document.getElementById("messages");
 
-      } else {
-        // Ошибка
-        const errEl = document.createElement('div');
-        errEl.className = 'message bot';
-        errEl.innerHTML = `
-          <div class="msg-avatar bot">🎓</div>
-          <div class="msg-bubble error-msg">⚠️ ${data.error || 'Ошибка запроса'}</div>
-        `;
-        msgs.appendChild(errEl);
+  const userEl = document.createElement("div");
+  userEl.className = "message user";
+  userEl.innerHTML = `<div><div class="msg-bubble">${text}</div><div class="msg-meta">Вы · сейчас</div></div><div class="msg-avatar user-av">Я</div>`;
+  msgs.appendChild(userEl);
+
+  input.value = "";
+  input.style.height = "auto";
+
+  const sendBtn = document.getElementById("sendBtn");
+  sendBtn.disabled = true;
+
+  const typingEl = document.createElement("div");
+  typingEl.className = "message bot";
+  typingEl.id = "typing";
+  typingEl.innerHTML = `<div class="msg-avatar bot">🎓</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(typingEl);
+  scrollBottom();
+
+  try {
+    const r = await fetch(`${API_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": sessionToken },
+      body: JSON.stringify({ message: text, history })
+    });
+    const data = await r.json();
+    typingEl.remove();
+
+    if (data.unauthorized) { logout(); return; }
+
+    if (data.ok) {
+      history.push({ role: "user", content: text });
+      history.push({ role: "assistant", content: data.reply });
+
+      if (data.queries_used !== undefined) {
+        document.getElementById("balanceUsed").textContent = data.queries_used;
+        document.getElementById("balanceLimit").textContent = data.queries_limit;
+        document.getElementById("tariffBadge").textContent = "✦ " + data.tariff.toUpperCase();
       }
 
-    } catch(e) {
-      typingEl.remove();
-      const errEl = document.createElement('div');
-      errEl.className = 'message bot';
-      errEl.innerHTML = `
+      if (!data.clarification) { sessionQueries++; document.getElementById("statQueries").textContent = sessionQueries; }
+      sessionMessages += 2;
+      document.getElementById("statMessages").textContent = sessionMessages;
+
+      const botEl = document.createElement("div");
+      botEl.className = "message bot";
+      botEl.innerHTML = `
         <div class="msg-avatar bot">🎓</div>
-        <div class="msg-bubble error-msg">⚠️ Не удалось подключиться к серверу. Проверьте соединение.</div>
-      `;
+        <div>
+          <div class="msg-bubble">${data.reply}</div>
+          <div class="msg-meta">ПроУрок AI · только что</div>
+          <div class="output-actions">
+            <button class="out-btn" onclick="copyText(this)">📋 Копировать</button>
+          </div>
+        </div>`;
+      msgs.appendChild(botEl);
+    } else {
+      const errEl = document.createElement("div");
+      errEl.className = "message bot";
+      errEl.innerHTML = `<div class="msg-avatar bot">🎓</div><div class="msg-bubble error-msg">⚠️ ${data.error || "Ошибка запроса"}</div>`;
       msgs.appendChild(errEl);
     }
-
-    sendBtn.disabled = false;
-    scrollBottom();
+  } catch(e) {
+    typingEl.remove();
+    const errEl = document.createElement("div");
+    errEl.className = "message bot";
+    errEl.innerHTML = `<div class="msg-avatar bot">🎓</div><div class="msg-bubble error-msg">⚠️ Не удалось подключиться к серверу.</div>`;
+    msgs.appendChild(errEl);
   }
 
-  // ─── КОПИРОВАТЬ ───
-  function copyText(btn) {
-    const bubble = btn.closest('div').previousElementSibling;
-    navigator.clipboard.writeText(bubble.textContent).then(() => {
-      btn.textContent = '✅ Скопировано';
-      setTimeout(() => btn.textContent = '📋 Копировать', 2000);
-    });
-  }
+  sendBtn.disabled = false;
+  scrollBottom();
+}
+
+function copyText(btn) {
+  const bubble = btn.closest("div").previousElementSibling.previousElementSibling;
+  navigator.clipboard.writeText(bubble.textContent).then(() => {
+    btn.textContent = "✅ Скопировано";
+    setTimeout(() => btn.textContent = "📋 Копировать", 2000);
+  });
+}
 </script>
 </body>
 </html>
