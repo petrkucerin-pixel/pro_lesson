@@ -399,7 +399,7 @@ async function doLogin() {
       localStorage.setItem("prourok_session", d.session_token);
       onLoggedIn(d);
     } else if (d.not_found) {
-      showLoginMsg('Пользователь не зарегистрирован. <a class="forgot-link" onclick="showForm('register')">Зарегистрироваться →</a>', "err");
+      showLoginMsg("Пользователь не зарегистрирован. Перейдите в Регистрацию.", "err");
     } else {
       showLoginMsg(d.error || "Неверный email или пароль", "err");
     }
