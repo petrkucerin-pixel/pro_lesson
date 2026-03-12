@@ -115,6 +115,16 @@
   .typing span:nth-child(3) { animation-delay:0.4s; }
   .error-msg { color:var(--error); font-size:13px; padding:12px 16px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); border-radius:10px; }
 
+
+  .form-group { margin-bottom:10px; }
+  .password-wrap { position:relative; }
+  .password-wrap .login-input { padding-right:44px; }
+  .eye-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; padding:0; }
+  .optional-label { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin:12px 0 8px; }
+  .forgot-wrap { text-align:center; margin-top:14px; }
+  .forgot-link { font-size:13px; color:var(--muted); cursor:pointer; transition:color 0.2s; }
+  .forgot-link:hover { color:var(--accent); }
+  .forgot-desc { color:var(--muted); font-size:13px; margin-bottom:16px; line-height:1.5; }
   .auth-btns { display:flex; gap:8px; margin-bottom:20px; }
   .auth-btn { flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'Geologica',sans-serif; font-size:15px; font-weight:500; cursor:pointer; transition:all 0.2s; }
   .auth-btn:hover { border-color:var(--accent); color:var(--text); }
@@ -130,7 +140,7 @@
 <!-- ── LOGIN SCREEN ── -->
 <div id="loginScreen">
   <div class="login-box">
-    <div class="login-logo"><svg class="logo-svg" style="width:72px;height:59px;" width="680" height="556" viewBox="0 0 680 556" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="login-logo"><svg style="width:64px;height:52px;" width="680" height="556" viewBox="0 0 680 556" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M330.975 20.7585C352.92 17.7966 379.57 25.6578 397.345 37.5675C419.03 51.932 433.58 73.5891 437.79 97.7691C458.515 92.4268 480.28 91.361 501.51 94.6499C527.195 98.466 553.555 108.762 573.195 124.727C574.845 126.068 576.25 127.388 577.545 129.029C577.55 131.988 577.39 134.963 577.27 137.92C585.24 143.432 603.055 153.568 609.47 159.203C609.84 167.933 609.54 178.567 609.545 187.452L609.575 241.832V408.98L609.585 484.186C609.585 489.975 610 513.738 608.935 518.452C604.545 523.586 598.155 517.949 594.235 515.219C569.285 497.853 543.715 482.988 513.515 474.626C467.425 461.869 418.55 472.925 380.58 498.768C369.69 506.179 357.635 519.874 346.59 525.338C342.43 526.746 336.16 527.596 332.19 525.37C319.474 518.232 310.01 506.925 297.902 498.745C284.618 489.769 270.979 482.664 255.364 477.611C200.985 458.727 148.715 473.793 103.087 502.695C97.4586 506.097 92.4856 509.632 86.9621 513.235C82.9311 515.864 75.7596 523.472 70.5796 519.256C69.0676 518.026 69.0041 515.836 69.0001 514.085C68.9541 494.246 69.0301 474.406 69.0291 454.567L69.0171 333.285L69.0046 220.577C68.9961 200.996 68.4386 178.611 69.1281 159.219C74.1581 154.895 94.5231 142.309 101.084 138.075L101.03 111.417C101.024 108.636 100.38 95.114 102.623 94.2749C108.326 92.1415 120.55 92.8319 126.888 92.8461L157.864 92.8465C184.452 92.841 215.456 90.8863 240.739 97.6091C243.465 81.6524 250.798 66.65 261.981 54.1501C279.442 34.6755 303.712 23.283 330.975 20.7585Z" fill="#1F1E1E"/>
 <path d="M451.35 229.789C452.72 230.663 454.855 234.404 455.835 235.947C467.005 254.139 479.41 272.175 490.54 290.323C505.485 314.698 506.58 310.766 520.675 289.371C527.29 279.23 534.01 269.139 540.82 259.104C546.435 266.551 553.16 277.054 558.43 284.913C559.005 321.876 558.44 359.873 558.51 396.946C532.26 379.671 503.58 369.745 471.005 369.05C442.495 368.579 414.415 375.46 389.975 388.898C385.37 391.422 381.85 393.512 377.65 396.626C370.805 401.705 376.67 408.751 382.44 407.096C386.62 405.894 394.39 400.553 398.82 398.189C413.235 390.604 429.005 385.428 445.4 382.895C489.69 375.913 523.36 388.679 558.44 411.234L558.535 473.309C531.19 459.999 500.16 451.334 468.945 452.445C421.98 454.105 377.7 472.897 345.995 504.625L346.005 401.481C375.895 355.118 437.605 338.474 493.24 346.393C498.785 347.189 504.285 348.218 509.725 349.48C515.125 350.742 528.35 356.037 532.87 351.748C534.87 349.85 533.79 345.232 531.155 343.595C526.64 340.797 521.385 339.933 516.205 338.579C458.91 323.413 383.405 335.744 345.945 380.993C345.945 377.312 346.95 368.071 344.39 365.296C340.795 361.405 332.97 362.689 332.49 368.762C332.155 372.986 332.41 377.079 332.52 381.372C302.54 348.469 264.959 334.569 219.087 332.411C198.187 332.068 179.494 333.742 159.282 338.959C154.96 340.17 149.446 341.026 145.996 343.856C141.196 347.843 145.194 354.436 151.494 353.508C157.097 352.685 162.292 350.628 167.824 349.402C181.555 346.348 195.613 344.693 209.742 344.473C256.838 343.961 307.878 361.999 331.745 401.175C332.925 403.118 332.48 430.63 332.48 435.061L332.545 504.259C316.23 489.531 302.5 479.079 281.858 469.459C228.652 444.663 171.823 447.589 119.89 473.519L119.861 410.411C122.669 408.902 126.905 406.003 129.766 404.248C137.533 399.488 144.637 395.546 153.298 392.103C189.873 377.211 231.688 377.444 268.063 392.739C277.452 396.671 284.795 401.417 293.361 406.301C297.062 407.727 301.702 407.599 302.864 403.53C304.55 397.627 296.235 393.535 291.127 390.558C273.474 380.106 253.579 373.224 232.779 370.385C192.831 364.921 152.151 374.276 119.783 396.374C120.262 373.549 119.879 349.553 119.793 326.659C125.265 323.166 135.558 314.785 141.122 310.624L190.254 274.04C197.474 276.761 209.077 282.229 215.93 285.604C236.714 295.846 235.454 292.897 247.207 277.735C253.618 269.486 260.088 261.28 266.614 253.111C282.963 269.788 298.157 288.014 314.326 304.886C320.1 310.907 327.615 318.717 332.5 325.242C332.555 329.188 331.5 339.183 333.665 341.707C338.71 347.582 346.77 342.923 345.965 335.571C345.69 333.074 345.9 327.885 345.935 325.525C354.015 316.536 363.82 306.692 372.455 298.187C378.21 301.927 391.25 311.822 397.395 311.849C403.265 309.513 415.955 286.601 419.66 280.652L451.35 229.789Z" fill="#FEFEFD"/>
 <path d="M465.51 406.227C476.22 406.314 485.115 407.092 495.87 409.387C503.975 411.12 505.655 418.655 497.64 421.12C494.965 421.943 487.54 419.826 484.18 419.451C476.635 418.609 469.43 418.175 461.725 418.568C446 419.277 430.605 422.958 416.515 429.377C410.47 432.176 395.08 443.712 389.965 438.957C382.62 432.121 397.68 425.363 402.645 422.583C422.145 411.669 442.875 406.982 465.51 406.227Z" fill="#1F1E1E"/>
@@ -146,38 +156,64 @@
     <div class="login-title">Про<span>Урок</span></div>
     <div class="login-sub">AI-помощник учителя</div>
 
-    <div id="loginForm">
-      <div class="auth-btns">
-        <button class="auth-btn" id="btnLogin" onclick="showAuthForm('login')">Войти</button>
-        <button class="auth-btn" id="btnRegister" onclick="showAuthForm('register')">Регистрация</button>
-      </div>
+    <div class="auth-btns">
+      <button class="auth-btn" id="btnLogin" onclick="showForm('login')">Войти</button>
+      <button class="auth-btn" id="btnRegister" onclick="showForm('register')">Регистрация</button>
+    </div>
 
-      <!-- ФОРМА ВХОДА -->
-      <div id="formLogin" style="display:none;">
+    <!-- ВОЙТИ -->
+    <div id="formLogin" style="display:none;">
+      <div class="form-group">
         <input class="login-input" type="email" id="loginEmail" placeholder="Email" autocomplete="email"/>
-        <button class="login-btn" onclick="requestMagicLink('login')">Войти →</button>
       </div>
-
-      <!-- ФОРМА РЕГИСТРАЦИИ -->
-      <div id="formRegister" style="display:none;">
-        <input class="login-input" type="email" id="registerEmail" placeholder="Email" autocomplete="email"/>
-        <input class="login-input" type="text" id="registerName" placeholder="Имя"/>
-        <input class="login-input" type="text" id="registerSurname" placeholder="Фамилия"/>
-        <input class="login-input" type="text" id="registerPatronymic" placeholder="Отчество"/>
-        <button class="login-btn" onclick="requestMagicLink('register')">Зарегистрироваться →</button>
+      <div class="form-group">
+        <div class="password-wrap">
+          <input class="login-input" type="password" id="loginPassword" placeholder="Пароль"/>
+          <button class="eye-btn" type="button" onclick="togglePwd('loginPassword',this)">👁</button>
+        </div>
       </div>
-
-      <div class="login-msg" id="loginMsg"></div>
+      <button class="login-btn" onclick="doLogin()">Войти →</button>
+      <div class="forgot-wrap"><a class="forgot-link" onclick="showForm('forgot')">Забыли пароль?</a></div>
     </div>
 
-    <div id="loginSent" style="display:none;">
-      <div style="font-size:40px;margin-bottom:16px;">📬</div>
-      <div style="color:var(--success);font-size:15px;font-weight:500;margin-bottom:10px;">Письмо отправлено!</div>
-      <div style="color:var(--muted);font-size:13px;line-height:1.6;">Проверьте почту и нажмите на ссылку в письме.<br>Ссылка действительна 24 часа.</div>
-      <button class="login-btn" style="margin-top:20px;background:var(--surface2);color:var(--muted);" onclick="document.getElementById('loginSent').style.display='none';document.getElementById('loginForm').style.display='block';">Отправить снова</button>
+    <!-- РЕГИСТРАЦИЯ -->
+    <div id="formRegister" style="display:none;">
+      <div class="form-group">
+        <input class="login-input" type="email" id="regEmail" placeholder="Email" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <div class="password-wrap">
+          <input class="login-input" type="password" id="regPassword" placeholder="Пароль"/>
+          <button class="eye-btn" type="button" onclick="togglePwd('regPassword',this)">👁</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="password-wrap">
+          <input class="login-input" type="password" id="regPassword2" placeholder="Повторите пароль"/>
+          <button class="eye-btn" type="button" onclick="togglePwd('regPassword2',this)">👁</button>
+        </div>
+      </div>
+      <div class="optional-label">Необязательно</div>
+      <div class="form-group"><input class="login-input" type="text" id="regName" placeholder="Имя"/></div>
+      <div class="form-group"><input class="login-input" type="text" id="regSurname" placeholder="Фамилия"/></div>
+      <div class="form-group"><input class="login-input" type="text" id="regPatronymic" placeholder="Отчество"/></div>
+      <button class="login-btn" onclick="doRegister()">Зарегистрироваться →</button>
     </div>
+
+    <!-- ЗАБЫЛИ ПАРОЛЬ -->
+    <div id="formForgot" style="display:none;">
+      <p class="forgot-desc">Введите email — пришлём ссылку для сброса пароля</p>
+      <div class="form-group">
+        <input class="login-input" type="email" id="forgotEmail" placeholder="Email"/>
+      </div>
+      <button class="login-btn" onclick="doForgot()">Отправить инструкцию →</button>
+      <div class="forgot-wrap"><a class="forgot-link" onclick="showForm('login')">← Вернуться ко входу</a></div>
+    </div>
+
+    <div class="login-msg" id="loginMsg"></div>
   </div>
 </div>
+
 
 <!-- ── HEADER ── -->
 <header>
@@ -297,56 +333,23 @@ let selectedSubject = "";
 
 // ── ИНИЦИАЛИЗАЦИЯ ──
 window.onload = async function() {
-  // Проверяем токен из URL (после клика по магической ссылке)
-  const params = new URLSearchParams(window.location.search);
-  const urlToken = params.get("token");
-  if (urlToken) {
-    await verifyToken(urlToken);
-    window.history.replaceState({}, "", "/");
-    return;
-  }
-
-  // Проверяем сохранённую сессию
-  if (sessionToken) {
-    await checkSession();
-  }
+  const token = localStorage.getItem("prourok_session");
+  if (token) await checkSession(token);
 };
 
-async function checkSession() {
+async function checkSession(token) {
   try {
     const r = await fetch(`${API_URL}/api/auth/me`, {
-      headers: { "X-Session-Token": sessionToken }
+      headers: { "X-Session-Token": token }
     });
     const d = await r.json();
-    if (d.ok) {
-      onLoggedIn(d);
-    } else {
-      showLogin();
-    }
-  } catch(e) {
-    showLogin();
-  }
+    if (d.ok) { onLoggedIn(d); }
+    else { showLoginScreen(); }
+  } catch(e) { showLoginScreen(); }
 }
 
-async function verifyToken(token) {
-  try {
-    const r = await fetch(`${API_URL}/api/auth/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token })
-    });
-    const d = await r.json();
-    if (d.ok) {
-      sessionToken = d.session_token;
-      localStorage.setItem("prourok_session", sessionToken);
-      await checkSession();
-    } else {
-      showLogin();
-      showLoginMsg(d.error || "Ссылка недействительна", "err");
-    }
-  } catch(e) {
-    showLogin();
-  }
+function showLoginScreen() {
+  document.getElementById("loginScreen").style.display = "flex";
 }
 
 function onLoggedIn(data) {
@@ -355,77 +358,118 @@ function onLoggedIn(data) {
   document.getElementById("balanceUsed").textContent = data.queries_used;
   document.getElementById("balanceLimit").textContent = data.queries_limit;
   document.getElementById("tariffBadge").textContent = "✦ " + data.tariff.toUpperCase();
-  const name = data.email.split("@")[0];
+  const name = data.name || data.email.split("@")[0];
   document.getElementById("welcomeTitle").textContent = `Добро пожаловать, ${name}!`;
 }
 
-function showLogin() {
-  document.getElementById("loginScreen").style.display = "flex";
-}
-
-// ── МАГИЧЕСКАЯ ССЫЛКА ──
-function showAuthForm(mode) {
-  document.getElementById('btnLogin').classList.toggle('active', mode === 'login');
-  document.getElementById('btnRegister').classList.toggle('active', mode === 'register');
-  document.getElementById('formLogin').style.display = mode === 'login' ? 'block' : 'none';
-  document.getElementById('formRegister').style.display = mode === 'register' ? 'block' : 'none';
-  showLoginMsg("", "");
-}
-
-async function requestMagicLink(mode) {
-  const emailId = mode === 'register' ? 'registerEmail' : 'loginEmail';
-  const email = document.getElementById(emailId).value.trim();
-  if (!email || !email.includes("@")) {
-    showLoginMsg("Введите корректный email", "err");
-    return;
+function showForm(type) {
+  ['formLogin','formRegister','formForgot'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('btnLogin').classList.toggle('active', type === 'login');
+  document.getElementById('btnRegister').classList.toggle('active', type === 'register');
+  if (type === 'forgot') {
+    document.getElementById('btnLogin').classList.remove('active');
+    document.getElementById('btnRegister').classList.remove('active');
   }
-  const btnEl = document.activeElement;
-  if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Отправляем..."; }
+  const formId = type === 'login' ? 'formLogin' : type === 'register' ? 'formRegister' : 'formForgot';
+  document.getElementById(formId).style.display = 'block';
   showLoginMsg("", "");
+}
 
+function togglePwd(id, btn) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+async function doLogin() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  if (!email || !password) { showLoginMsg("Введите email и пароль", "err"); return; }
+
+  showLoginMsg("", "");
   try {
-    const r = await fetch(`${API_URL}/api/auth/request`, {
+    const r = await fetch(`${API_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      localStorage.setItem("prourok_session", d.session_token);
+      onLoggedIn(d);
+    } else if (d.not_found) {
+      showLoginMsg('Пользователь не зарегистрирован. <a class="forgot-link" onclick="showForm('register')">Зарегистрироваться →</a>', "err");
+    } else {
+      showLoginMsg(d.error || "Неверный email или пароль", "err");
+    }
+  } catch(e) {
+    showLoginMsg("Не удалось подключиться к серверу", "err");
+  }
+}
+
+async function doRegister() {
+  const email = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const password2 = document.getElementById("regPassword2").value;
+  const name = document.getElementById("regName").value.trim();
+  const surname = document.getElementById("regSurname").value.trim();
+  const patronymic = document.getElementById("regPatronymic").value.trim();
+
+  if (!email || !password) { showLoginMsg("Введите email и пароль", "err"); return; }
+  if (password.length < 6) { showLoginMsg("Пароль должен быть не менее 6 символов", "err"); return; }
+  if (password !== password2) { showLoginMsg("Пароли не совпадают", "err"); return; }
+
+  showLoginMsg("", "");
+  try {
+    const r = await fetch(`${API_URL}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name, surname, patronymic })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      localStorage.setItem("prourok_session", d.session_token);
+      onLoggedIn(d);
+    } else {
+      showLoginMsg(d.error, "err");
+    }
+  } catch(e) {
+    showLoginMsg("Не удалось подключиться к серверу", "err");
+  }
+}
+
+async function doForgot() {
+  const email = document.getElementById("forgotEmail").value.trim();
+  if (!email) { showLoginMsg("Введите email", "err"); return; }
+
+  showLoginMsg("", "");
+  try {
+    const r = await fetch(`${API_URL}/api/auth/reset/request`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
     });
     const d = await r.json();
-    if (d.ok) {
-      document.getElementById("loginForm").style.display = "none";
-      document.getElementById("loginSent").style.display = "block";
-    } else {
-      showLoginMsg(d.error || "Ошибка отправки", "err");
-    }
+    if (d.ok) { showLoginMsg("Письмо отправлено! Проверьте почту.", "ok"); }
+    else { showLoginMsg(d.error, "err"); }
   } catch(e) {
     showLoginMsg("Не удалось подключиться к серверу", "err");
-  }
-
-  if (btnEl) {
-    btnEl.disabled = false;
-    btnEl.textContent = mode === 'register' ? "Зарегистрироваться →" : "Войти →";
   }
 }
 
 function showLoginMsg(msg, type) {
   const el = document.getElementById("loginMsg");
-  el.textContent = msg;
-  el.className = "login-msg " + type;
+  el.innerHTML = msg;
+  el.className = "login-msg " + (type || "");
 }
 
-document.getElementById("loginEmail").addEventListener("keydown", e => {
-  if (e.key === "Enter") requestMagicLink('login');
-});
-document.getElementById("registerEmail").addEventListener("keydown", e => {
-  if (e.key === "Enter") requestMagicLink('register');
-});
-
-
-// ── ВЫХОД ──
 function logout() {
   localStorage.removeItem("prourok_session");
-  sessionToken = null;
+  showLoginScreen();
+  showForm('login');
   history = [];
-  showLogin();
 }
 
 // ── UI ──

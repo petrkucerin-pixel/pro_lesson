@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сброс пароля — ПроУрок</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0f1117; --surface:#181c27; --surface2:#1e2435; --border:#2a3045; --accent:#4f7cff; --accent2:#7c5cfc; --gold:#e8c87a; --text:#e8eaf0; --muted:#7a8099; --success:#4ade80; --error:#f87171; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Geologica',sans-serif; font-weight:300; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .login-box { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:40px 36px; width:100%; max-width:420px; }
+  .login-logo { text-align:center; margin-bottom:20px; }
+  .login-title { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; text-align:center; margin-bottom:4px; }
+  .login-title span { color:var(--gold); }
+  .login-sub { color:var(--muted); font-size:13px; text-align:center; margin-bottom:28px; }
+  .reset-steps { display:flex; gap:6px; margin-bottom:28px; justify-content:center; align-items:center; }
+  .step { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .step.active { color:var(--text); }
+  .step.done { color:var(--success); }
+  .step-num { width:24px; height:24px; border-radius:50%; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; }
+  .step.active .step-num { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#fff; }
+  .step.done .step-num { background:var(--success); border-color:transparent; color:#0f1117; }
+  .step-arrow { color:var(--border); font-size:14px; margin:0 2px; }
+  .form-group { margin-bottom:10px; }
+  .login-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 16px; color:var(--text); font-family:'Geologica',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+  .login-input:focus { border-color:rgba(79,124,255,0.5); }
+  .login-input::placeholder { color:var(--muted); }
+  .password-wrap { position:relative; }
+  .password-wrap .login-input { padding-right:44px; }
+  .eye-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer; font-size:15px; }
+  .login-btn { width:100%; background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:12px; padding:14px; color:#fff; font-family:'Geologica',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s; margin-top:4px; }
+  .login-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(79,124,255,0.35); }
+  .login-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  .login-msg { font-size:13px; text-align:center; margin-top:14px; min-height:18px; }
+  .login-msg.err { color:var(--error); }
+  .login-msg.ok { color:var(--success); }
+  .back-link { display:block; text-align:center; font-size:13px; color:var(--muted); cursor:pointer; margin-top:16px; transition:color 0.2s; text-decoration:none; }
+  .back-link:hover { color:var(--accent); }
+  .success-box { text-align:center; padding:20px 0; }
+  .success-box .s-icon { font-size:48px; margin-bottom:16px; }
+  .success-box h3 { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:8px; }
+  .success-box p { color:var(--muted); font-size:14px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <div class="login-logo"><svg style="width:56px;height:46px;" width="680" height="556" viewBox="0 0 680 556" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M330.975 20.7585C352.92 17.7966 379.57 25.6578 397.345 37.5675C419.03 51.932 433.58 73.5891 437.79 97.7691C458.515 92.4268 480.28 91.361 501.51 94.6499C527.195 98.466 553.555 108.762 573.195 124.727C574.845 126.068 576.25 127.388 577.545 129.029C577.55 131.988 577.39 134.963 577.27 137.92C585.24 143.432 603.055 153.568 609.47 159.203C609.84 167.933 609.54 178.567 609.545 187.452L609.575 241.832V408.98L609.585 484.186C609.585 489.975 610 513.738 608.935 518.452C604.545 523.586 598.155 517.949 594.235 515.219C569.285 497.853 543.715 482.988 513.515 474.626C467.425 461.869 418.55 472.925 380.58 498.768C369.69 506.179 357.635 519.874 346.59 525.338C342.43 526.746 336.16 527.596 332.19 525.37C319.474 518.232 310.01 506.925 297.902 498.745C284.618 489.769 270.979 482.664 255.364 477.611C200.985 458.727 148.715 473.793 103.087 502.695C97.4586 506.097 92.4856 509.632 86.9621 513.235C82.9311 515.864 75.7596 523.472 70.5796 519.256C69.0676 518.026 69.0041 515.836 69.0001 514.085C68.9541 494.246 69.0301 474.406 69.0291 454.567L69.0171 333.285L69.0046 220.577C68.9961 200.996 68.4386 178.611 69.1281 159.219C74.1581 154.895 94.5231 142.309 101.084 138.075L101.03 111.417C101.024 108.636 100.38 95.114 102.623 94.2749C108.326 92.1415 120.55 92.8319 126.888 92.8461L157.864 92.8465C184.452 92.841 215.456 90.8863 240.739 97.6091C243.465 81.6524 250.798 66.65 261.981 54.1501C279.442 34.6755 303.712 23.283 330.975 20.7585Z" fill="#1F1E1E"/>
+<path d="M451.35 229.789C452.72 230.663 454.855 234.404 455.835 235.947C467.005 254.139 479.41 272.175 490.54 290.323C505.485 314.698 506.58 310.766 520.675 289.371C527.29 279.23 534.01 269.139 540.82 259.104C546.435 266.551 553.16 277.054 558.43 284.913C559.005 321.876 558.44 359.873 558.51 396.946C532.26 379.671 503.58 369.745 471.005 369.05C442.495 368.579 414.415 375.46 389.975 388.898C385.37 391.422 381.85 393.512 377.65 396.626C370.805 401.705 376.67 408.751 382.44 407.096C386.62 405.894 394.39 400.553 398.82 398.189C413.235 390.604 429.005 385.428 445.4 382.895C489.69 375.913 523.36 388.679 558.44 411.234L558.535 473.309C531.19 459.999 500.16 451.334 468.945 452.445C421.98 454.105 377.7 472.897 345.995 504.625L346.005 401.481C375.895 355.118 437.605 338.474 493.24 346.393C498.785 347.189 504.285 348.218 509.725 349.48C515.125 350.742 528.35 356.037 532.87 351.748C534.87 349.85 533.79 345.232 531.155 343.595C526.64 340.797 521.385 339.933 516.205 338.579C458.91 323.413 383.405 335.744 345.945 380.993C345.945 377.312 346.95 368.071 344.39 365.296C340.795 361.405 332.97 362.689 332.49 368.762C332.155 372.986 332.41 377.079 332.52 381.372C302.54 348.469 264.959 334.569 219.087 332.411C198.187 332.068 179.494 333.742 159.282 338.959C154.96 340.17 149.446 341.026 145.996 343.856C141.196 347.843 145.194 354.436 151.494 353.508C157.097 352.685 162.292 350.628 167.824 349.402C181.555 346.348 195.613 344.693 209.742 344.473C256.838 343.961 307.878 361.999 331.745 401.175C332.925 403.118 332.48 430.63 332.48 435.061L332.545 504.259C316.23 489.531 302.5 479.079 281.858 469.459C228.652 444.663 171.823 447.589 119.89 473.519L119.861 410.411C122.669 408.902 126.905 406.003 129.766 404.248C137.533 399.488 144.637 395.546 153.298 392.103C189.873 377.211 231.688 377.444 268.063 392.739C277.452 396.671 284.795 401.417 293.361 406.301C297.062 407.727 301.702 407.599 302.864 403.53C304.55 397.627 296.235 393.535 291.127 390.558C273.474 380.106 253.579 373.224 232.779 370.385C192.831 364.921 152.151 374.276 119.783 396.374C120.262 373.549 119.879 349.553 119.793 326.659C125.265 323.166 135.558 314.785 141.122 310.624L190.254 274.04C197.474 276.761 209.077 282.229 215.93 285.604C236.714 295.846 235.454 292.897 247.207 277.735C253.618 269.486 260.088 261.28 266.614 253.111C282.963 269.788 298.157 288.014 314.326 304.886C320.1 310.907 327.615 318.717 332.5 325.242C332.555 329.188 331.5 339.183 333.665 341.707C338.71 347.582 346.77 342.923 345.965 335.571C345.69 333.074 345.9 327.885 345.935 325.525C354.015 316.536 363.82 306.692 372.455 298.187C378.21 301.927 391.25 311.822 397.395 311.849C403.265 309.513 415.955 286.601 419.66 280.652L451.35 229.789Z" fill="#FEFEFD"/>
+<path d="M465.51 406.227C476.22 406.314 485.115 407.092 495.87 409.387C503.975 411.12 505.655 418.655 497.64 421.12C494.965 421.943 487.54 419.826 484.18 419.451C476.635 418.609 469.43 418.175 461.725 418.568C446 419.277 430.605 422.958 416.515 429.377C410.47 432.176 395.08 443.712 389.965 438.957C382.62 432.121 397.68 425.363 402.645 422.583C422.145 411.669 442.875 406.982 465.51 406.227Z" fill="#1F1E1E"/>
+<path d="M208.293 406.227C222.853 405.51 239.724 408.399 253.705 413.063C259.256 414.915 293.522 428.006 289.214 436.899C284.963 445.682 271.594 434.444 265.288 431.344C241.691 419.474 216.163 415.601 189.832 420.338C186.827 420.836 180.407 422.341 177.992 419.826C169.463 410.955 184.629 408.509 190.535 407.759C197.55 406.872 202.143 406.497 208.293 406.227Z" fill="#1F1E1E"/>
+<path d="M119.873 109.814C138.081 109.97 156.289 110.014 174.498 109.949C197.892 109.93 216.451 108.282 238.932 114.852C240.124 155.158 260.782 170.697 286.118 200.557C301.071 218.18 318.21 236.532 332.435 254.581L332.5 307.121C328.16 301.41 320.675 293.692 315.631 288.205L287.152 257.222C283.802 253.746 280.573 250.007 277.24 246.304C273.763 242.439 267.444 234.982 261.41 240.413C257.269 244.14 253.207 250.045 249.756 254.5L230.616 279.358C222.889 276.455 198.449 263.319 189.653 261.826C186.326 261.261 175.542 269.687 171.904 272.477C154.852 285.549 136.572 298.128 119.843 311.621C119.474 289.998 119.893 267.223 119.897 245.507L119.873 109.814Z" fill="#FEFEFD"/>
+<path d="M471.65 109.931C501.045 108.231 535.715 118.209 558.43 135.462L558.535 264.015C554.645 257.895 549.86 249.924 544.42 244.954C541.615 243.097 537.035 243.836 535.17 246.193C524.205 260.044 515.51 276.08 505.265 290.291L473.84 241.302C468.655 233.177 463.52 224.901 458.28 216.909C455.83 212.588 450.185 210.506 446.36 214.799C443.285 218.251 440.725 223.199 438.315 227.113C423.425 250.753 408.665 274.461 394.045 298.242C388 294.666 382.455 290.213 376.07 287.113C367.695 283.043 363.315 290.373 358.435 295.261C354.245 299.467 350.115 303.848 345.965 308.127C345.555 290.967 345.885 272.225 345.975 254.989C362.06 234.906 380.37 214.287 397.315 194.756C421.76 166.583 437.255 153.067 439.54 114.862C450.43 111.825 460.375 110.554 471.65 109.931Z" fill="#FEFEFD"/>
+<path d="M334.37 37.685C352.465 35.8176 373.06 42.1174 387.51 52.0619C405.32 64.3254 417.025 82.5916 420.025 102.793C425.62 140.92 404.415 158.716 380.975 186.022C368.035 200.989 355.225 216.048 342.545 231.199L339.555 234.805C324.588 217.253 309.519 199.775 294.348 182.371C286.623 173.491 273.316 159.336 267.693 150.103C262.254 141.358 258.905 131.659 257.868 121.644C255.551 100.909 262.461 80.1952 277.039 64.1736C291.8 48.0025 311.648 39.4728 334.37 37.685Z" fill="#FEFEFD"/>
+<path d="M336.475 79.9712C355.61 78.7028 372.295 91.7661 373.87 109.253C375.45 126.74 361.33 142.126 342.22 143.74C322.847 145.378 305.733 132.244 304.134 114.51C302.536 96.7765 317.067 81.2569 336.475 79.9712Z" fill="#1F1E1E"/>
+<path d="M336.255 96.8409C345.225 95.4624 353.725 100.995 355.235 109.201C356.745 117.406 350.695 125.177 341.72 126.559C332.745 127.943 324.245 122.409 322.735 114.201C321.225 105.993 327.28 98.2204 336.255 96.8409Z" fill="#FEFEFD"/>
+<path d="M100.329 159.476L100.704 159.794C101.198 161.363 100.996 177.315 100.996 180.083L100.999 234.014L101.005 483.126C96.3195 486.011 92.6145 488.448 88.146 491.612L87.7825 491.301C87.3295 489.788 87.5005 473.4 87.5 470.959L87.4975 417.091L87.487 167.883C91.7105 165.442 96.263 162.219 100.329 159.476Z" fill="#FEFEFD"/>
+<path d="M577.465 159.222C578.87 159.749 589.03 166.548 590.91 167.777L590.96 491.937C586.545 488.868 581.815 486.006 577.23 483.144C577.765 452.436 577.375 420.832 577.365 390.078L577.465 159.222Z" fill="#FEFEFD"/>
+</svg></div>
+  <div class="login-title">Про<span>Урок</span></div>
+  <div class="login-sub">Восстановление пароля</div>
+
+  <div class="reset-steps" id="stepsBar">
+    <div class="step active" id="step1"><div class="step-num">1</div><span>Email</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step" id="step2"><div class="step-num">2</div><span>Письмо</span></div>
+    <div class="step-arrow">›</div>
+    <div class="step" id="step3"><div class="step-num">3</div><span>Новый пароль</span></div>
+  </div>
+
+  <!-- ШАГ 1: email -->
+  <div id="step1Form">
+    <div class="form-group">
+      <input class="login-input" type="email" id="resetEmail" placeholder="Введите ваш Email"/>
+    </div>
+    <button class="login-btn" onclick="sendReset()">Отправить письмо →</button>
+    <a class="back-link" href="/">← Вернуться ко входу</a>
+  </div>
+
+  <!-- ШАГ 2: ожидание письма -->
+  <div id="step2Form" style="display:none;">
+    <div class="success-box">
+      <div class="s-icon">📬</div>
+      <h3>Письмо отправлено!</h3>
+      <p>Проверьте почту и нажмите на ссылку в письме.<br>Ссылка действительна <b style="color:var(--text)">2 часа</b>.</p>
+    </div>
+    <a class="back-link" href="/">← Вернуться ко входу</a>
+  </div>
+
+  <!-- ШАГ 3: новый пароль -->
+  <div id="step3Form" style="display:none;">
+    <div class="form-group">
+      <div class="password-wrap">
+        <input class="login-input" type="password" id="newPassword" placeholder="Новый пароль"/>
+        <button class="eye-btn" onclick="togglePwd('newPassword',this)">👁</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="password-wrap">
+        <input class="login-input" type="password" id="newPassword2" placeholder="Повторите пароль"/>
+        <button class="eye-btn" onclick="togglePwd('newPassword2',this)">👁</button>
+      </div>
+    </div>
+    <button class="login-btn" onclick="confirmReset()">Сохранить пароль →</button>
+  </div>
+
+  <!-- УСПЕХ -->
+  <div id="successForm" style="display:none;">
+    <div class="success-box">
+      <div class="s-icon">✅</div>
+      <h3>Пароль изменён!</h3>
+      <p>Теперь вы можете войти с новым паролем.</p>
+    </div>
+    <a class="login-btn" href="/" style="display:block;text-align:center;text-decoration:none;margin-top:16px;">Войти →</a>
+  </div>
+
+  <div class="login-msg" id="resetMsg"></div>
+</div>
+
+<script>
+const API_URL = "http://95.140.147.248:5001";
+let resetToken = null;
+
+window.onload = function() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (token) {
+    resetToken = token;
+    showStep(3);
+  }
+};
+
+function showStep(n) {
+  ['step1Form','step2Form','step3Form','successForm'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById(`step${n}Form`).style.display = 'block';
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step${i}`);
+    el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+    el.querySelector('.step-num').textContent = i < n ? '✓' : i;
+  });
+}
+
+function togglePwd(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+async function sendReset() {
+  const email = document.getElementById("resetEmail").value.trim();
+  if (!email) { showMsg("Введите email", "err"); return; }
+  showMsg("", "");
+  try {
+    const r = await fetch(`${API_URL}/api/auth/reset/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (d.ok) { showStep(2); }
+    else { showMsg(d.error, "err"); }
+  } catch(e) { showMsg("Ошибка подключения", "err"); }
+}
+
+async function confirmReset() {
+  const p1 = document.getElementById("newPassword").value;
+  const p2 = document.getElementById("newPassword2").value;
+  if (p1.length < 6) { showMsg("Пароль не менее 6 символов", "err"); return; }
+  if (p1 !== p2) { showMsg("Пароли не совпадают", "err"); return; }
+  showMsg("", "");
+  try {
+    const r = await fetch(`${API_URL}/api/auth/reset/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: resetToken, password: p1 })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById("stepsBar").style.display = "none";
+      document.getElementById("step3Form").style.display = "none";
+      document.getElementById("successForm").style.display = "block";
+    } else { showMsg(d.error, "err"); }
+  } catch(e) { showMsg("Ошибка подключения", "err"); }
+}
+
+function showMsg(msg, type) {
+  const el = document.getElementById("resetMsg");
+  el.textContent = msg;
+  el.className = "login-msg " + (type || "");
+}
+</script>
+</body>
+</html>
