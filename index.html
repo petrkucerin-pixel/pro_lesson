@@ -433,6 +433,8 @@ async function doRegister() {
     });
     const d = await r.json();
     if (d.ok) {
+      document.getElementById("formRegister").style.display = "none";
+      document.getElementById("btnRegister").disabled = true;
       showLoginMsg("📬 Письмо отправлено! Проверьте почту и нажмите на ссылку для подтверждения.", "ok");
     } else {
       showLoginMsg(d.error, "err");
