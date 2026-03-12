@@ -379,10 +379,8 @@ async function requestMagicLink(mode) {
     showLoginMsg("Введите корректный email", "err");
     return;
   }
-  const btnId = (mode === 'register') ? 'registerBtn' : 'loginBtn';
-  const btn = document.getElementById(btnId);
-  btn.disabled = true;
-  btn.textContent = "Отправляем...";
+  const btnEl = document.activeElement;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Отправляем..."; }
   showLoginMsg("", "");
 
   try {
@@ -402,8 +400,10 @@ async function requestMagicLink(mode) {
     showLoginMsg("Не удалось подключиться к серверу", "err");
   }
 
-  btn.disabled = false;
-  btn.textContent = (mode === 'register') ? "Зарегистрироваться →" : "Войти →";
+  if (btnEl) {
+    btnEl.disabled = false;
+    btnEl.textContent = mode === 'register' ? "Зарегистрироваться →" : "Войти →";
+  }
 }
 
 function showLoginMsg(msg, type) {
