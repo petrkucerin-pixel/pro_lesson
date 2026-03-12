@@ -115,6 +115,11 @@
   .typing span:nth-child(3) { animation-delay:0.4s; }
   .error-msg { color:var(--error); font-size:13px; padding:12px 16px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); border-radius:10px; }
 
+  .auth-btns { display:flex; gap:8px; margin-bottom:20px; }
+  .auth-btn { flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'Geologica',sans-serif; font-size:15px; font-weight:500; cursor:pointer; transition:all 0.2s; }
+  .auth-btn:hover { border-color:var(--accent); color:var(--text); }
+  .auth-btn.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent; }
+
   @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
   @keyframes bounce { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-6px); opacity:1; } }
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -139,13 +144,30 @@
 <path d="M577.465 159.222C578.87 159.749 589.03 166.548 590.91 167.777L590.96 491.937C586.545 488.868 581.815 486.006 577.23 483.144C577.765 452.436 577.375 420.832 577.365 390.078L577.465 159.222Z" fill="#FEFEFD"/>
 </svg></div>
     <div class="login-title">Про<span>Урок</span></div>
-    <div class="login-sub">AI-помощник учителя по ФГОС<br>Введите email для входа</div>
+    <div class="login-sub">AI-помощник учителя</div>
 
     <div id="loginForm">
-      <input class="login-input" type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email"/>
-      <button class="login-btn" id="loginBtn" onclick="requestMagicLink()">Получить ссылку для входа</button>
+      <div class="auth-btns">
+        <button class="auth-btn" id="btnLogin" onclick="showAuthForm('login')">Войти</button>
+        <button class="auth-btn" id="btnRegister" onclick="showAuthForm('register')">Регистрация</button>
+      </div>
+
+      <!-- ФОРМА ВХОДА -->
+      <div id="formLogin" style="display:none;">
+        <input class="login-input" type="email" id="loginEmail" placeholder="Email" autocomplete="email"/>
+        <button class="login-btn" onclick="requestMagicLink('login')">Войти →</button>
+      </div>
+
+      <!-- ФОРМА РЕГИСТРАЦИИ -->
+      <div id="formRegister" style="display:none;">
+        <input class="login-input" type="email" id="registerEmail" placeholder="Email" autocomplete="email"/>
+        <input class="login-input" type="text" id="registerName" placeholder="Имя"/>
+        <input class="login-input" type="text" id="registerSurname" placeholder="Фамилия"/>
+        <input class="login-input" type="text" id="registerPatronymic" placeholder="Отчество"/>
+        <button class="login-btn" onclick="requestMagicLink('register')">Зарегистрироваться →</button>
+      </div>
+
       <div class="login-msg" id="loginMsg"></div>
-      <div class="login-hint">На вашу почту придёт письмо со ссылкой.<br>Никакого пароля — просто кликните по ссылке.</div>
     </div>
 
     <div id="loginSent" style="display:none;">
@@ -342,13 +364,23 @@ function showLogin() {
 }
 
 // ── МАГИЧЕСКАЯ ССЫЛКА ──
-async function requestMagicLink() {
-  const email = document.getElementById("loginEmail").value.trim();
+function showAuthForm(mode) {
+  document.getElementById('btnLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('btnRegister').classList.toggle('active', mode === 'register');
+  document.getElementById('formLogin').style.display = mode === 'login' ? 'block' : 'none';
+  document.getElementById('formRegister').style.display = mode === 'register' ? 'block' : 'none';
+  showLoginMsg("", "");
+}
+
+async function requestMagicLink(mode) {
+  const emailId = mode === 'register' ? 'registerEmail' : 'loginEmail';
+  const email = document.getElementById(emailId).value.trim();
   if (!email || !email.includes("@")) {
     showLoginMsg("Введите корректный email", "err");
     return;
   }
-  const btn = document.getElementById("loginBtn");
+  const btnId = (mode === 'register') ? 'registerBtn' : 'loginBtn';
+  const btn = document.getElementById(btnId);
   btn.disabled = true;
   btn.textContent = "Отправляем...";
   showLoginMsg("", "");
@@ -371,7 +403,7 @@ async function requestMagicLink() {
   }
 
   btn.disabled = false;
-  btn.textContent = "Получить ссылку для входа";
+  btn.textContent = (mode === 'register') ? "Зарегистрироваться →" : "Войти →";
 }
 
 function showLoginMsg(msg, type) {
@@ -381,8 +413,12 @@ function showLoginMsg(msg, type) {
 }
 
 document.getElementById("loginEmail").addEventListener("keydown", e => {
-  if (e.key === "Enter") requestMagicLink();
+  if (e.key === "Enter") requestMagicLink('login');
 });
+document.getElementById("registerEmail").addEventListener("keydown", e => {
+  if (e.key === "Enter") requestMagicLink('register');
+});
+
 
 // ── ВЫХОД ──
 function logout() {
