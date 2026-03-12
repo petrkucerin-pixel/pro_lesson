@@ -87,6 +87,7 @@ def create_user(email: str, password: str, name="", surname="", patronymic=""):
         "surname": surname,
         "patronymic": patronymic,
         "created": datetime.utcnow().isoformat(),
+        "confirmed": False,
     }
     save_users(users)
     # Создаём запись в лимитах
@@ -148,6 +149,38 @@ def create_reset_token(email: str) -> str:
     }
     save_tokens(tokens)
     return token
+
+def create_confirm_token(email: str) -> str:
+    token = secrets.token_urlsafe(32)
+    tokens = load_tokens()
+    tokens[token] = {
+        "email": email,
+        "type": "confirm",
+        "created": datetime.utcnow().isoformat(),
+        "expires": (datetime.utcnow() + timedelta(hours=48)).isoformat(),
+        "used": False,
+    }
+    save_tokens(tokens)
+    return token
+
+def verify_confirm_token(token: str):
+    tokens = load_tokens()
+    if token not in tokens:
+        return None, "Ссылка недействительна"
+    t = tokens[token]
+    if t.get("type") != "confirm":
+        return None, "Неверный тип токена"
+    if t.get("used"):
+        return None, "Ссылка уже использована"
+    if datetime.utcnow() > datetime.fromisoformat(t["expires"]):
+        return None, "Ссылка истекла. Зарегистрируйтесь заново."
+    return t["email"], None
+
+def confirm_user(email: str):
+    users = load_users()
+    if email in users:
+        users[email]["confirmed"] = True
+        save_users(users)
 
 def verify_reset_token(token: str):
     tokens = load_tokens()
@@ -212,6 +245,34 @@ def send_reset_email(email: str, token: str) -> bool:
 </table>
 </body></html>"""
     return send_email(email, "Сброс пароля — ПроУрок", html)
+
+def send_confirm_email(email: str, token: str) -> bool:
+    link = f"{BASE_URL}/confirm.html?token={token}"
+    html = f"""
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0f1117;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;padding:40px 0;">
+  <tr><td align="center">
+    <table width="480" cellpadding="0" cellspacing="0" style="background:#181c27;border-radius:16px;border:1px solid #2a3045;">
+      <tr><td style="padding:32px;text-align:center;border-bottom:1px solid #2a3045;">
+        <div style="font-size:24px;font-weight:700;color:#e8eaf0;">Про<span style="color:#e8c87a;">Урок</span></div>
+        <div style="font-size:11px;color:#7a8099;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">AI-помощник учителя</div>
+      </td></tr>
+      <tr><td style="padding:36px 32px;text-align:center;">
+        <p style="color:#e8eaf0;font-size:16px;margin:0 0 8px;">Подтвердите email</p>
+        <p style="color:#7a8099;font-size:14px;line-height:1.6;margin:0 0 28px;">
+          Нажмите кнопку ниже чтобы подтвердить регистрацию.<br>
+          Ссылка действительна <b style="color:#e8eaf0;">48 часов</b>.
+        </p>
+        <a href="{link}" style="display:inline-block;background:linear-gradient(135deg,#4f7cff,#7c5cfc);color:#fff;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:15px;font-weight:600;">
+          Подтвердить email →
+        </a>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>"""
+    return send_email(email, "Подтвердите регистрацию — ПроУрок", html)
 
 # ─────────────────────────────────────────────────────────────
 # ЛИМИТЫ
@@ -295,20 +356,11 @@ def register():
         return jsonify({"ok": False, "error": "Пользователь с таким email уже существует"}), 400
 
     create_user(email, password, name, surname, patronymic)
-    session_token = create_session(email)
-    user_data = get_user_data(email)
-    tariff = user_data.get("tariff", "demo")
-    limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
-
-    return jsonify({
-        "ok": True,
-        "session_token": session_token,
-        "email": email,
-        "name": name or email.split("@")[0],
-        "tariff": tariff,
-        "queries_used": user_data.get("queries_used", 0),
-        "queries_limit": limits["queries"],
-    })
+    token = create_confirm_token(email)
+    sent = send_confirm_email(email, token)
+    if sent:
+        return jsonify({"ok": True, "message": f"Письмо отправлено на {email}. Подтвердите регистрацию."})
+    return jsonify({"ok": False, "error": "Не удалось отправить письмо подтверждения"}), 500
 
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -325,6 +377,9 @@ def login():
         return jsonify({"ok": False, "error": "Пользователь не зарегистрирован", "not_found": True}), 404
     if user["password"] != hash_password(password):
         return jsonify({"ok": False, "error": "Неверный email или пароль"}), 401
+
+    if not user.get("confirmed"):
+        return jsonify({"ok": False, "error": f"Email не подтверждён. Проверьте почту {email}.", "not_confirmed": True}), 403
 
     session_token = create_session(email)
     user_data = get_user_data(email)
@@ -365,6 +420,34 @@ def auth_me():
         "queries_limit": limits["queries"],
         "generations_used": user_data.get("generations_used", 0),
         "generations_limit": limits["generations"],
+    })
+
+
+@app.route("/api/auth/confirm", methods=["POST"])
+def confirm_email():
+    body = request.get_json(force=True)
+    token = str(body.get("token", "")).strip()
+    email, err = verify_confirm_token(token)
+    if err:
+        return jsonify({"ok": False, "error": err}), 401
+    confirm_user(email)
+    tokens = load_tokens()
+    tokens[token]["used"] = True
+    save_tokens(tokens)
+    session_token = create_session(email)
+    user_data = get_user_data(email)
+    tariff = user_data.get("tariff", "demo")
+    limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
+    user = get_user(email)
+    name = (user.get("name") if user else None) or email.split("@")[0]
+    return jsonify({
+        "ok": True,
+        "session_token": session_token,
+        "email": email,
+        "name": name,
+        "tariff": tariff,
+        "queries_used": user_data.get("queries_used", 0),
+        "queries_limit": limits["queries"],
     })
 
 
