@@ -173,6 +173,7 @@
         </div>
       </div>
       <button class="login-btn" onclick="doLogin()">Войти →</button>
+      <div class="login-msg" id="loginMsgLogin"></div>
       <div class="forgot-wrap"><a class="forgot-link" onclick="showForm('forgot')">Забыли пароль?</a></div>
     </div>
 
@@ -198,6 +199,7 @@
       <div class="form-group"><input class="login-input" type="text" id="regSurname" placeholder="Фамилия"/></div>
       <div class="form-group"><input class="login-input" type="text" id="regPatronymic" placeholder="Отчество"/></div>
       <button class="login-btn" onclick="doRegister()">Зарегистрироваться →</button>
+      <div class="login-msg" id="loginMsgReg"></div>
     </div>
 
     <!-- ЗАБЫЛИ ПАРОЛЬ -->
@@ -400,6 +402,8 @@ async function doLogin() {
       onLoggedIn(d);
     } else if (d.not_found) {
       showLoginMsg("Пользователь не зарегистрирован. Перейдите в Регистрацию.", "err");
+    } else if (d.not_confirmed) {
+      showLoginMsg("Email не подтверждён. Проверьте почту.", "err");
     } else {
       showLoginMsg(d.error || "Неверный email или пароль", "err");
     }
@@ -429,8 +433,7 @@ async function doRegister() {
     });
     const d = await r.json();
     if (d.ok) {
-      localStorage.setItem("prourok_session", d.session_token);
-      onLoggedIn(d);
+      showLoginMsg("📬 Письмо отправлено! Проверьте почту и нажмите на ссылку для подтверждения.", "ok");
     } else {
       showLoginMsg(d.error, "err");
     }
@@ -459,9 +462,20 @@ async function doForgot() {
 }
 
 function showLoginMsg(msg, type) {
-  const el = document.getElementById("loginMsg");
-  el.innerHTML = msg;
-  el.className = "login-msg " + (type || "");
+  // Показываем в активной форме
+  const ids = ["loginMsgLogin", "loginMsgReg", "loginMsg"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = ""; el.className = "login-msg"; }
+  });
+  // Определяем активную форму
+  const loginVisible = document.getElementById("formLogin") && document.getElementById("formLogin").style.display !== "none";
+  const regVisible = document.getElementById("formRegister") && document.getElementById("formRegister").style.display !== "none";
+  let targetId = "loginMsg";
+  if (loginVisible) targetId = "loginMsgLogin";
+  else if (regVisible) targetId = "loginMsgReg";
+  const el = document.getElementById(targetId);
+  if (el) { el.innerHTML = msg; el.className = "login-msg " + (type || ""); }
 }
 
 function logout() {
