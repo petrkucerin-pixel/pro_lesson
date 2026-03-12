@@ -206,7 +206,7 @@ def _send_email_sync(to: str, subject: str, html: str):
         msg["Subject"] = subject
         msg["From"] = f"ПроУрок <{SMTP_EMAIL}>"
         msg["To"] = to
-        msg.attach(MIMEText(html, "utf-8"))
+        msg.attach(MIMEText(html, "html", "utf-8"))
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
             s.starttls()
             s.login(SMTP_EMAIL, SMTP_PASSWORD)
