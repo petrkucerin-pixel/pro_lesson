@@ -1,5 +1,5 @@
 """
-ПроУрок — Web API v3.0
+ПроУрок — Web API v3.1
 Файл:    /root/pro-lesson-bot/web_api.py
 Порт:    5001
 """
@@ -26,6 +26,7 @@ ANTHROPIC_API_KEY = "sk-ant-api03-I-TK5HSivKsHvotSFkZnwiYiyw_JnhCBV8zTO3tB4QFa7X
 USER_LIMITS_FILE  = "/root/pro-lesson-bot/user_limits.json"
 USERS_FILE        = "/root/pro-lesson-bot/users.json"
 TOKENS_FILE       = "/root/pro-lesson-bot/auth_tokens.json"
+KOPILKA_FILE      = "/root/pro-lesson-bot/kopilka.json"
 MODEL             = "claude-3-haiku-20240307"
 MAX_TOKENS        = 2048
 
@@ -91,7 +92,6 @@ def create_user(email: str, password: str, name="", surname="", patronymic=""):
         "confirmed": False,
     }
     save_users(users)
-    # Создаём запись в лимитах
     get_user_data(email)
 
 def update_password(email: str, new_password: str):
@@ -336,22 +336,146 @@ def preprocess_message(text: str):
     return text, None
 
 # ─────────────────────────────────────────────────────────────
+# КОПИЛКА
+# ─────────────────────────────────────────────────────────────
+
+def load_kopilka():
+    if not os.path.exists(KOPILKA_FILE):
+        return {}
+    with open(KOPILKA_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_kopilka(data):
+    with open(KOPILKA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+@app.route("/api/kopilka/save", methods=["POST"])
+def kopilka_save():
+    session_token = request.headers.get("X-Session-Token", "")
+    email = verify_session(session_token)
+    if not email:
+        return jsonify({"ok": False, "error": "Не авторизован"}), 401
+
+    body        = request.get_json(force=True)
+    item_id     = body.get("item_id")
+    title       = str(body.get("title", "")).strip()
+    content     = str(body.get("content", "")).strip()
+    item_type   = str(body.get("type", "other")).strip()
+    subject     = str(body.get("subject", "")).strip()
+    grade       = str(body.get("grade", "")).strip()
+    lesson_type = str(body.get("lesson_type", "")).strip()
+
+    if not content:
+        return jsonify({"ok": False, "error": "Содержимое не может быть пустым"}), 400
+
+    kopilka = load_kopilka()
+    if email not in kopilka:
+        kopilka[email] = {}
+    user_items = kopilka[email]
+
+    if item_id and str(item_id) in user_items:
+        item = user_items[str(item_id)]
+        item["title"]       = title or item["title"]
+        item["content"]     = content
+        item["type"]        = item_type
+        item["subject"]     = subject
+        item["grade"]       = grade
+        item["lesson_type"] = lesson_type
+        item["updated"]     = datetime.utcnow().isoformat()
+    else:
+        new_id = str(max((int(k) for k in user_items.keys()), default=0) + 1)
+        item_id = new_id
+        user_items[new_id] = {
+            "id":           new_id,
+            "title":        title or f"Материал №{new_id}",
+            "content":      content,
+            "type":         item_type,
+            "subject":      subject,
+            "grade":        grade,
+            "lesson_type":  lesson_type,
+            "created":      datetime.utcnow().isoformat(),
+            "updated":      datetime.utcnow().isoformat(),
+        }
+
+    save_kopilka(kopilka)
+    return jsonify({"ok": True, "item_id": str(item_id), "message": "Сохранено в копилку"})
+
+
+@app.route("/api/kopilka/list", methods=["GET"])
+def kopilka_list():
+    session_token = request.headers.get("X-Session-Token", "")
+    email = verify_session(session_token)
+    if not email:
+        return jsonify({"ok": False, "error": "Не авторизован"}), 401
+
+    kopilka = load_kopilka()
+    user_items = kopilka.get(email, {})
+    items = sorted(user_items.values(), key=lambda x: int(x["id"]))
+
+    preview_items = [{
+        "id":           it["id"],
+        "title":        it["title"],
+        "type":         it["type"],
+        "subject":      it["subject"],
+        "grade":        it["grade"],
+        "lesson_type":  it["lesson_type"],
+        "created":      it["created"],
+        "updated":      it["updated"],
+        "preview":      it["content"][:120] + "..." if len(it["content"]) > 120 else it["content"],
+    } for it in items]
+
+    return jsonify({"ok": True, "items": preview_items, "total": len(preview_items)})
+
+
+@app.route("/api/kopilka/get/<item_id>", methods=["GET"])
+def kopilka_get(item_id):
+    session_token = request.headers.get("X-Session-Token", "")
+    email = verify_session(session_token)
+    if not email:
+        return jsonify({"ok": False, "error": "Не авторизован"}), 401
+
+    kopilka = load_kopilka()
+    item = kopilka.get(email, {}).get(str(item_id))
+    if not item:
+        return jsonify({"ok": False, "error": f"Материал №{item_id} не найден"}), 404
+
+    return jsonify({"ok": True, "item": item})
+
+
+@app.route("/api/kopilka/delete/<item_id>", methods=["DELETE"])
+def kopilka_delete(item_id):
+    session_token = request.headers.get("X-Session-Token", "")
+    email = verify_session(session_token)
+    if not email:
+        return jsonify({"ok": False, "error": "Не авторизован"}), 401
+
+    kopilka = load_kopilka()
+    user_items = kopilka.get(email, {})
+    if str(item_id) not in user_items:
+        return jsonify({"ok": False, "error": "Материал не найден"}), 404
+
+    del user_items[str(item_id)]
+    save_kopilka(kopilka)
+    return jsonify({"ok": True, "message": f"Материал №{item_id} удалён"})
+
+# ─────────────────────────────────────────────────────────────
 # МАРШРУТЫ — AUTH
 # ─────────────────────────────────────────────────────────────
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "service": "ПроУрок Web API", "version": "3.0"})
+    return jsonify({"status": "ok", "service": "ПроУрок Web API", "version": "3.1"})
 
 
 @app.route("/api/auth/register", methods=["POST"])
 def register():
-    body = request.get_json(force=True)
-    email    = str(body.get("email", "")).strip().lower()
-    password = str(body.get("password", "")).strip()
-    name        = str(body.get("name", "")).strip()
-    surname     = str(body.get("surname", "")).strip()
-    patronymic  = str(body.get("patronymic", "")).strip()
+    body       = request.get_json(force=True)
+    email      = str(body.get("email", "")).strip().lower()
+    password   = str(body.get("password", "")).strip()
+    name       = str(body.get("name", "")).strip()
+    surname    = str(body.get("surname", "")).strip()
+    patronymic = str(body.get("patronymic", "")).strip()
 
     if not email or "@" not in email:
         return jsonify({"ok": False, "error": "Введите корректный email"}), 400
@@ -370,7 +494,7 @@ def register():
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
-    body = request.get_json(force=True)
+    body     = request.get_json(force=True)
     email    = str(body.get("email", "")).strip().lower()
     password = str(body.get("password", "")).strip()
 
@@ -382,7 +506,6 @@ def login():
         return jsonify({"ok": False, "error": "Пользователь не зарегистрирован", "not_found": True}), 404
     if user["password"] != hash_password(password):
         return jsonify({"ok": False, "error": "Неверный email или пароль"}), 401
-
     if not user.get("confirmed"):
         return jsonify({"ok": False, "error": f"Email не подтверждён. Проверьте почту {email}.", "not_confirmed": True}), 403
 
@@ -430,7 +553,7 @@ def auth_me():
 
 @app.route("/api/auth/confirm", methods=["POST"])
 def confirm_email():
-    body = request.get_json(force=True)
+    body  = request.get_json(force=True)
     token = str(body.get("token", "")).strip()
     email, err = verify_confirm_token(token)
     if err:
@@ -458,14 +581,12 @@ def confirm_email():
 
 @app.route("/api/auth/reset/request", methods=["POST"])
 def reset_request():
-    body = request.get_json(force=True)
+    body  = request.get_json(force=True)
     email = str(body.get("email", "")).strip().lower()
-
     if not email or "@" not in email:
         return jsonify({"ok": False, "error": "Введите корректный email"}), 400
     if not get_user(email):
         return jsonify({"ok": False, "error": "Пользователь с таким email не найден"}), 404
-
     token = create_reset_token(email)
     sent = send_reset_email(email, token)
     if sent:
@@ -475,22 +596,18 @@ def reset_request():
 
 @app.route("/api/auth/reset/confirm", methods=["POST"])
 def reset_confirm():
-    body = request.get_json(force=True)
+    body     = request.get_json(force=True)
     token    = str(body.get("token", "")).strip()
     password = str(body.get("password", "")).strip()
-
     if len(password) < 6:
         return jsonify({"ok": False, "error": "Пароль должен быть не менее 6 символов"}), 400
-
     email, err = verify_reset_token(token)
     if err:
         return jsonify({"ok": False, "error": err}), 401
-
     update_password(email, password)
     tokens = load_tokens()
     tokens[token]["used"] = True
     save_tokens(tokens)
-
     return jsonify({"ok": True, "message": "Пароль успешно изменён"})
 
 
@@ -505,7 +622,7 @@ def chat():
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован", "unauthorized": True}), 401
 
-    body = request.get_json(force=True)
+    body    = request.get_json(force=True)
     message = str(body.get("message", "")).strip()
     history = body.get("history", [])
 
@@ -524,7 +641,7 @@ def chat():
 
     messages = []
     for item in history[-10:]:
-        role = item.get("role")
+        role    = item.get("role")
         content = item.get("content", "")
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
@@ -576,5 +693,5 @@ def balance():
 
 
 if __name__ == "__main__":
-    print("ПроУрок Web API v3.0 — порт 5001")
+    print("ПроУрок Web API v3.1 — порт 5001")
     app.run(host="0.0.0.0", port=5001, debug=False)
