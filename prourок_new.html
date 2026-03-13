@@ -389,7 +389,7 @@ header {
 .scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: 28px 36px;
+  padding: 28px 40px;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -398,7 +398,7 @@ header {
    WELCOME SCREEN
 ═══════════════════════════════════ */
 .welcome-wrap {
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -454,7 +454,7 @@ header {
 /* Главные карточки */
 .hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -525,7 +525,7 @@ header {
 /* Карточки-сервисы */
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 20px;
 }
@@ -616,7 +616,7 @@ header {
    FORM SCREEN
 ═══════════════════════════════════ */
 .form-wrap {
-  max-width: 700px;
+  max-width: 960px;
   margin: 0 auto;
 }
 
@@ -877,7 +877,7 @@ header {
    RESULT SCREEN
 ═══════════════════════════════════ */
 .result-wrap {
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
   height: 100%;
   display: flex;
@@ -971,7 +971,7 @@ header {
    МЕТОДИЧЕСКАЯ КОПИЛКА
 ═══════════════════════════════════ */
 .kopilka-wrap {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -1128,7 +1128,7 @@ header {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 760px;
+  max-width: 1000px;
   margin: 0 auto;
   width: 100%;
 }
@@ -1680,8 +1680,8 @@ header {
             </div>
           </div>
 
-          <!-- Hero cards -->
-          <div class="hero-grid" style="margin-bottom:12px;">
+          <!-- Hero cards — все 4 в одну строку -->
+          <div class="hero-grid">
             <div class="hero-card" onclick="openForm('plan')">
               <div class="hc-icon">📋</div>
               <div class="hc-title">Технологическая карта урока</div>
@@ -1694,9 +1694,6 @@ header {
               <div class="hc-sub">Тематические и итоговые · Ключи ответов</div>
               <div class="hc-arrow">→</div>
             </div>
-          </div>
-
-          <div class="hero-grid">
             <div class="hero-card green2" onclick="openPres()">
               <div class="hc-icon">🖥️</div>
               <div class="hc-title">Презентация к уроку</div>
@@ -1730,6 +1727,11 @@ header {
               <div class="sc-title">Спросить у ИИ</div>
               <div class="sc-desc">Любой вопрос по методике, ФГОС, предметам.</div>
             </div>
+            <div class="svc-card" onclick="showToast('Раздел в разработке')">
+              <div class="sc-icon">🗓️</div>
+              <div class="sc-title">Календарный план</div>
+              <div class="sc-desc">Тематическое планирование на год или четверть.</div>
+            </div>
           </div>
 
           <!-- Чат-вход -->
@@ -1759,6 +1761,9 @@ header {
             </div>
           </div>
 
+          <!-- Форма двухколоночная -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;">
+          <div>
           <!-- Предмет и класс -->
           <div class="form-card" id="fg-subj-card">
             <div class="fg-label">Учебный предмет</div>
@@ -1791,6 +1796,8 @@ header {
             </div>
           </div>
 
+          </div><!-- /left col -->
+          <div><!-- right col -->
           <!-- Тема -->
           <div class="form-card">
             <div class="fg-label" id="topicLabel">Тема урока</div>
@@ -1860,6 +1867,8 @@ header {
             </div>
           </div>
 
+          </div><!-- /right col -->
+          </div><!-- /two-col grid -->
           <div class="form-actions">
             <button class="btn-secondary" onclick="go('welcome')">Отмена</button>
             <button class="btn-primary" onclick="doCreate()">
