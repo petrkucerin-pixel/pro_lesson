@@ -1545,9 +1545,106 @@ header {
 ::-webkit-scrollbar-track {background: transparent;}
 ::-webkit-scrollbar-thumb {background: var(--border2); border-radius: 3px;}
 ::-webkit-scrollbar-thumb:hover {background: var(--green-mid);}
+
+/* ═══════════════════════════════════
+   LOGIN OVERLAY
+═══════════════════════════════════ */
+#loginOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--teal) 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-card {
+  background: #fff; border-radius: 20px;
+  padding: 40px 36px; width: 100%; max-width: 400px;
+  box-shadow: var(--shadow-lg); animation: fadeUp .4s ease forwards;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.login-logo { text-align: center; margin-bottom: 20px; }
+.login-logo .logo-name { font-family:'Merriweather',serif; font-size:22px; font-weight:700; color:var(--green-dark); }
+.login-logo .logo-name em { font-style:normal; color:var(--teal); }
+.login-logo .logo-tag { font-size:10px; color:var(--ink3); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+.auth-tabs { display:flex; gap:6px; margin-bottom:22px; background:var(--bg); border-radius:10px; padding:4px; }
+.auth-tab { flex:1; padding:8px; border:none; background:none; border-radius:8px; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:600; color:var(--ink3); cursor:pointer; transition:.15s; }
+.auth-tab.active { background:#fff; color:var(--green-dark); box-shadow:var(--shadow-sm); }
+.login-input {
+  width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--r2);
+  font-family:'Montserrat',sans-serif; font-size:13px; color:var(--ink); background:#fff;
+  outline:none; transition:.15s; margin-bottom:10px; box-sizing:border-box;
+}
+.login-input:focus { border-color:var(--green); }
+.login-input::placeholder { color:var(--ink4); }
+.pw-wrap { position:relative; margin-bottom:10px; }
+.pw-wrap .login-input { margin-bottom:0; padding-right:40px; }
+.pw-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; color:var(--ink3); padding:0; }
+.login-btn {
+  width:100%; padding:12px; background:linear-gradient(135deg,var(--green-dark),var(--teal));
+  border:none; border-radius:var(--r2); color:#fff; font-family:'Montserrat',sans-serif;
+  font-size:14px; font-weight:700; cursor:pointer; transition:.15s; margin-top:4px;
+}
+.login-btn:hover { opacity:.9; transform:translateY(-1px); }
+.login-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.login-msg { min-height:18px; font-size:12px; margin-top:10px; text-align:center; }
+.login-msg.ok { color:var(--green); }
+.login-msg.err { color:var(--rose); }
+.forgot-link { font-size:12px; color:var(--ink3); cursor:pointer; text-align:center; margin-top:10px; display:block; }
+.forgot-link:hover { color:var(--teal); }
+.opt-section { font-size:11px; color:var(--ink3); letter-spacing:.8px; text-transform:uppercase; font-weight:600; margin:12px 0 8px; }
 </style>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-name">Про<em>Урок</em></div>
+      <div class="logo-tag">AI-помощник учителя</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="showAuthForm('login')">Войти</button>
+      <button class="auth-tab" id="tabReg" onclick="showAuthForm('register')">Регистрация</button>
+    </div>
+
+    <!-- ВОЙТИ -->
+    <div id="authLogin">
+      <input class="login-input" type="email" id="liEmail" placeholder="Email" autocomplete="email"/>
+      <div class="pw-wrap">
+        <input class="login-input" type="password" id="liPwd" placeholder="Пароль"/>
+        <button class="pw-eye" type="button" onclick="toggleEye('liPwd',this)">👁</button>
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">Войти →</button>
+      <a class="forgot-link" onclick="showAuthForm('forgot')">Забыли пароль?</a>
+    </div>
+
+    <!-- РЕГИСТРАЦИЯ -->
+    <div id="authRegister" style="display:none;">
+      <input class="login-input" type="email" id="riEmail" placeholder="Email" autocomplete="email"/>
+      <div class="pw-wrap">
+        <input class="login-input" type="password" id="riPwd" placeholder="Пароль (мин. 6 символов)"/>
+        <button class="pw-eye" type="button" onclick="toggleEye('riPwd',this)">👁</button>
+      </div>
+      <div class="pw-wrap">
+        <input class="login-input" type="password" id="riPwd2" placeholder="Повторите пароль"/>
+        <button class="pw-eye" type="button" onclick="toggleEye('riPwd2',this)">👁</button>
+      </div>
+      <div class="opt-section">Необязательно</div>
+      <input class="login-input" type="text" id="riName" placeholder="Имя"/>
+      <input class="login-input" type="text" id="riSurname" placeholder="Фамилия"/>
+      <button class="login-btn" id="regBtn" onclick="doRegister()">Зарегистрироваться →</button>
+    </div>
+
+    <!-- ЗАБЫЛИ ПАРОЛЬ -->
+    <div id="authForgot" style="display:none;">
+      <p style="font-size:13px;color:var(--ink3);margin-bottom:12px;">Введите email — пришлём ссылку для сброса пароля</p>
+      <input class="login-input" type="email" id="fiEmail" placeholder="Email"/>
+      <button class="login-btn" onclick="doForgot()">Отправить →</button>
+      <a class="forgot-link" onclick="showAuthForm('login')">← Вернуться ко входу</a>
+    </div>
+
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <header>
@@ -1575,12 +1672,12 @@ header {
   </div>
 
   <div class="hdr-right">
-    <div class="quota-chip">Запросов: <strong>487</strong>/500</div>
+    <div class="quota-chip">Запросов: <strong id="hdrUsed">—</strong>/<strong id="hdrLimit">—</strong></div>
     <div class="user-chip">
-      <div class="user-avatar">А</div>
-      <span class="user-name">Алевтина</span>
+      <div class="user-avatar" id="hdrAvatar">?</div>
+      <span class="user-name" id="hdrName">—</span>
     </div>
-    <button class="btn-logout" onclick="showToast('Выход из системы...')">Выйти</button>
+    <button class="btn-logout" onclick="doLogout()">Выйти</button>
   </div>
 </header>
 
@@ -2130,13 +2227,10 @@ const SLIDES_DATA = [
   {title:'Домашнее задание', body:'• Обязательная часть\n• Творческое задание\n• Сроки выполнения'},
 ];
 
-// Методическая копилка (начальные данные)
-let KOPILKA = [
-  {id:1, type:'plan', title:'Теорема Пифагора', subj:'Геометрия', cls:'8', lt:'Урок открытия новых знаний', date:'10.03.2026'},
-  {id:2, type:'test', title:'Квадратные уравнения', subj:'Алгебра', cls:'8', lt:'', date:'05.03.2026'},
-  {id:3, type:'pres', title:'Гражданская война в России', subj:'История России', cls:'9', lt:'', date:'01.03.2026'},
-];
-let nextKopId = 4;
+// Методическая копилка — данные с сервера
+let KOPILKA = [];
+let currentKopilkaId = null;
+let chatHistory = [];
 
 // ══════ STATE ══════
 let curForm = 'plan';
@@ -2236,22 +2330,53 @@ function pickLt(el) {
   selLt = el.dataset.lt;
 }
 
-function doCreate() {
+async function doCreate() {
   const topic = document.getElementById('topicInput').value.trim();
   const cfg = FORMS[curForm];
   if(!cfg.noSubj && (!selSubj || !selCls)) { alert('Выберите предмет и класс'); return; }
   if(!topic && curForm !== 'excel') { alert('Введите тему урока'); return; }
+
+  const token = localStorage.getItem('prourok_session');
+  if(!token) { showAuthForm('login'); document.getElementById('loginOverlay').style.display='flex'; return; }
 
   document.getElementById('resultTitle').textContent = cfg.title;
   document.getElementById('resultBox').innerHTML = `<div style="text-align:center;padding:50px;color:var(--ink4);">
     <div class="dots"><span></span><span></span><span></span></div>
     <div style="margin-top:14px;font-size:13px;">Генерирую по ФГОС ООО…</div>
   </div>`;
+  currentKopilkaId = null;
   go('result');
 
-  setTimeout(() => {
-    document.getElementById('resultBox').innerHTML = genResult(curForm, selSubj, selCls, topic);
-  }, 1600);
+  // Формируем промпт
+  let prompt = '';
+  if(curForm === 'plan') {
+    const opts = [...document.querySelectorAll('#fg-opts .o-chip.sel')].map(c=>c.textContent).join(', ');
+    prompt = `Составь технологическую карту урока по ФГОС ООО.\nПредмет: ${selSubj}\nКласс: ${selCls}\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}\nДай полную структуру с УУД, планируемыми результатами и ходом урока.`;
+  } else if(curForm === 'test') {
+    const testOpts = [...document.querySelectorAll('#extraFields .o-chip.sel')].map(c=>c.textContent).join(', ');
+    prompt = `Составь тест по ФГОС ООО.\nПредмет: ${selSubj}\nКласс: ${selCls}\nТема: ${topic}\n${testOpts ? 'Параметры: '+testOpts : ''}\nДай задания с вариантами ответов и ключом.`;
+  } else if(curForm === 'excel') {
+    prompt = `Опиши структуру таблицы успеваемости Excel для учителя.\n${topic ? 'Класс: '+topic : ''}\nПредмет: ${selSubj || 'любой'}\nОпиши колонки, формулы, условное форматирование.`;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/chat`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify({message: prompt, history: []})
+    });
+    const data = await res.json();
+    if(data.ok) {
+      document.getElementById('resultBox').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
+      updateBalance(data.queries_used, data.queries_limit);
+    } else if(data.unauthorized) {
+      doLogout();
+    } else {
+      document.getElementById('resultBox').innerHTML = `<span style="color:var(--rose)">⚠️ ${data.error||'Ошибка'}</span>`;
+    }
+  } catch(e) {
+    document.getElementById('resultBox').innerHTML = `<span style="color:var(--rose)">⚠️ Ошибка сети. Проверьте подключение.</span>`;
+  }
 }
 
 function genResult(type, s, c, t) {
@@ -2381,21 +2506,64 @@ function doCopy() {
   navigator.clipboard.writeText(text).then(()=>showToast('Скопировано в буфер!')).catch(()=>{});
 }
 
-function saveToKopilka() {
-  const topic = document.getElementById('topicInput')?.value || document.getElementById('resultTitle').textContent;
-  const now = new Date();
-  const date = `${now.getDate().toString().padStart(2,'0')}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getFullYear()}`;
-  KOPILKA.unshift({
-    id: nextKopId++,
-    type: curForm,
-    title: document.getElementById('topicInput')?.value || topic,
-    subj: selSubj,
-    cls: selCls,
-    lt: selLt,
-    date
-  });
-  document.getElementById('kopilka-count').textContent = KOPILKA.length;
-  showToast('Сохранено в методическую копилку!');
+async function saveToKopilka() {
+  const token = localStorage.getItem('prourok_session');
+  if(!token) { showToast('Необходимо войти в аккаунт'); return; }
+  const content = document.getElementById('resultBox')?.innerText || '';
+  if(!content.trim()) { showToast('Нет содержимого для сохранения'); return; }
+  const title = document.getElementById('topicInput')?.value.trim() || document.getElementById('resultTitle')?.textContent || 'Материал';
+  const body = { title, content: content.trim(), type: curForm||'other', subject: selSubj||'', grade: selCls||'', lesson_type: selLt||'' };
+  if(currentKopilkaId) body.item_id = currentKopilkaId;
+  try {
+    const res = await fetch(`${API_URL}/api/kopilka/save`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if(data.ok) {
+      currentKopilkaId = data.item_id;
+      showToast('✅ Сохранено в копилку (№' + data.item_id + ')');
+      await loadKopilka();
+    } else { showToast('Ошибка: ' + data.error); }
+  } catch(e) { showToast('Ошибка сети'); }
+}
+
+async function loadKopilka() {
+  const token = localStorage.getItem('prourok_session');
+  if(!token) return;
+  try {
+    const res = await fetch(`${API_URL}/api/kopilka/list`, {headers:{'X-Session-Token':token}});
+    const data = await res.json();
+    if(data.ok) {
+      KOPILKA = data.items.map(it => ({
+        id: parseInt(it.id), type: it.type, title: it.title,
+        subj: it.subject, cls: it.grade, lt: it.lesson_type,
+        date: formatDate(it.updated), content: it.preview||''
+      }));
+      const cnt = document.getElementById('kopilka-count');
+      if(cnt) cnt.textContent = KOPILKA.length;
+      renderKopilka();
+    }
+  } catch(e) { console.error('Ошибка загрузки копилки:', e); }
+}
+
+async function deleteKop(id) {
+  if(!confirm('Удалить материал №' + id + '?')) return;
+  const token = localStorage.getItem('prourok_session');
+  try {
+    const res = await fetch(`${API_URL}/api/kopilka/delete/` + id, {
+      method:'DELETE', headers:{'X-Session-Token':token}
+    });
+    const data = await res.json();
+    if(data.ok) { showToast('Удалено'); await loadKopilka(); }
+    else showToast(data.error);
+  } catch(e) { showToast('Ошибка сети'); }
+}
+
+function formatDate(iso) {
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
 }
 
 // ══════ МЕТОДИЧЕСКАЯ КОПИЛКА ══════
@@ -2462,12 +2630,7 @@ function useTemplate(id) {
   }, 100);
 }
 
-function deleteKop(id) {
-  if(!confirm('Удалить этот материал из копилки?')) return;
-  KOPILKA = KOPILKA.filter(k => k.id !== id);
-  document.getElementById('kopilka-count').textContent = KOPILKA.length;
-  renderKopilka();
-}
+// deleteKop определён выше (API версия)
 
 // ══════ ПРЕЗЕНТАЦИЯ ══════
 function openPres() {
@@ -2542,47 +2705,56 @@ function pickClr(el, c1, c2, textMode) {
 }
 
 // ══════ CHAT ══════
-function sendChat() {
+async function sendChat() {
   const input = document.getElementById('chatInput');
-  const text = input.value.trim();
+  let text = input.value.trim();
   if(!text) return;
   input.value = '';
+  input.style.height = 'auto';
+
+  const token = localStorage.getItem('prourok_session');
+  if(!token) { showToast('Необходимо войти в аккаунт'); return; }
 
   const msgs = document.getElementById('chatMessages');
-  msgs.innerHTML += `<div class="msg user"><div class="msg-avatar">А</div><div class="msg-bubble">${text}</div></div>`;
-  msgs.innerHTML += `<div class="msg assistant"><div class="msg-avatar">🤖</div><div class="msg-bubble"><div class="dots"><span></span><span></span><span></span></div></div></div>`;
+  msgs.innerHTML += `<div class="msg user"><div class="msg-avatar">А</div><div class="msg-bubble">${escHtml(text)}</div></div>`;
+
+  // Если ссылается на задачу из копилки — добавляем контекст
+  const refMatch = text.match(/задач[иу]?\s*[№#]?\s*(\d+)/i);
+  if(refMatch) {
+    try {
+      const r = await fetch(`${API_URL}/api/kopilka/get/` + refMatch[1], {headers:{'X-Session-Token':token}});
+      const d = await r.json();
+      if(d.ok) text += '\n\n[КОНТЕКСТ ИЗ КОПИЛКИ №'+refMatch[1]+']\nТип: '+d.item.type+'\nПредмет: '+d.item.subject+' · '+d.item.grade+' кл.\nСтруктура:\n'+d.item.content.slice(0,800);
+    } catch(e) {}
+  }
+
+  const loadId = 'load_'+Date.now();
+  msgs.innerHTML += `<div class="msg assistant" id="${loadId}"><div class="msg-avatar">🤖</div><div class="msg-bubble"><div class="dots"><span></span><span></span><span></span></div></div></div>`;
   msgs.scrollTop = msgs.scrollHeight;
 
-  setTimeout(() => {
-    const bubbles = msgs.querySelectorAll('.msg.assistant .msg-bubble');
-    const last = bubbles[bubbles.length-1];
-    last.innerHTML = getAIResponse(text);
-    msgs.scrollTop = msgs.scrollHeight;
-  }, 1200);
-}
-
-function getAIResponse(q) {
-  const ql = q.toLowerCase();
-  if(ql.includes('тип') && ql.includes('урок')) return `<b>Типы уроков по ФГОС ООО (Приказ №287 от 31.05.2021):</b><br><br>
-1. <b>Урок открытия новых знаний</b> — изучение нового материала<br>
-2. <b>Урок отработки умений и рефлексии</b> — закрепление и самоанализ<br>
-3. <b>Урок общеметодологической направленности</b> — систематизация знаний<br>
-4. <b>Урок развивающего контроля</b> — проверка и оценка достижений<br>
-5. <b>Урок-исследование</b> — проектная и поисковая деятельность<br>
-6. <b>Комбинированный урок</b> — решение нескольких дидактических задач`;
-  if(ql.includes('уу')) return `УУД (универсальные учебные действия) по ФГОС делятся на три группы:<br><br>
-<b>Познавательные:</b> анализ, синтез, сравнение, обобщение, классификация, моделирование<br><br>
-<b>Регулятивные:</b> целеполагание, планирование, контроль, оценка, коррекция, саморегуляция<br><br>
-<b>Коммуникативные:</b> умение слушать, строить высказывания, работать в группе, договариваться`;
-  if(ql.includes('структур') && ql.includes('задач')) {
-    const num = q.match(/\d+/);
-    const id = num ? parseInt(num[0]) : 1;
-    const item = KOPILKA.find(k=>k.id===id);
-    return item ? `Загружаю структуру из копилки: <b>«${item.title}»</b><br>Предмет: ${item.subj}, ${item.cls} класс<br>Тип: ${item.lt || 'не указан'}<br><br>Готов создать новый материал по этой структуре. Укажите тему нового урока.`
-                : 'В копилке нет задачи с таким номером. Перейдите в раздел «Методическая копилка» чтобы посмотреть доступные шаблоны.';
+  try {
+    const res = await fetch(`${API_URL}/api/chat`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify({message:text, history:chatHistory})
+    });
+    const data = await res.json();
+    const el = document.getElementById(loadId);
+    if(data.ok) {
+      if(el) el.querySelector('.msg-bubble').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
+      chatHistory.push({role:'user',content:text});
+      chatHistory.push({role:'assistant',content:data.reply});
+      if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+      updateBalance(data.queries_used, data.queries_limit);
+    } else {
+      if(el) el.querySelector('.msg-bubble').innerHTML = `<span style="color:var(--rose)">⚠️ ${data.error||'Ошибка'}</span>`;
+      if(data.unauthorized) doLogout();
+    }
+  } catch(e) {
+    const el = document.getElementById(loadId);
+    if(el) el.querySelector('.msg-bubble').innerHTML = '<span style="color:var(--rose)">⚠️ Ошибка сети</span>';
   }
-  if(ql.includes('история') && ql.includes('края')) return 'Учебный курс <b>«История нашего края»</b> введён Приказом Минпросвещения №110 от 19.02.2024 и вступил в силу с <b>1 сентября 2025 года</b>.<br><br>Курс преподаётся в рамках учебного предмета «История», направлен на изучение регионального компонента.';
-  return 'Это хороший вопрос по методике. Чтобы дать точный ответ с учётом ФГОС ООО, уточните: к какому предмету и классу относится ваш запрос?';
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 function insertHint(text) {
@@ -2605,8 +2777,128 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'), 2800);
 }
 
-// Инициализация
+// ══════ HELPERS ══════
+const API_URL = 'http://95.140.147.248:5001';
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateBalance(used, limit) {
+  if(used !== undefined) {
+    document.getElementById('hdrUsed').textContent = used;
+    if(limit !== undefined) document.getElementById('hdrLimit').textContent = limit;
+  }
+}
+
+function onLoggedIn(data) {
+  document.getElementById('loginOverlay').style.display = 'none';
+  const name = data.name || data.email.split('@')[0];
+  document.getElementById('hdrName').textContent = name;
+  document.getElementById('hdrAvatar').textContent = name.charAt(0).toUpperCase();
+  updateBalance(data.queries_used, data.queries_limit);
+  loadKopilka();
+}
+
+function doLogout() {
+  localStorage.removeItem('prourok_session');
+  chatHistory = [];
+  KOPILKA = [];
+  document.getElementById('loginOverlay').style.display = 'flex';
+  showAuthForm('login');
+}
+
+// ══════ AUTH ══════
+function showAuthForm(type) {
+  document.getElementById('authLogin').style.display = type==='login' ? '' : 'none';
+  document.getElementById('authRegister').style.display = type==='register' ? '' : 'none';
+  document.getElementById('authForgot').style.display = type==='forgot' ? '' : 'none';
+  document.getElementById('tabLogin').classList.toggle('active', type==='login');
+  document.getElementById('tabReg').classList.toggle('active', type==='register');
+  document.getElementById('loginMsg').innerHTML = '';
+  document.getElementById('loginMsg').className = 'login-msg';
+}
+
+function toggleEye(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁' : '🙈';
+}
+
+function setLoginMsg(msg, type) {
+  const el = document.getElementById('loginMsg');
+  el.innerHTML = msg;
+  el.className = 'login-msg ' + (type||'');
+}
+
+async function doLogin() {
+  const email = document.getElementById('liEmail').value.trim();
+  const pwd   = document.getElementById('liPwd').value;
+  if(!email||!pwd) { setLoginMsg('Введите email и пароль','err'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Входим…';
+  try {
+    const r = await fetch(`${API_URL}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd})});
+    const d = await r.json();
+    if(d.ok) {
+      localStorage.setItem('prourok_session', d.session_token);
+      onLoggedIn(d);
+    } else if(d.not_confirmed) {
+      setLoginMsg('Email не подтверждён. Проверьте почту.','err');
+    } else {
+      setLoginMsg(d.error||'Ошибка входа','err');
+    }
+  } catch(e) { setLoginMsg('Не удалось подключиться к серверу','err'); }
+  btn.disabled = false; btn.textContent = 'Войти →';
+}
+
+async function doRegister() {
+  const email = document.getElementById('riEmail').value.trim();
+  const pwd   = document.getElementById('riPwd').value;
+  const pwd2  = document.getElementById('riPwd2').value;
+  const name  = document.getElementById('riName').value.trim();
+  const surname = document.getElementById('riSurname').value.trim();
+  if(!email||!pwd) { setLoginMsg('Введите email и пароль','err'); return; }
+  if(pwd.length < 6) { setLoginMsg('Пароль минимум 6 символов','err'); return; }
+  if(pwd !== pwd2) { setLoginMsg('Пароли не совпадают','err'); return; }
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true; btn.textContent = 'Регистрируем…';
+  try {
+    const r = await fetch(`${API_URL}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd,name,surname})});
+    const d = await r.json();
+    if(d.ok) {
+      setLoginMsg('📬 Письмо отправлено! Проверьте почту и подтвердите регистрацию.','ok');
+      btn.disabled = true;
+    } else {
+      setLoginMsg(d.error||'Ошибка регистрации','err');
+      btn.disabled = false; btn.textContent = 'Зарегистрироваться →';
+    }
+  } catch(e) { setLoginMsg('Не удалось подключиться к серверу','err'); btn.disabled=false; btn.textContent='Зарегистрироваться →'; }
+}
+
+async function doForgot() {
+  const email = document.getElementById('fiEmail').value.trim();
+  if(!email) { setLoginMsg('Введите email','err'); return; }
+  try {
+    const r = await fetch(`${API_URL}/api/auth/reset/request`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d = await r.json();
+    setLoginMsg(d.ok ? 'Письмо отправлено! Проверьте почту.' : (d.error||'Ошибка'), d.ok?'ok':'err');
+  } catch(e) { setLoginMsg('Не удалось подключиться к серверу','err'); }
+}
+
+// ══════ ИНИЦИАЛИЗАЦИЯ ══════
 renderCls([]);
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const token = localStorage.getItem('prourok_session');
+  if(!token) { showAuthForm('login'); return; }
+  try {
+    const r = await fetch(`${API_URL}/api/auth/me`,{headers:{'X-Session-Token':token}});
+    const d = await r.json();
+    if(d.ok) { onLoggedIn(d); }
+    else { localStorage.removeItem('prourok_session'); showAuthForm('login'); }
+  } catch(e) { showAuthForm('login'); }
+});
 </script>
 </body>
 </html>
