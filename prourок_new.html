@@ -950,20 +950,45 @@ header {
 
 /* Чат корректировок на экране результата */
 .result-fix-chat {
-  margin-top: 16px;
-  background: var(--white);
+  margin-top: 14px;
+  background: linear-gradient(135deg, var(--green-xl), var(--teal-xl));
   border: 1.5px solid var(--border);
   border-radius: var(--r);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
 }
 .result-fix-label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--ink3);
-  letter-spacing: .5px;
+  color: var(--green-dark);
+  letter-spacing: .4px;
   text-transform: uppercase;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fix-quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.fix-qbtn {
+  padding: 5px 12px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: .15s;
+  font-family: 'Montserrat', sans-serif;
+}
+.fix-qbtn:hover {
+  border-color: var(--green-mid);
+  background: var(--green-light);
+  color: var(--green-dark);
 }
 .result-fix-row {
   display: flex;
@@ -971,7 +996,7 @@ header {
 }
 .result-fix-input {
   flex: 1;
-  padding: 10px 14px;
+  padding: 9px 14px;
   border: 1.5px solid var(--border);
   border-radius: var(--r2);
   font-family: 'Montserrat', sans-serif;
@@ -979,13 +1004,14 @@ header {
   color: var(--ink);
   outline: none;
   transition: .15s;
+  background: var(--white);
 }
 .result-fix-input:focus {
   border-color: var(--teal-mid);
   box-shadow: 0 0 0 3px rgba(26,143,160,.1);
 }
 .result-fix-btn {
-  padding: 10px 18px;
+  padding: 9px 18px;
   background: linear-gradient(135deg, var(--green), var(--teal-mid));
   border: none;
   border-radius: var(--r2);
@@ -999,6 +1025,40 @@ header {
 }
 .result-fix-btn:hover { opacity: .88; }
 .result-fix-btn:disabled { opacity: .5; cursor: default; }
+
+/* Слайды — буллеты */
+.sc-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: rgba(255,255,255,.9);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.sc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.6);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.sc-text {
+  color: rgba(255,255,255,.75);
+  font-size: 12px;
+  margin-bottom: 4px;
+  font-style: italic;
+}
+.slide-num {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,.35);
+  z-index: 2;
+}
 
 /* Loading dots */
 .dots {
@@ -2064,9 +2124,17 @@ header {
           </div>
           <div class="result-box" id="resultBox"></div>
           <div class="result-fix-chat">
-            <div class="result-fix-label">✏️ Попросить ИИ внести правки</div>
+            <div class="result-fix-label">✨ Улучшить с помощью ИИ</div>
+            <div class="fix-quick-btns">
+              <button class="fix-qbtn" onclick="quickFix('Сделай ход урока подробнее, добавь больше деталей по каждому этапу')">📋 Подробнее</button>
+              <button class="fix-qbtn" onclick="quickFix('Добавь конкретные примеры задач и упражнений для учеников')">📝 Добавь примеры</button>
+              <button class="fix-qbtn" onclick="quickFix('Добавь дифференциацию заданий: базовый, средний и повышенный уровень')">🎯 Дифференциация</button>
+              <button class="fix-qbtn" onclick="quickFix('Добавь вопросы для рефлексии и самооценки учеников')">💬 Вопросы рефлексии</button>
+              <button class="fix-qbtn" onclick="quickFix('Добавь межпредметные связи и связь с реальной жизнью')">🔗 Межпредметные связи</button>
+              <button class="fix-qbtn" onclick="quickFix('Упрости язык, сделай более понятным для использования на уроке')">✂️ Упростить</button>
+            </div>
             <div class="result-fix-row">
-              <input type="text" id="fixInput" class="result-fix-input" placeholder="Напр.: Добавь больше заданий для самостоятельной работы" onkeydown="if(event.key==='Enter')fixResult()">
+              <input type="text" id="fixInput" class="result-fix-input" placeholder="Или напиши своё пожелание..." onkeydown="if(event.key==='Enter')fixResult()">
               <button id="fixBtn" class="result-fix-btn" onclick="fixResult()">Исправить</button>
             </div>
           </div>
@@ -2160,6 +2228,7 @@ header {
             <div class="slide-body-area">
               <div id="scBody">• Содержание</div>
             </div>
+            <div class="slide-num" id="slideNum">1 / 8</div>
           </div>
           <div class="pres-controls">
             <button class="btn-slide-nav" onclick="showSlide(Math.max(0,curSlide-1))">←</button>
@@ -2791,14 +2860,27 @@ function renderSlideList() {
       </div>`).join('');
 }
 
+function renderSlideBodyHtml(text) {
+  return (text||'').split('\n').map(line => {
+    line = line.trim();
+    if(!line) return '';
+    if(line.startsWith('•') || line.startsWith('-') || line.startsWith('·')) {
+      return `<div class="sc-bullet"><div class="sc-dot"></div><span>${escHtml(line.replace(/^[•\-·]\s*/,''))}</span></div>`;
+    }
+    return `<div class="sc-text">${escHtml(line)}</div>`;
+  }).filter(Boolean).join('');
+}
+
 function showSlide(i) {
   curSlide = i;
   const s = SLIDES_DATA[i];
   document.getElementById('scTitle').textContent = s.title;
-  document.getElementById('scBody').textContent  = s.body;
+  document.getElementById('scBody').innerHTML    = renderSlideBodyHtml(s.body);
   document.getElementById('sTitleEdit').value    = s.title;
   document.getElementById('sBodyEdit').value     = s.body;
   document.getElementById('slideCounter').textContent = `${i+1} / ${SLIDES_DATA.length}`;
+  const sn = document.getElementById('slideNum');
+  if(sn) sn.textContent = `${i+1} / ${SLIDES_DATA.length}`;
   renderSlideList();
 }
 
@@ -2806,7 +2888,7 @@ function syncSlide() {
   const t = document.getElementById('sTitleEdit').value;
   const b = document.getElementById('sBodyEdit').value;
   document.getElementById('scTitle').textContent = t;
-  document.getElementById('scBody').textContent  = b;
+  document.getElementById('scBody').innerHTML    = renderSlideBodyHtml(b);
   SLIDES_DATA[curSlide].title = t;
   SLIDES_DATA[curSlide].body  = b;
   renderSlideList();
@@ -2941,6 +3023,11 @@ function askByTemplate(id) {
 }
 
 // ══════ ПРАВКИ РЕЗУЛЬТАТА ══════
+function quickFix(text) {
+  document.getElementById('fixInput').value = text;
+  fixResult();
+}
+
 async function fixResult() {
   const input = document.getElementById('fixInput');
   const correction = input.value.trim();
@@ -2954,7 +3041,8 @@ async function fixResult() {
   btn.disabled = true; btn.textContent = 'Исправляю…';
   input.disabled = true;
 
-  const prompt = `Вот готовый учебный материал, который нужно отредактировать:\n\n${currentContent}\n\n---\nЗадание редактора: ${correction}\n\nТребования:\n1. Верни ТОЛЬКО полный обновлённый текст материала — без объяснений, без вопросов, без комментариев\n2. Не задавай уточняющих вопросов — редактируй на основе имеющегося текста\n3. Сохрани структуру и стиль оригинала`;
+  const subjCtx = selSubj ? `Предмет: ${selSubj}, ${selCls} класс\n` : '';
+  const prompt = `${subjCtx}Редактируй существующий учебный материал. НЕ задавай вопросов.\n\nМатериал:\n${currentContent}\n\n---\nЧто изменить: ${correction}\n\nВерни ТОЛЬКО полный обновлённый текст. Без объяснений и комментариев.`;
 
   document.getElementById('resultBox').innerHTML = `<div style="text-align:center;padding:50px;color:var(--ink4);">
     <div class="dots"><span></span><span></span><span></span></div>
