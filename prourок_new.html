@@ -2377,27 +2377,36 @@ async function doCreate() {
   currentKopilkaId = null;
   go('result');
 
+  // Уточнение предмета для правильной генерации
+  const clsNum = parseInt(selCls) || 0;
+  let subjFull = selSubj;
+  if(selSubj === 'Математика' && clsNum >= 1 && clsNum <= 6) {
+    subjFull = 'Математика (единый курс, 1-6 класс — НЕ разделяется на Алгебру и Геометрию)';
+  } else if(selSubj === 'Математика' && clsNum >= 7) {
+    subjFull = 'Алгебра (7-9 класс, курс в рамках предмета Математика)';
+  }
+
   // Формируем промпт
-  const NODIALOG = '\nНЕ задавай уточняющих вопросов — создай материал сразу на основе указанных данных.';
+  const NODIALOG = '\nСОЗДАЙ МАТЕРИАЛ СРАЗУ. Не задавай вопросов, не проси уточнений — все необходимые данные уже указаны.';
   let prompt = '';
   if(curForm === 'plan') {
     const opts = [...document.querySelectorAll('#fg-opts .o-chip.sel')].map(c=>c.textContent).join(', ');
     const special = document.getElementById('specialCond')?.value.trim() || '';
-    prompt = `Составь технологическую карту урока по ФГОС ООО.\nПредмет: ${selSubj}, ${selCls} класс\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}${special ? '\nОсобые условия: '+special : ''}\nДай полную структуру: цели (предметные/метапредметные/личностные), оборудование, ход урока с деятельностью учителя и ученика.${NODIALOG}`;
+    prompt = `Составь технологическую карту урока по ФГОС ООО.\nПредмет: ${subjFull}, ${selCls} класс\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}${special ? '\nОсобые условия: '+special : ''}\nДай полную структуру: цели (предметные/метапредметные/личностные), оборудование, ход урока с деятельностью учителя и ученика.${NODIALOG}`;
   } else if(curForm === 'test') {
     const testOpts = [...document.querySelectorAll('#extraFields .o-chip.sel')].map(c=>c.textContent).join(', ');
-    prompt = `Составь ${testOpts || 'тематический тест'} по ФГОС ООО.\nПредмет: ${selSubj}, ${selCls} класс\nТема: ${topic}\nДай конкретные задания с вариантами ответов и ключом ответов.${NODIALOG}`;
+    prompt = `Составь ${testOpts || 'тематический тест'} по ФГОС ООО.\nПредмет: ${subjFull}, ${selCls} класс\nТема: ${topic}\nДай конкретные задания с вариантами ответов и ключом ответов.${NODIALOG}`;
   } else if(curForm === 'excel') {
     const students = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>['20','25','30','35'].includes(c.textContent)).map(c=>c.textContent).join('') || '25';
     const quarter = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>c.textContent.includes('четверть')||c.textContent==='Год').map(c=>c.textContent).join('') || '1 четверть';
-    prompt = `Опиши структуру таблицы успеваемости Excel для учителя.\n${topic ? 'Класс: '+topic : ''}\nПредмет: ${selSubj || 'любой'}\nКоличество учеников: ${students}\nПериод: ${quarter}\nОпиши названия колонок, формулы расчёта среднего балла и итоговой оценки, условное форматирование по оценкам.${NODIALOG}`;
+    prompt = `Опиши структуру таблицы успеваемости Excel для учителя.\n${topic ? 'Класс: '+topic : ''}\nПредмет: ${subjFull || 'любой'}\nКоличество учеников: ${students}\nПериод: ${quarter}\nОпиши названия колонок, формулы расчёта среднего балла и итоговой оценки, условное форматирование по оценкам.${NODIALOG}`;
   } else if(curForm === 'pres') {
     const slideCount = [...document.querySelectorAll('#extraFields .o-chip.sel')].map(c=>c.textContent).join('') || '8';
     document.getElementById('resultBox').innerHTML = `<div style="text-align:center;padding:50px;color:var(--ink4);">
       <div class="dots"><span></span><span></span><span></span></div>
       <div style="margin-top:14px;font-size:13px;">Генерирую презентацию…</div>
     </div>`;
-    prompt = `Составь содержание презентации для урока по ФГОС ООО.\nПредмет: ${selSubj}, ${selCls} класс\nТема: ${topic}\nТип урока: ${selLt}\n\nСоздай ровно ${slideCount} слайдов. Строго соблюдай формат каждого слайда:\n\nСЛАЙД 1: [заголовок]\n• [пункт]\n• [пункт]\n• [пункт]\n\nСЛАЙД 2: [заголовок]\n...\n\nСлайды: 1-Тема урока, 2-Цели и УУД, 3-Актуализация знаний, 4-Новый материал, 5-Примеры и задачи, 6-Практическая работа, 7-Рефлексия, 8-Домашнее задание.${NODIALOG}`;
+    prompt = `Составь содержание презентации для урока по ФГОС ООО.\nПредмет: ${subjFull}, ${selCls} класс\nТема: ${topic}\nТип урока: ${selLt}\n\nСоздай ровно ${slideCount} слайдов. Строго соблюдай формат каждого слайда:\n\nСЛАЙД 1: [заголовок]\n• [пункт]\n• [пункт]\n• [пункт]\n\nСЛАЙД 2: [заголовок]\n...\n\nСлайды: 1-Тема урока, 2-Цели и УУД, 3-Актуализация знаний, 4-Новый материал, 5-Примеры и задачи, 6-Практическая работа, 7-Рефлексия, 8-Домашнее задание.${NODIALOG}`;
   }
 
   try {
