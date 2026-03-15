@@ -482,10 +482,10 @@ def login():
     user_data = get_user_data(email)
     tariff = user_data.get("tariff", "demo")
     limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
-    name = user.get("name") or email.split("@")[0]
+    full_name = " ".join(filter(None, [user.get("name",""), user.get("surname","")])).strip() or email.split("@")[0]
     return jsonify({
         "ok": True, "session_token": session_token, "email": email,
-        "name": name, "tariff": tariff,
+        "name": full_name, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
     })
@@ -501,9 +501,9 @@ def auth_me():
     user_data = get_user_data(email)
     tariff = user_data.get("tariff", "demo")
     limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
-    name = (user.get("name") if user else None) or email.split("@")[0]
+    full_name = " ".join(filter(None, [(user.get("name","") if user else ""), (user.get("surname","") if user else "")])).strip() or email.split("@")[0]
     return jsonify({
-        "ok": True, "email": email, "name": name, "tariff": tariff,
+        "ok": True, "email": email, "name": full_name, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
         "generations_used": user_data.get("generations_used", 0),
@@ -527,10 +527,10 @@ def confirm_email():
     tariff = user_data.get("tariff", "demo")
     limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
     user = get_user(email)
-    name = (user.get("name") if user else None) or email.split("@")[0]
+    full_name = " ".join(filter(None, [(user.get("name","") if user else ""), (user.get("surname","") if user else "")])).strip() or email.split("@")[0]
     return jsonify({
         "ok": True, "session_token": session_token, "email": email,
-        "name": name, "tariff": tariff,
+        "name": full_name, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
     })
@@ -564,6 +564,29 @@ def reset_confirm():
     tokens[token]["used"] = True
     save_tokens(tokens)
     return jsonify({"ok": True, "message": "Пароль успешно изменён"})
+
+
+# ─────────────────────────────────────────────────────────────
+# ПРОФИЛЬ
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/api/auth/profile", methods=["POST"])
+def update_profile():
+    token = request.headers.get("X-Session-Token", "")
+    email = verify_session(token)
+    if not email:
+        return jsonify({"ok": False, "error": "Не авторизован", "unauthorized": True}), 401
+    body    = request.get_json(force=True)
+    name    = str(body.get("name", "")).strip()
+    surname = str(body.get("surname", "")).strip()
+    users   = load_users()
+    if email not in users:
+        return jsonify({"ok": False, "error": "Пользователь не найден"}), 404
+    users[email]["name"]    = name
+    users[email]["surname"] = surname
+    save_users(users)
+    full_name = " ".join(filter(None, [name, surname])).strip() or email.split("@")[0]
+    return jsonify({"ok": True, "name": full_name})
 
 
 # ─────────────────────────────────────────────────────────────
