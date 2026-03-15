@@ -17,12 +17,18 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import threading
+from dotenv import load_dotenv
 
 # ─────────────────────────────────────────────────────────────
 # КОНФИГ
 # ─────────────────────────────────────────────────────────────
 
-ANTHROPIC_API_KEY = "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"
+load_dotenv()  # читает /root/pro-lesson-bot/.env
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+SMTP_EMAIL        = os.getenv("SMTP_EMAIL", "")
+SMTP_PASSWORD     = os.getenv("SMTP_PASSWORD", "")
+
 USER_LIMITS_FILE  = "/root/pro-lesson-bot/user_limits.json"
 USERS_FILE        = "/root/pro-lesson-bot/users.json"
 TOKENS_FILE       = "/root/pro-lesson-bot/auth_tokens.json"
@@ -30,11 +36,10 @@ KOPILKA_FILE      = "/root/pro-lesson-bot/kopilka.json"
 MODEL             = "claude-3-haiku-20240307"
 MAX_TOKENS        = 2048
 
-SMTP_EMAIL    = "noreply.prourok@gmail.com"
-SMTP_PASSWORD = "mtbyfsgxbnniqylo"
-SMTP_HOST     = "smtp.gmail.com"
-SMTP_PORT     = 587
-BASE_URL      = "http://95.140.147.248"
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
+BASE_URL  = "http://95.140.147.248"
+
 
 TARIFF_LIMITS = {
     "demo":    {"queries": 20,     "generations": 5},
@@ -222,15 +227,13 @@ def send_email(to: str, subject: str, html: str) -> bool:
 
 def send_reset_email(email: str, token: str) -> bool:
     link = f"{BASE_URL}/reset.html?token={token}"
-    html = f"""
-<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#0f1117;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;padding:40px 0;">
   <tr><td align="center">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#181c27;border-radius:16px;border:1px solid #2a3045;">
       <tr><td style="padding:32px;text-align:center;border-bottom:1px solid #2a3045;">
         <div style="font-size:24px;font-weight:700;color:#e8eaf0;">Про<span style="color:#e8c87a;">Урок</span></div>
-        <div style="font-size:11px;color:#7a8099;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">AI-помощник учителя</div>
       </td></tr>
       <tr><td style="padding:36px 32px;text-align:center;">
         <p style="color:#e8eaf0;font-size:16px;margin:0 0 8px;">Сброс пароля</p>
@@ -241,9 +244,6 @@ def send_reset_email(email: str, token: str) -> bool:
         <a href="{link}" style="display:inline-block;background:linear-gradient(135deg,#4f7cff,#7c5cfc);color:#fff;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:15px;font-weight:600;">
           Сбросить пароль →
         </a>
-        <p style="color:#7a8099;font-size:12px;margin:24px 0 0;">
-          Если вы не запрашивали сброс — просто проигнорируйте это письмо.
-        </p>
       </td></tr>
     </table>
   </td></tr>
@@ -253,15 +253,13 @@ def send_reset_email(email: str, token: str) -> bool:
 
 def send_confirm_email(email: str, token: str) -> bool:
     link = f"{BASE_URL}/confirm.html?token={token}"
-    html = f"""
-<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#0f1117;font-family:'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1117;padding:40px 0;">
   <tr><td align="center">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#181c27;border-radius:16px;border:1px solid #2a3045;">
       <tr><td style="padding:32px;text-align:center;border-bottom:1px solid #2a3045;">
         <div style="font-size:24px;font-weight:700;color:#e8eaf0;">Про<span style="color:#e8c87a;">Урок</span></div>
-        <div style="font-size:11px;color:#7a8099;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">AI-помощник учителя</div>
       </td></tr>
       <tr><td style="padding:36px 32px;text-align:center;">
         <p style="color:#e8eaf0;font-size:16px;margin:0 0 8px;">Подтвердите email</p>
@@ -356,7 +354,6 @@ def kopilka_save():
     email = verify_session(session_token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован"}), 401
-
     body        = request.get_json(force=True)
     item_id     = body.get("item_id")
     title       = str(body.get("title", "")).strip()
@@ -365,15 +362,12 @@ def kopilka_save():
     subject     = str(body.get("subject", "")).strip()
     grade       = str(body.get("grade", "")).strip()
     lesson_type = str(body.get("lesson_type", "")).strip()
-
     if not content:
         return jsonify({"ok": False, "error": "Содержимое не может быть пустым"}), 400
-
     kopilka = load_kopilka()
     if email not in kopilka:
         kopilka[email] = {}
     user_items = kopilka[email]
-
     if item_id and str(item_id) in user_items:
         item = user_items[str(item_id)]
         item["title"]       = title or item["title"]
@@ -387,17 +381,11 @@ def kopilka_save():
         new_id = str(max((int(k) for k in user_items.keys()), default=0) + 1)
         item_id = new_id
         user_items[new_id] = {
-            "id":           new_id,
-            "title":        title or f"Материал №{new_id}",
-            "content":      content,
-            "type":         item_type,
-            "subject":      subject,
-            "grade":        grade,
-            "lesson_type":  lesson_type,
-            "created":      datetime.utcnow().isoformat(),
-            "updated":      datetime.utcnow().isoformat(),
+            "id": new_id, "title": title or f"Материал №{new_id}",
+            "content": content, "type": item_type, "subject": subject,
+            "grade": grade, "lesson_type": lesson_type,
+            "created": datetime.utcnow().isoformat(), "updated": datetime.utcnow().isoformat(),
         }
-
     save_kopilka(kopilka)
     return jsonify({"ok": True, "item_id": str(item_id), "message": "Сохранено в копилку"})
 
@@ -408,23 +396,15 @@ def kopilka_list():
     email = verify_session(session_token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован"}), 401
-
     kopilka = load_kopilka()
     user_items = kopilka.get(email, {})
     items = sorted(user_items.values(), key=lambda x: int(x["id"]))
-
     preview_items = [{
-        "id":           it["id"],
-        "title":        it["title"],
-        "type":         it["type"],
-        "subject":      it["subject"],
-        "grade":        it["grade"],
-        "lesson_type":  it["lesson_type"],
-        "created":      it["created"],
-        "updated":      it["updated"],
-        "preview":      it["content"][:120] + "..." if len(it["content"]) > 120 else it["content"],
+        "id": it["id"], "title": it["title"], "type": it["type"],
+        "subject": it["subject"], "grade": it["grade"], "lesson_type": it["lesson_type"],
+        "created": it["created"], "updated": it["updated"],
+        "preview": it["content"][:120] + "..." if len(it["content"]) > 120 else it["content"],
     } for it in items]
-
     return jsonify({"ok": True, "items": preview_items, "total": len(preview_items)})
 
 
@@ -434,12 +414,10 @@ def kopilka_get(item_id):
     email = verify_session(session_token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован"}), 401
-
     kopilka = load_kopilka()
     item = kopilka.get(email, {}).get(str(item_id))
     if not item:
         return jsonify({"ok": False, "error": f"Материал №{item_id} не найден"}), 404
-
     return jsonify({"ok": True, "item": item})
 
 
@@ -449,18 +427,16 @@ def kopilka_delete(item_id):
     email = verify_session(session_token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован"}), 401
-
     kopilka = load_kopilka()
     user_items = kopilka.get(email, {})
     if str(item_id) not in user_items:
         return jsonify({"ok": False, "error": "Материал не найден"}), 404
-
     del user_items[str(item_id)]
     save_kopilka(kopilka)
     return jsonify({"ok": True, "message": f"Материал №{item_id} удалён"})
 
 # ─────────────────────────────────────────────────────────────
-# МАРШРУТЫ — AUTH
+# AUTH
 # ─────────────────────────────────────────────────────────────
 
 @app.route("/api/health", methods=["GET"])
@@ -476,20 +452,16 @@ def register():
     name       = str(body.get("name", "")).strip()
     surname    = str(body.get("surname", "")).strip()
     patronymic = str(body.get("patronymic", "")).strip()
-
     if not email or "@" not in email:
         return jsonify({"ok": False, "error": "Введите корректный email"}), 400
     if len(password) < 6:
         return jsonify({"ok": False, "error": "Пароль должен быть не менее 6 символов"}), 400
     if get_user(email):
         return jsonify({"ok": False, "error": "Пользователь с таким email уже существует"}), 400
-
     create_user(email, password, name, surname, patronymic)
     token = create_confirm_token(email)
-    sent = send_confirm_email(email, token)
-    if sent:
-        return jsonify({"ok": True, "message": f"Письмо отправлено на {email}. Подтвердите регистрацию."})
-    return jsonify({"ok": False, "error": "Не удалось отправить письмо подтверждения"}), 500
+    send_confirm_email(email, token)
+    return jsonify({"ok": True, "message": f"Письмо отправлено на {email}. Подтвердите регистрацию."})
 
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -497,10 +469,8 @@ def login():
     body     = request.get_json(force=True)
     email    = str(body.get("email", "")).strip().lower()
     password = str(body.get("password", "")).strip()
-
     if not email or not password:
         return jsonify({"ok": False, "error": "Введите email и пароль"}), 400
-
     user = get_user(email)
     if not user:
         return jsonify({"ok": False, "error": "Пользователь не зарегистрирован", "not_found": True}), 404
@@ -508,19 +478,14 @@ def login():
         return jsonify({"ok": False, "error": "Неверный email или пароль"}), 401
     if not user.get("confirmed"):
         return jsonify({"ok": False, "error": f"Email не подтверждён. Проверьте почту {email}.", "not_confirmed": True}), 403
-
     session_token = create_session(email)
     user_data = get_user_data(email)
     tariff = user_data.get("tariff", "demo")
     limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
     name = user.get("name") or email.split("@")[0]
-
     return jsonify({
-        "ok": True,
-        "session_token": session_token,
-        "email": email,
-        "name": name,
-        "tariff": tariff,
+        "ok": True, "session_token": session_token, "email": email,
+        "name": name, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
     })
@@ -532,18 +497,13 @@ def auth_me():
     email = verify_session(token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован"}), 401
-
     user = get_user(email)
     user_data = get_user_data(email)
     tariff = user_data.get("tariff", "demo")
     limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
     name = (user.get("name") if user else None) or email.split("@")[0]
-
     return jsonify({
-        "ok": True,
-        "email": email,
-        "name": name,
-        "tariff": tariff,
+        "ok": True, "email": email, "name": name, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
         "generations_used": user_data.get("generations_used", 0),
@@ -569,11 +529,8 @@ def confirm_email():
     user = get_user(email)
     name = (user.get("name") if user else None) or email.split("@")[0]
     return jsonify({
-        "ok": True,
-        "session_token": session_token,
-        "email": email,
-        "name": name,
-        "tariff": tariff,
+        "ok": True, "session_token": session_token, "email": email,
+        "name": name, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
     })
@@ -588,10 +545,8 @@ def reset_request():
     if not get_user(email):
         return jsonify({"ok": False, "error": "Пользователь с таким email не найден"}), 404
     token = create_reset_token(email)
-    sent = send_reset_email(email, token)
-    if sent:
-        return jsonify({"ok": True, "message": f"Письмо отправлено на {email}"})
-    return jsonify({"ok": False, "error": "Не удалось отправить письмо"}), 500
+    send_reset_email(email, token)
+    return jsonify({"ok": True, "message": f"Письмо отправлено на {email}"})
 
 
 @app.route("/api/auth/reset/confirm", methods=["POST"])
@@ -612,7 +567,7 @@ def reset_confirm():
 
 
 # ─────────────────────────────────────────────────────────────
-# МАРШРУТЫ — ЧАТ
+# ЧАТ
 # ─────────────────────────────────────────────────────────────
 
 @app.route("/api/chat", methods=["POST"])
@@ -621,24 +576,19 @@ def chat():
     email = verify_session(session_token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован", "unauthorized": True}), 401
-
     body    = request.get_json(force=True)
     message = str(body.get("message", "")).strip()
     history = body.get("history", [])
-
     if not message:
         return jsonify({"ok": False, "error": "Сообщение не может быть пустым"}), 400
     if len(message) > 4000:
         return jsonify({"ok": False, "error": "Сообщение слишком длинное"}), 400
-
     allowed, limit_msg = check_limit(email)
     if not allowed:
         return jsonify({"ok": False, "error": limit_msg, "limit_exceeded": True}), 403
-
     processed, clarification = preprocess_message(message)
     if clarification:
         return jsonify({"ok": True, "reply": clarification, "clarification": True})
-
     messages = []
     for item in history[-10:]:
         role    = item.get("role")
@@ -646,7 +596,6 @@ def chat():
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": processed})
-
     try:
         response = client.messages.create(
             model=MODEL, max_tokens=MAX_TOKENS,
@@ -657,14 +606,11 @@ def chat():
         return jsonify({"ok": False, "error": f"Ошибка Claude API: {str(e)}"}), 502
     except Exception as e:
         return jsonify({"ok": False, "error": f"Внутренняя ошибка: {str(e)}"}), 500
-
     increment_query(email)
     user_data = get_user_data(email)
     tariff = user_data.get("tariff", "demo")
-
     return jsonify({
-        "ok": True,
-        "reply": reply,
+        "ok": True, "reply": reply,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])["queries"],
         "tariff": tariff
@@ -677,14 +623,11 @@ def balance():
     email = verify_session(session_token)
     if not email:
         return jsonify({"ok": False, "error": "Не авторизован"}), 401
-
     user_data = get_user_data(email)
     tariff = user_data.get("tariff", "demo")
     limits = TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])
-
     return jsonify({
-        "ok": True,
-        "tariff": tariff,
+        "ok": True, "tariff": tariff,
         "queries_used": user_data.get("queries_used", 0),
         "queries_limit": limits["queries"],
         "generations_used": user_data.get("generations_used", 0),
