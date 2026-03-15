@@ -327,7 +327,8 @@
 
 <script>
 const API_URL = "http://95.140.147.248:5001";
-let history = [];
+let chatHistory = [];
+let sessionToken = "";
 let sessionQueries = 0;
 let sessionMessages = 0;
 let selectedSubject = "";
@@ -344,16 +345,26 @@ async function checkSession(token) {
       headers: { "X-Session-Token": token }
     });
     const d = await r.json();
-    if (d.ok) { onLoggedIn(d); }
-    else { showLoginScreen(); }
+    if (d.ok) {
+      sessionToken = token;
+      onLoggedIn(d);
+    } else {
+      localStorage.removeItem("prourok_session");
+      showLoginScreen();
+    }
   } catch(e) { showLoginScreen(); }
 }
 
 function showLoginScreen() {
   document.getElementById("loginScreen").style.display = "flex";
+  showForm('login');
 }
 
 function onLoggedIn(data) {
+  if (data.session_token) {
+    sessionToken = data.session_token;
+    localStorage.setItem("prourok_session", data.session_token);
+  }
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("userEmail").textContent = data.email;
   document.getElementById("balanceUsed").textContent = data.queries_used;
@@ -369,6 +380,8 @@ function showForm(type) {
   });
   document.getElementById('btnLogin').classList.toggle('active', type === 'login');
   document.getElementById('btnRegister').classList.toggle('active', type === 'register');
+  document.getElementById('btnLogin').disabled = false;
+  document.getElementById('btnRegister').disabled = false;
   if (type === 'forgot') {
     document.getElementById('btnLogin').classList.remove('active');
     document.getElementById('btnRegister').classList.remove('active');
@@ -399,6 +412,7 @@ async function doLogin() {
     const d = await r.json();
     if (d.ok) {
       localStorage.setItem("prourok_session", d.session_token);
+      sessionToken = d.session_token;
       onLoggedIn(d);
     } else if (d.not_found) {
       showLoginMsg("Пользователь не зарегистрирован. Перейдите в Регистрацию.", "err");
@@ -482,9 +496,10 @@ function showLoginMsg(msg, type) {
 
 function logout() {
   localStorage.removeItem("prourok_session");
+  sessionToken = "";
+  chatHistory = [];
   showLoginScreen();
   showForm('login');
-  history = [];
 }
 
 // ── UI ──
@@ -499,7 +514,7 @@ function selectSubj(btn, subject) {
 }
 function handleKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 function sendQuick(text) { document.getElementById("chatInput").value = text; sendMessage(); }
-function clearHistory() { history = []; document.getElementById("messages").innerHTML = ""; sessionMessages = 0; document.getElementById("statMessages").textContent = 0; }
+function clearHistory() { chatHistory = []; document.getElementById("messages").innerHTML = ""; sessionMessages = 0; document.getElementById("statMessages").textContent = 0; }
 function scrollBottom() { const m = document.getElementById("messages"); m.scrollTop = m.scrollHeight; }
 
 // ── ОТПРАВКА ──
@@ -539,7 +554,7 @@ async function sendMessage() {
     const r = await fetch(`${API_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Session-Token": sessionToken },
-      body: JSON.stringify({ message: text, history })
+      body: JSON.stringify({ message: text, history: chatHistory })
     });
     const data = await r.json();
     typingEl.remove();
@@ -547,8 +562,8 @@ async function sendMessage() {
     if (data.unauthorized) { logout(); return; }
 
     if (data.ok) {
-      history.push({ role: "user", content: text });
-      history.push({ role: "assistant", content: data.reply });
+      chatHistory.push({ role: "user", content: text });
+      chatHistory.push({ role: "assistant", content: data.reply });
 
       if (data.queries_used !== undefined) {
         document.getElementById("balanceUsed").textContent = data.queries_used;
@@ -568,7 +583,7 @@ async function sendMessage() {
           <div class="msg-bubble">${data.reply}</div>
           <div class="msg-meta">ПроУрок AI · только что</div>
           <div class="output-actions">
-            <button class="out-btn" onclick="copyText(this)">📋 Копировать</button>
+            <button class="out-btn" onclick="copyText(this)" data-text="${data.reply.replace(/"/g,'&quot;')}">📋 Копировать</button>
           </div>
         </div>`;
       msgs.appendChild(botEl);
@@ -591,8 +606,9 @@ async function sendMessage() {
 }
 
 function copyText(btn) {
-  const bubble = btn.closest("div").previousElementSibling.previousElementSibling;
-  navigator.clipboard.writeText(bubble.textContent).then(() => {
+  const text = btn.getAttribute("data-text") ||
+    btn.closest(".message")?.querySelector(".msg-bubble")?.textContent || "";
+  navigator.clipboard.writeText(text).then(() => {
     btn.textContent = "✅ Скопировано";
     setTimeout(() => btn.textContent = "📋 Копировать", 2000);
   });
