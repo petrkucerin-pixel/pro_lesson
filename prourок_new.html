@@ -1751,7 +1751,7 @@ header {
     </div>
 
     <div class="sb-bottom">
-      <button class="btn-new-session" onclick="showToast('Новая сессия создана')">
+      <button class="btn-new-session" onclick="newSession()">
         ✨ Начать сначала
       </button>
     </div>
@@ -1767,7 +1767,7 @@ header {
 
           <div class="welcome-header">
             <div class="welcome-header-text">
-              <h1>Добрый день, <em>Алевтина!</em></h1>
+              <h1>Добрый день, <em id="welcomeName">!</em></h1>
               <p>Создавайте учебные материалы по ФГОС быстро и профессионально.<br>Все разработки сохраняются в методической копилке.</p>
             </div>
             <div class="fgos-badge">
@@ -1960,7 +1960,7 @@ header {
 
             <div>
               <div style="font-size:11px; font-weight:600; color:var(--ink3); margin-bottom:8px;">Особые условия (необязательно)</div>
-              <textarea class="form-textarea" placeholder="Напр.: ОВЗ в классе, дистанционный формат, использование цифровых ресурсов..."></textarea>
+              <textarea id="specialCond" class="form-textarea" placeholder="Напр.: ОВЗ в классе, дистанционный формат, использование цифровых ресурсов..."></textarea>
             </div>
           </div>
 
@@ -1988,7 +1988,7 @@ header {
             <div class="result-actions">
               <button class="btn-action" onclick="doCopy()">📋 Копировать</button>
               <button class="btn-action save" onclick="saveToKopilka()">🗂️ В копилку</button>
-              <button class="btn-action" id="dlBtn">⬇️ Скачать</button>
+              <button class="btn-action" id="dlBtn" onclick="doDownload()">⬇️ Скачать</button>
             </div>
           </div>
           <div class="result-box" id="resultBox"></div>
@@ -2035,7 +2035,7 @@ header {
               <div class="msg-avatar">🤖</div>
               <div>
                 <div class="msg-bubble">
-                  Здравствуйте, Алевтина! Я ИИ-помощник ПроУрок.<br><br>
+                  Здравствуйте, <span id="chatGreetingName">!</span> Я ИИ-помощник ПроУрок.<br><br>
                   Помогу с методикой, ФГОС, подготовкой материалов. Вы также можете попросить:<br>
                   <em>«Сделай план урока по структуре задачи №2 из копилки»</em> — и я возьму нужный шаблон.
                 </div>
@@ -2351,12 +2351,15 @@ async function doCreate() {
   let prompt = '';
   if(curForm === 'plan') {
     const opts = [...document.querySelectorAll('#fg-opts .o-chip.sel')].map(c=>c.textContent).join(', ');
-    prompt = `Составь технологическую карту урока по ФГОС ООО.\nПредмет: ${selSubj}\nКласс: ${selCls}\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}\nДай полную структуру с УУД, планируемыми результатами и ходом урока.`;
+    const special = document.getElementById('specialCond')?.value.trim() || '';
+    prompt = `Составь технологическую карту урока по ФГОС ООО.\nПредмет: ${selSubj}\nКласс: ${selCls}\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}${special ? '\nОсобые условия: '+special : ''}\nДай полную структуру с УУД, планируемыми результатами и ходом урока.`;
   } else if(curForm === 'test') {
     const testOpts = [...document.querySelectorAll('#extraFields .o-chip.sel')].map(c=>c.textContent).join(', ');
     prompt = `Составь тест по ФГОС ООО.\nПредмет: ${selSubj}\nКласс: ${selCls}\nТема: ${topic}\n${testOpts ? 'Параметры: '+testOpts : ''}\nДай задания с вариантами ответов и ключом.`;
   } else if(curForm === 'excel') {
-    prompt = `Опиши структуру таблицы успеваемости Excel для учителя.\n${topic ? 'Класс: '+topic : ''}\nПредмет: ${selSubj || 'любой'}\nОпиши колонки, формулы, условное форматирование.`;
+    const students = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>['20','25','30','35'].includes(c.textContent)).map(c=>c.textContent).join('') || '25';
+    const quarter = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>c.textContent.includes('четверть')||c.textContent==='Год').map(c=>c.textContent).join('') || '1 четверть';
+    prompt = `Опиши структуру таблицы успеваемости Excel для учителя.\n${topic ? 'Класс: '+topic : ''}\nПредмет: ${selSubj || 'любой'}\nКоличество учеников: ${students}\nПериод: ${quarter}\nОпиши колонки, формулы, условное форматирование.`;
   }
 
   try {
@@ -2674,18 +2677,46 @@ function addSlide() {
   showSlide(SLIDES_DATA.length-1);
 }
 
-function qEdit(action) {
+async function qEdit(action) {
   const ta = document.getElementById('sBodyEdit');
   const cur = ta.value;
+  const token = localStorage.getItem('prourok_session');
+  if(!token) { showToast('Необходимо войти в аккаунт'); return; }
+
+  const slideTitle = document.getElementById('sTitleEdit').value;
+  const prompts = {
+    rewrite:  `Перепиши содержание слайда методически грамотно, сохрани смысл:\nЗаголовок: ${slideTitle}\n${cur}`,
+    shorter:  `Сократи содержание слайда, оставь только самое важное:\nЗаголовок: ${slideTitle}\n${cur}`,
+    longer:   `Добавь полезные детали и подробности к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}`,
+    example:  `Добавь конкретный наглядный пример к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}`,
+    question: `Добавь вопрос классу для обсуждения к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}`
+  };
   const msgs = {rewrite:'Переписываю…',shorter:'Сокращаю…',longer:'Добавляю детали…',example:'Добавляю пример…',question:'Добавляю вопрос…'};
   ta.value = msgs[action];
   syncSlide();
-  setTimeout(()=>{
-    if(action==='example')  ta.value = cur + '\n💡 Пример: …';
-    else if(action==='question') ta.value = cur + '\n❓ Вопрос классу: …';
-    else ta.value = cur;
+
+  try {
+    const res = await fetch(`${API_URL}/api/chat`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify({message: prompts[action], history: []})
+    });
+    const data = await res.json();
+    if(data.ok) {
+      ta.value = data.reply;
+      syncSlide();
+      updateBalance(data.queries_used, data.queries_limit);
+    } else {
+      ta.value = cur;
+      syncSlide();
+      showToast('Ошибка: ' + (data.error||'неизвестна'));
+      if(data.unauthorized) doLogout();
+    }
+  } catch(e) {
+    ta.value = cur;
     syncSlide();
-  }, 900);
+    showToast('Ошибка сети');
+  }
 }
 
 function pickClr(el, c1, c2, textMode) {
@@ -2796,8 +2827,53 @@ function onLoggedIn(data) {
   const name = data.name || data.email.split('@')[0];
   document.getElementById('hdrName').textContent = name;
   document.getElementById('hdrAvatar').textContent = name.charAt(0).toUpperCase();
+  const wn = document.getElementById('welcomeName');
+  if(wn) wn.textContent = name + '!';
+  const cg = document.getElementById('chatGreetingName');
+  if(cg) cg.textContent = name + '!';
   updateBalance(data.queries_used, data.queries_limit);
   loadKopilka();
+}
+
+function newSession() {
+  chatHistory = [];
+  const msgs = document.getElementById('chatMessages');
+  if(msgs) {
+    const name = document.getElementById('hdrName')?.textContent || '';
+    msgs.innerHTML = `<div class="msg assistant">
+      <div class="msg-avatar">🤖</div>
+      <div>
+        <div class="msg-bubble">
+          Здравствуйте, <span id="chatGreetingName">${escHtml(name)}!</span> Я ИИ-помощник ПроУрок.<br><br>
+          Помогу с методикой, ФГОС, подготовкой материалов. Вы также можете попросить:<br>
+          <em>«Сделай план урока по структуре задачи №2 из копилки»</em> — и я возьму нужный шаблон.
+        </div>
+        <div class="chat-kopilka-hint">
+          <div class="ck-chip" onclick="askByTemplate(1)">📋 По структуре №1</div>
+          <div class="ck-chip" onclick="askByTemplate(2)">📋 По структуре №2</div>
+          <div class="ck-chip" onclick="askByTemplate(3)">📋 По структуре №3</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  go('welcome');
+  showToast('Новая сессия начата');
+}
+
+function doDownload() {
+  const content = document.getElementById('resultBox')?.innerText || '';
+  if(!content.trim()) { showToast('Нет содержимого для скачивания'); return; }
+  const title = (document.getElementById('topicInput')?.value.trim() || document.getElementById('resultTitle')?.textContent || 'материал').replace(/[\\/:*?"<>|]/g, '_');
+  const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = title + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Файл скачан!');
 }
 
 function doLogout() {
