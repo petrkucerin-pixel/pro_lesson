@@ -2954,7 +2954,7 @@ async function fixResult() {
   btn.disabled = true; btn.textContent = 'Исправляю…';
   input.disabled = true;
 
-  const prompt = `Вот готовый учебный материал:\n\n${currentContent}\n\n---\nЗадание: ${correction}\n\nВнеси изменения и верни полный обновлённый материал. Не объясняй что изменил — только готовый результат.`;
+  const prompt = `Вот готовый учебный материал, который нужно отредактировать:\n\n${currentContent}\n\n---\nЗадание редактора: ${correction}\n\nТребования:\n1. Верни ТОЛЬКО полный обновлённый текст материала — без объяснений, без вопросов, без комментариев\n2. Не задавай уточняющих вопросов — редактируй на основе имеющегося текста\n3. Сохрани структуру и стиль оригинала`;
 
   document.getElementById('resultBox').innerHTML = `<div style="text-align:center;padding:50px;color:var(--ink4);">
     <div class="dots"><span></span><span></span><span></span></div>
