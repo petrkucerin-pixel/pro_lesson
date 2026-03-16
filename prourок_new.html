@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ПроУрок — Помощник учителя</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Merriweather:wght@400;700&family=Roboto:wght@400;500;700&family=PT+Serif:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
   /* Основная палитра: зелёный + светло-голубой */
@@ -1721,6 +1721,40 @@ header {
 .forgot-link { font-size:12px; color:var(--ink3); cursor:pointer; text-align:center; margin-top:10px; display:block; }
 .forgot-link:hover { color:var(--teal); }
 .opt-section { font-size:11px; color:var(--ink3); letter-spacing:.8px; text-transform:uppercase; font-weight:600; margin:12px 0 8px; }
+
+/* ══ ВКЛАДКИ ПРАВОЙ ПАНЕЛИ ══ */
+.pres-right { display:flex; flex-direction:column; }
+.pr-tabs { display:flex; gap:4px; margin-bottom:12px; background:var(--bg); border-radius:10px; padding:3px; }
+.pr-tab { flex:1; padding:7px 4px; border:none; border-radius:8px; background:transparent; font-size:11px; font-weight:600; color:var(--ink3); cursor:pointer; transition:.15s; white-space:nowrap; }
+.pr-tab:hover { background:var(--green-xl); color:var(--green-dark); }
+.pr-tab.active { background:var(--white); color:var(--green-dark); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+.pr-panel { display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; }
+.pr-bottom { margin-top:auto; padding-top:10px; display:flex; flex-direction:column; gap:6px; }
+
+/* ══ ТЕМЫ REVEAL.JS ══ */
+.theme-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.theme-chip { display:flex; align-items:center; gap:7px; padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink); transition:.15s; background:var(--white); }
+.theme-chip:hover { border-color:var(--green-mid); }
+.theme-chip.sel { border-color:var(--green-dark); background:var(--green-xl); color:var(--green-dark); }
+.tc-prev { width:20px; height:20px; border-radius:4px; flex-shrink:0; }
+
+/* ══ ШРИФТЫ ══ */
+.font-row { display:flex; flex-direction:column; gap:5px; }
+.font-chip { padding:6px 10px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-size:13px; color:var(--ink); transition:.15s; background:var(--white); }
+.font-chip:hover { border-color:var(--green-mid); }
+.font-chip.sel { border-color:var(--green-dark); background:var(--green-xl); color:var(--green-dark); }
+
+/* ══ ИИ-ЧАТ ПАНЕЛЬ ══ */
+.ai-btns-compact { display:flex; flex-wrap:wrap; gap:5px; }
+.ai-btn-sm { padding:5px 8px; font-size:11px; border:1.5px solid var(--border); border-radius:7px; background:var(--white); cursor:pointer; color:var(--ink3); transition:.15s; }
+.ai-btn-sm:hover { border-color:var(--teal); color:var(--teal); }
+.ai-input-row { display:flex; gap:6px; margin-top:6px; }
+.ai-pres-ta { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:8px; font-size:12px; font-family:inherit; resize:none; min-height:64px; color:var(--ink); }
+.ai-pres-ta:focus { outline:none; border-color:var(--teal); }
+.btn-ai-apply { width:100%; margin-top:6px; padding:8px; border:none; border-radius:8px; background:var(--green-dark); color:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
+.btn-ai-apply:hover { background:var(--teal); }
+.btn-ai-all { width:100%; margin-top:4px; padding:7px; border:1.5px solid var(--green-mid); border-radius:8px; background:transparent; color:var(--green-dark); font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
+.btn-ai-all:hover { background:var(--green-xl); }
 </style>
 </head>
 <body>
@@ -2241,26 +2275,21 @@ header {
 
         <!-- Правая панель -->
         <div class="pres-right">
-          <div>
+
+          <!-- Вкладки -->
+          <div class="pr-tabs">
+            <button class="pr-tab active" onclick="prTab(this,'pt-edit')">✏️ Слайд</button>
+            <button class="pr-tab" onclick="prTab(this,'pt-style')">🎨 Дизайн</button>
+            <button class="pr-tab" onclick="prTab(this,'pt-ai')">🤖 ИИ</button>
+          </div>
+
+          <!-- Вкладка: Редактор -->
+          <div class="pr-panel" id="pt-edit">
             <div class="pres-section-label">Заголовок</div>
             <input class="pres-edit-input" id="sTitleEdit" oninput="syncSlide()" placeholder="Заголовок слайда">
-          </div>
-          <div>
-            <div class="pres-section-label">Содержание</div>
+            <div class="pres-section-label" style="margin-top:10px;">Содержание</div>
             <textarea class="pres-edit-ta" id="sBodyEdit" oninput="syncSlide()" placeholder="• Пункт 1&#10;• Пункт 2"></textarea>
-          </div>
-          <div>
-            <div class="pres-section-label" style="margin-bottom:8px;">Правка ИИ</div>
-            <div class="ai-btns">
-              <button class="ai-btn" onclick="qEdit('shorter')">✂️ Сделать короче</button>
-              <button class="ai-btn" onclick="qEdit('longer')">📝 Добавить детали</button>
-              <button class="ai-btn" onclick="qEdit('example')">💡 Добавить пример</button>
-              <button class="ai-btn" onclick="qEdit('question')">❓ Вопрос классу</button>
-              <button class="ai-btn" onclick="qEdit('rewrite')">🔄 Переписать</button>
-            </div>
-          </div>
-          <div>
-            <div class="pres-section-label" style="margin-bottom:8px;">Цвет фона</div>
+            <div class="pres-section-label" style="margin-top:10px;margin-bottom:8px;">Цвет фона</div>
             <div class="clr-row">
               <div class="clr sel" style="background:linear-gradient(135deg,#1b6b4a,#1a5e78)" onclick="pickClr(this,'#1b6b4a','#1a5e78','light')"></div>
               <div class="clr" style="background:linear-gradient(135deg,#1a8fa0,#24906a)" onclick="pickClr(this,'#1a8fa0','#24906a','light')"></div>
@@ -2268,9 +2297,58 @@ header {
               <div class="clr" style="background:linear-gradient(135deg,#fff,#f4faf7)" onclick="pickClr(this,'#fff','#f4faf7','dark')"></div>
               <div class="clr" style="background:linear-gradient(135deg,#5a3ec4,#1a8fa0)" onclick="pickClr(this,'#5a3ec4','#1a8fa0','light')"></div>
               <div class="clr" style="background:linear-gradient(135deg,#c47a0a,#c0384a)" onclick="pickClr(this,'#c47a0a','#c0384a','light')"></div>
+              <div class="clr" style="background:linear-gradient(135deg,#2d6a4f,#74c69d)" onclick="pickClr(this,'#2d6a4f','#74c69d','light')"></div>
+              <div class="clr" style="background:linear-gradient(135deg,#c9184a,#ff4d6d)" onclick="pickClr(this,'#c9184a','#ff4d6d','light')"></div>
             </div>
           </div>
-          <button class="btn-full-primary" onclick="showToast('Экспорт PPTX запущен...')">⬇️ Скачать PPTX</button>
+
+          <!-- Вкладка: Дизайн -->
+          <div class="pr-panel" id="pt-style" style="display:none;">
+            <div class="pres-section-label" style="margin-bottom:8px;">Тема презентации</div>
+            <div class="theme-grid" id="themeGrid">
+              <div class="theme-chip sel" onclick="pickTheme(this,'black')"><div class="tc-prev" style="background:#191919"></div>Black</div>
+              <div class="theme-chip" onclick="pickTheme(this,'white')"><div class="tc-prev" style="background:#fff;border:1px solid #ddd"></div>White</div>
+              <div class="theme-chip" onclick="pickTheme(this,'moon')"><div class="tc-prev" style="background:#002b36"></div>Moon</div>
+              <div class="theme-chip" onclick="pickTheme(this,'sky')"><div class="tc-prev" style="background:#add9e4"></div>Sky</div>
+              <div class="theme-chip" onclick="pickTheme(this,'beige')"><div class="tc-prev" style="background:#f7f3de"></div>Beige</div>
+              <div class="theme-chip" onclick="pickTheme(this,'league')"><div class="tc-prev" style="background:#252525"></div>League</div>
+              <div class="theme-chip" onclick="pickTheme(this,'serif')"><div class="tc-prev" style="background:#fff;border:1px solid #ddd"></div>Serif</div>
+              <div class="theme-chip" onclick="pickTheme(this,'night')"><div class="tc-prev" style="background:#1c1e20"></div>Night</div>
+              <div class="theme-chip" onclick="pickTheme(this,'dracula')"><div class="tc-prev" style="background:#282a36"></div>Dracula</div>
+              <div class="theme-chip" onclick="pickTheme(this,'solarized')"><div class="tc-prev" style="background:#fdf6e3;border:1px solid #ddd"></div>Solar</div>
+            </div>
+            <div class="pres-section-label" style="margin-top:14px;margin-bottom:8px;">Шрифт в редакторе</div>
+            <div class="font-row">
+              <div class="font-chip sel" onclick="pickFont(this,'Montserrat')" style="font-family:Montserrat">Aa — Montserrat</div>
+              <div class="font-chip" onclick="pickFont(this,'Merriweather')" style="font-family:Merriweather">Aa — Merriweather</div>
+              <div class="font-chip" onclick="pickFont(this,'Roboto')" style="font-family:Roboto">Aa — Roboto</div>
+              <div class="font-chip" onclick="pickFont(this,'PT Serif')" style="font-family:'PT Serif'">Aa — PT Serif</div>
+              <div class="font-chip" onclick="pickFont(this,'Playfair Display')" style="font-family:'Playfair Display'">Aa — Playfair Display</div>
+            </div>
+          </div>
+
+          <!-- Вкладка: ИИ -->
+          <div class="pr-panel" id="pt-ai" style="display:none;">
+            <div class="pres-section-label" style="margin-bottom:8px;">Быстрые правки слайда</div>
+            <div class="ai-btns-compact">
+              <button class="ai-btn-sm" onclick="qEdit('shorter')">✂️ Короче</button>
+              <button class="ai-btn-sm" onclick="qEdit('longer')">📝 Детали</button>
+              <button class="ai-btn-sm" onclick="qEdit('example')">💡 Пример</button>
+              <button class="ai-btn-sm" onclick="qEdit('question')">❓ Вопрос</button>
+              <button class="ai-btn-sm" onclick="qEdit('rewrite')">🔄 Переписать</button>
+            </div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Свой запрос</div>
+            <textarea id="aiPresInput" class="ai-pres-ta" placeholder="Например: сделай акцент на примерах, добавь интерактив, упрости язык..."></textarea>
+            <button class="btn-ai-apply" onclick="aiEditSlide()">✦ Применить к этому слайду</button>
+            <button class="btn-ai-all" onclick="aiEditAll()">↺ Переделать всю презентацию</button>
+          </div>
+
+          <!-- Нижние кнопки (всегда видны) -->
+          <div class="pr-bottom">
+            <button class="btn-full-primary" onclick="openReveal()">▶ Открыть презентацию</button>
+            <button class="btn-action save" style="width:100%;text-align:center;" onclick="downloadReveal()">⬇️ Скачать HTML</button>
+          </div>
+
         </div>
 
       </div>
@@ -2940,6 +3018,30 @@ async function qEdit(action) {
   }
 }
 
+let presTheme = 'black';
+let presFont  = 'Montserrat';
+
+function prTab(el, panelId) {
+  el.closest('.pr-tabs').querySelectorAll('.pr-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.pr-panel').forEach(p => p.style.display = 'none');
+  document.getElementById(panelId).style.display = 'flex';
+}
+
+function pickTheme(el, theme) {
+  el.closest('.theme-grid').querySelectorAll('.theme-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  presTheme = theme;
+}
+
+function pickFont(el, font) {
+  el.closest('.font-row').querySelectorAll('.font-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  presFont = font;
+  const canvas = document.getElementById('slideCanvas');
+  canvas.style.fontFamily = font + ', sans-serif';
+}
+
 function pickClr(el, c1, c2, textMode) {
   el.closest('.clr-row').querySelectorAll('.clr').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
@@ -2954,6 +3056,105 @@ function pickClr(el, c1, c2, textMode) {
     title.style.color = '#fff';
     body.style.color  = 'rgba(255,255,255,.8)';
   }
+}
+
+function buildRevealHtml() {
+  const slidesHtml = SLIDES_DATA.map(s => {
+    const bullets = s.body.split('\n').filter(l => l.trim()).map(l =>
+      `<li>${escHtml(l.replace(/^[•\-·]\s*/,''))}</li>`
+    ).join('');
+    return `<section><h2>${escHtml(s.title)}</h2><ul>${bullets}</ul></section>`;
+  }).join('\n');
+  const fontLink = presFont !== 'Montserrat' ? `
+  <link href="https://fonts.googleapis.com/css2?family=${presFont.replace(/ /,'+')}:wght@400;700&display=swap" rel="stylesheet">
+  <style>.reveal { font-family: '${presFont}', sans-serif; } .reveal h2 { font-family: '${presFont}', sans-serif; }</style>` : '';
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Презентация — ПроУрок</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/${presTheme}.css">
+${fontLink}
+<style>
+  .reveal ul { list-style: none; padding: 0; margin: 0; }
+  .reveal ul li { padding: 8px 0 8px 28px; position: relative; font-size: 0.85em; line-height: 1.5; }
+  .reveal ul li::before { content: "●"; position: absolute; left: 0; color: rgba(255,255,255,.5); font-size: .6em; top: 12px; }
+  .reveal h2 { font-size: 1.4em; margin-bottom: 0.6em; }
+</style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+${slidesHtml}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>Reveal.initialize({ hash: true, transition: 'slide', backgroundTransition: 'fade' });</script>
+</body>
+</html>`;
+}
+
+function openReveal() {
+  const html = buildRevealHtml();
+  const blob = new Blob([html], {type: 'text/html'});
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+function downloadReveal() {
+  const html = buildRevealHtml();
+  const blob = new Blob([html], {type: 'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const topic = document.getElementById('topicInput')?.value.trim() || 'presentation';
+  a.download = `Презентация — ${topic}.html`;
+  a.click();
+}
+
+async function aiEditSlide() {
+  const req = document.getElementById('aiPresInput').value.trim();
+  if(!req) { showToast('Введите запрос'); return; }
+  const s = SLIDES_DATA[curSlide];
+  const prompt = `Измени содержание слайда согласно запросу учителя.\nЗаголовок слайда: ${s.title}\nТекущее содержание:\n${s.body}\n\nЗапрос: ${req}\n\nВерни ТОЛЬКО новое содержание слайда буллетами (• пункт), без заголовка, без пояснений.`;
+  const ta = document.getElementById('sBodyEdit');
+  const prev = ta.value;
+  ta.value = 'Обрабатываю…';
+  syncSlide();
+  const token = localStorage.getItem('prourok_session');
+  try {
+    const res = await fetch(`${API_URL}/api/chat`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify({message: prompt, history: []})
+    });
+    const data = await res.json();
+    if(data.ok) { ta.value = data.reply; syncSlide(); showToast('Слайд обновлён'); }
+    else { ta.value = prev; syncSlide(); showToast('Ошибка: ' + (data.error||'')); }
+  } catch(e) { ta.value = prev; syncSlide(); showToast('Ошибка сети'); }
+}
+
+async function aiEditAll() {
+  const req = document.getElementById('aiPresInput').value.trim();
+  if(!req) { showToast('Введите запрос'); return; }
+  const slidesSummary = SLIDES_DATA.map((s,i) => `СЛАЙД ${i+1}: ${s.title}\n${s.body}`).join('\n\n');
+  const prompt = `Вот текущая презентация:\n${slidesSummary}\n\nЗапрос учителя: ${req}\n\nПереработай презентацию с учётом запроса. Верни ТОЛЬКО JSON-массив:\n[{"title":"...","body":"• ...\n• ..."},...]`;
+  showToast('Перерабатываю презентацию…');
+  const token = localStorage.getItem('prourok_session');
+  try {
+    const res = await fetch(`${API_URL}/api/generate`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify({message: prompt, type: 'pres'})
+    });
+    const data = await res.json();
+    if(data.ok && data.slides) {
+      SLIDES_DATA.splice(0, SLIDES_DATA.length, ...data.slides);
+      renderSlideList();
+      showSlide(0);
+      showToast('Презентация обновлена!');
+    } else showToast('Ошибка: ' + (data.error||''));
+  } catch(e) { showToast('Ошибка сети'); }
 }
 
 // ══════ CHAT ══════
