@@ -1723,13 +1723,20 @@ header {
 .opt-section { font-size:11px; color:var(--ink3); letter-spacing:.8px; text-transform:uppercase; font-weight:600; margin:12px 0 8px; }
 
 /* ══ ВКЛАДКИ ПРАВОЙ ПАНЕЛИ ══ */
-.pres-right { display:flex; flex-direction:column; }
-.pr-tabs { display:flex; gap:4px; margin-bottom:12px; background:var(--bg); border-radius:10px; padding:3px; }
-.pr-tab { flex:1; padding:7px 4px; border:none; border-radius:8px; background:transparent; font-size:11px; font-weight:600; color:var(--ink3); cursor:pointer; transition:.15s; white-space:nowrap; }
+.pres-right { display:flex !important; flex-direction:column !important; gap:0 !important; overflow-y:hidden !important; width:260px !important; padding:12px 10px !important; }
+.pr-tabs { display:flex; gap:3px; margin-bottom:10px; background:var(--bg); border-radius:10px; padding:3px; flex-shrink:0; }
+.pr-tab { flex:1; padding:6px 2px; border:none; border-radius:8px; background:transparent; font-size:11px; font-weight:600; color:var(--ink3); cursor:pointer; transition:.15s; white-space:nowrap; }
 .pr-tab:hover { background:var(--green-xl); color:var(--green-dark); }
 .pr-tab.active { background:var(--white); color:var(--green-dark); box-shadow:0 1px 4px rgba(0,0,0,.08); }
-.pr-panel { display:flex; flex-direction:column; flex:1; min-height:0; overflow-y:auto; }
-.pr-bottom { margin-top:auto; padding-top:10px; display:flex; flex-direction:column; gap:6px; }
+.pr-panel { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:0; }
+.pr-bottom { flex-shrink:0; padding-top:10px; border-top:1px solid var(--border); margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+
+/* ══ ВНУТРИ ПАНЕЛЕЙ — ОТСТУПЫ ══ */
+.pr-panel .pres-section-label { margin-bottom:6px; margin-top:10px; }
+.pr-panel .pres-section-label:first-child { margin-top:0; }
+.pr-panel .pres-edit-input { margin-bottom:0; }
+.pr-panel .pres-edit-ta { margin-bottom:0; }
+.pr-panel .clr-row { margin-bottom:4px; }
 
 /* ══ ТЕМЫ REVEAL.JS ══ */
 .theme-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
