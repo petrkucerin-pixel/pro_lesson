@@ -35,6 +35,8 @@ TOKENS_FILE       = "/root/pro-lesson-bot/auth_tokens.json"
 KOPILKA_FILE      = "/root/pro-lesson-bot/kopilka.json"
 MODEL             = "claude-3-haiku-20240307"
 MAX_TOKENS        = 2048
+MODEL_GEN         = "claude-3-5-haiku-20241022"
+MAX_TOKENS_GEN    = 4096
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
@@ -647,6 +649,89 @@ def chat():
     })
 
 
+SYSTEM_PROMPT_PRES = """Ты генератор содержания слайдов для школьных презентаций по ФГОС ООО.
+
+КРИТИЧЕСКИ ВАЖНО: Отвечай ТОЛЬКО валидным JSON-массивом. Никакого другого текста до и после. Никаких markdown-блоков (```). Только чистый JSON.
+
+Формат каждого слайда: {"title": "Заголовок слайда", "body": "• пункт 1\n• пункт 2\n• пункт 3"}
+
+Правила:
+- Буллеты начинаются с символа •
+- Каждый слайд содержит 3-5 конкретных содержательных буллетов
+- Используй реальные предметные термины, факты, примеры — не общие слова
+- Буллеты должны быть конкретными и полезными для учителя"""
+
+
+@app.route("/api/generate", methods=["POST"])
+def generate():
+    session_token = request.headers.get("X-Session-Token", "")
+    email = verify_session(session_token)
+    if not email:
+        return jsonify({"ok": False, "error": "Не авторизован", "unauthorized": True}), 401
+    body     = request.get_json(force=True)
+    message  = str(body.get("message", "")).strip()
+    gen_type = str(body.get("type", "")).strip()
+    if not message:
+        return jsonify({"ok": False, "error": "Сообщение не может быть пустым"}), 400
+    if len(message) > 6000:
+        return jsonify({"ok": False, "error": "Сообщение слишком длинное"}), 400
+    allowed, limit_msg = check_limit(email)
+    if not allowed:
+        return jsonify({"ok": False, "error": limit_msg, "limit_exceeded": True}), 403
+    processed, clarification = preprocess_message(message)
+    if clarification:
+        return jsonify({"ok": True, "reply": clarification, "clarification": True})
+    if gen_type == "pres":
+        try:
+            response = client.messages.create(
+                model=MODEL_GEN, max_tokens=MAX_TOKENS_GEN,
+                system=SYSTEM_PROMPT_PRES,
+                messages=[{"role": "user", "content": processed}]
+            )
+            raw = response.content[0].text.strip()
+            raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.MULTILINE)
+            raw = re.sub(r'\s*```\s*$', '', raw, flags=re.MULTILINE)
+            slides = json.loads(raw)
+            if not isinstance(slides, list) or len(slides) < 2:
+                raise ValueError("invalid slides")
+        except (json.JSONDecodeError, ValueError):
+            return jsonify({"ok": False, "error": "Не удалось создать презентацию. Попробуйте ещё раз."}), 500
+        except anthropic.APIError as e:
+            return jsonify({"ok": False, "error": f"Ошибка Claude API: {str(e)}"}), 502
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Внутренняя ошибка: {str(e)}"}), 500
+        increment_query(email)
+        user_data = get_user_data(email)
+        tariff = user_data.get("tariff", "demo")
+        return jsonify({
+            "ok": True, "slides": slides,
+            "queries_used": user_data.get("queries_used", 0),
+            "queries_limit": TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])["queries"],
+            "tariff": tariff
+        })
+    else:
+        try:
+            response = client.messages.create(
+                model=MODEL_GEN, max_tokens=MAX_TOKENS_GEN,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": processed}]
+            )
+            reply = response.content[0].text
+        except anthropic.APIError as e:
+            return jsonify({"ok": False, "error": f"Ошибка Claude API: {str(e)}"}), 502
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Внутренняя ошибка: {str(e)}"}), 500
+        increment_query(email)
+        user_data = get_user_data(email)
+        tariff = user_data.get("tariff", "demo")
+        return jsonify({
+            "ok": True, "reply": reply,
+            "queries_used": user_data.get("queries_used", 0),
+            "queries_limit": TARIFF_LIMITS.get(tariff, TARIFF_LIMITS["demo"])["queries"],
+            "tariff": tariff
+        })
+
+
 @app.route("/api/balance", methods=["GET"])
 def balance():
     session_token = request.headers.get("X-Session-Token", "")
@@ -666,5 +751,5 @@ def balance():
 
 
 if __name__ == "__main__":
-    print("ПроУрок Web API v3.1 — порт 5001")
+    print("ПроУрок Web API v3.3 — порт 5001")
     app.run(host="0.0.0.0", port=5001, debug=False)

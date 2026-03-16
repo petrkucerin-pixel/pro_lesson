@@ -2562,22 +2562,21 @@ async function doCreate() {
   }
 
   try {
-    const res = await fetch(`${API_URL}/api/chat`, {
+    const res = await fetch(`${API_URL}/api/generate`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, history: []})
+      body: JSON.stringify({message: prompt, type: curForm})
     });
     const data = await res.json();
     if(data.ok) {
       if(curForm === 'pres') {
-        const parsed = parseSlides(data.reply);
-        if(parsed && parsed.length > 0) {
-          SLIDES_DATA.splice(0, SLIDES_DATA.length, ...parsed);
+        if(data.slides && data.slides.length > 0) {
+          SLIDES_DATA.splice(0, SLIDES_DATA.length, ...data.slides);
           renderSlideList();
           showSlide(0);
           go('pres');
         } else {
-          document.getElementById('resultBox').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
+          document.getElementById('resultBox').innerHTML = `<span style="color:var(--rose)">⚠️ Не удалось создать слайды. Попробуйте ещё раз.</span>`;
         }
       } else {
         document.getElementById('resultBox').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
