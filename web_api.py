@@ -35,7 +35,7 @@ TOKENS_FILE       = "/root/pro-lesson-bot/auth_tokens.json"
 KOPILKA_FILE      = "/root/pro-lesson-bot/kopilka.json"
 MODEL             = "claude-3-haiku-20240307"
 MAX_TOKENS        = 2048
-MODEL_GEN         = "claude-3-5-haiku-20241022"
+MODEL_GEN         = "claude-haiku-4-5-20251001"
 MAX_TOKENS_GEN    = 4096
 
 SMTP_HOST = "smtp.gmail.com"
