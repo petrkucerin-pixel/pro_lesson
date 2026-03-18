@@ -1757,6 +1757,31 @@ header {
 .bg-thumb:hover { border-color:var(--teal); transform:scale(1.03); }
 .bg-thumb.sel { border-color:var(--green-dark); }
 
+/* ══ ПОЛЗУНОК ЯРКОСТИ ══ */
+.brightness-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.brightness-row span { font-size:10px; color:var(--ink3); flex-shrink:0; }
+.brightness-slider { flex:1; -webkit-appearance:none; height:4px; border-radius:2px; background:linear-gradient(to right,#111,#fff); outline:none; cursor:pointer; }
+.brightness-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--green-dark); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.3); cursor:pointer; }
+
+/* ══ ЗАГРУЗКА ФОТО ══ */
+.upload-row { display:flex; gap:6px; margin-top:8px; }
+.upload-btn { flex:1; padding:7px 4px; border:1.5px dashed var(--border); border-radius:8px; background:var(--white); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink3); text-align:center; transition:.15s; }
+.upload-btn:hover { border-color:var(--teal); color:var(--teal); background:var(--green-xl); }
+
+/* ══ ВКЛАДКА ТЕКСТ ══ */
+.font-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.font-chip { padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink); transition:.15s; background:var(--white); text-align:center; }
+.font-chip:hover { border-color:var(--green-mid); }
+.font-chip.sel { border-color:var(--green-dark); background:var(--green-xl); color:var(--green-dark); }
+.txt-clr-row { display:flex; gap:6px; }
+.txt-clr-chip { flex:1; padding:7px 4px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-size:11px; font-weight:600; text-align:center; transition:.15s; }
+.txt-clr-chip:hover { border-color:var(--green-mid); }
+.txt-clr-chip.sel { border-color:var(--green-dark); outline:2px solid var(--green-dark); outline-offset:1px; }
+.txt-size-row { display:flex; gap:6px; }
+.txt-size-chip { flex:1; padding:7px 4px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-weight:600; text-align:center; transition:.15s; background:var(--white); color:var(--ink3); }
+.txt-size-chip:hover { border-color:var(--green-mid); }
+.txt-size-chip.sel { border-color:var(--green-dark); background:var(--green-xl); color:var(--green-dark); }
+
 /* ══ ИИ-ЧАТ ПАНЕЛЬ ══ */
 .ai-btns-compact { display:flex; flex-wrap:wrap; gap:5px; }
 .ai-btn-sm { padding:5px 8px; font-size:11px; border:1.5px solid var(--border); border-radius:7px; background:var(--white); cursor:pointer; color:var(--ink3); transition:.15s; }
@@ -2292,7 +2317,8 @@ header {
           <!-- Вкладки -->
           <div class="pr-tabs">
             <button class="pr-tab active" onclick="prTab(this,'pt-edit')">✏️ Слайд</button>
-            <button class="pr-tab" onclick="prTab(this,'pt-style')">🎨 Дизайн</button>
+            <button class="pr-tab" onclick="prTab(this,'pt-style')">🎨 Фон</button>
+            <button class="pr-tab" onclick="prTab(this,'pt-text')">📝 Текст</button>
             <button class="pr-tab" onclick="prTab(this,'pt-ai')">🤖 ИИ</button>
           </div>
 
@@ -2315,18 +2341,9 @@ header {
             </div>
           </div>
 
-          <!-- Вкладка: Дизайн -->
+          <!-- Вкладка: Фон -->
           <div class="pr-panel" id="pt-style" style="display:none;">
-            <div class="pres-section-label" style="margin-bottom:8px;">Стиль презентации</div>
-            <div class="preset-grid">
-              <div class="preset-chip sel" onclick="pickPreset(this,'black','PT Serif')"><div class="preset-prev" style="background:#111"></div>Строгий</div>
-              <div class="preset-chip" onclick="pickPreset(this,'white','Merriweather')"><div class="preset-prev" style="background:#fff;border:1px solid #ddd"></div>Академич.</div>
-              <div class="preset-chip" onclick="pickPreset(this,'night','Roboto')"><div class="preset-prev" style="background:#1c1e20"></div>Современный</div>
-              <div class="preset-chip" onclick="pickPreset(this,'beige','Merriweather')"><div class="preset-prev" style="background:#f7f3de"></div>Классика</div>
-              <div class="preset-chip" onclick="pickPreset(this,'moon','Montserrat')"><div class="preset-prev" style="background:#002b36"></div>Минимал</div>
-              <div class="preset-chip" onclick="pickPreset(this,'dracula','Roboto')"><div class="preset-prev" style="background:#282a36"></div>Технологии</div>
-            </div>
-            <div class="pres-section-label" style="margin-top:14px;margin-bottom:8px;">Фото на фоне слайда</div>
+            <div class="pres-section-label" style="margin-bottom:8px;">Фото на фоне слайда</div>
             <div class="bg-presets">
               <button class="bg-btn" id="bgCat-tech" title="Технологии" onclick="toggleBgCat(this,'tech')">💻</button>
               <button class="bg-btn" id="bgCat-book" title="Книги и учёба" onclick="toggleBgCat(this,'book')">📚</button>
@@ -2336,7 +2353,49 @@ header {
               <button class="bg-btn bg-btn-clear" title="Убрать фото" onclick="setBgImage('');closeBgCat()">✕</button>
             </div>
             <div class="bg-picker" id="bgPicker"></div>
-            <input id="bgUrlInput" class="pres-edit-input" style="margin-top:6px;font-size:11px;" placeholder="Или URL изображения..." oninput="setBgImageFromInput(this.value)">
+            <div class="upload-row">
+              <input type="file" id="bgFileInput" accept="image/*" style="display:none" onchange="loadBgFile(this)">
+              <button class="upload-btn" onclick="document.getElementById('bgFileInput').click()">📁 С компьютера</button>
+              <button class="upload-btn" id="pasteBtn" onclick="pasteBgImage()">📋 Вставить скрин</button>
+            </div>
+            <div class="brightness-row" id="brightnessRow" style="display:none;">
+              <span>🌑</span>
+              <input type="range" class="brightness-slider" id="brightnessSlider" min="0" max="80" value="45" oninput="setBrightness(this.value)">
+              <span>☀️</span>
+            </div>
+          </div>
+
+          <!-- Вкладка: Текст -->
+          <div class="pr-panel" id="pt-text" style="display:none;">
+            <div class="pres-section-label" style="margin-bottom:8px;">Стиль презентации</div>
+            <div class="preset-grid">
+              <div class="preset-chip sel" onclick="pickPreset(this,'black','PT Serif')"><div class="preset-prev" style="background:#111"></div>Строгий</div>
+              <div class="preset-chip" onclick="pickPreset(this,'white','Merriweather')"><div class="preset-prev" style="background:#fff;border:1px solid #ddd"></div>Академич.</div>
+              <div class="preset-chip" onclick="pickPreset(this,'night','Roboto')"><div class="preset-prev" style="background:#1c1e20"></div>Современный</div>
+              <div class="preset-chip" onclick="pickPreset(this,'beige','Merriweather')"><div class="preset-prev" style="background:#f7f3de"></div>Классика</div>
+              <div class="preset-chip" onclick="pickPreset(this,'moon','Montserrat')"><div class="preset-prev" style="background:#002b36"></div>Минимал</div>
+              <div class="preset-chip" onclick="pickPreset(this,'dracula','Roboto')"><div class="preset-prev" style="background:#282a36"></div>Технологии</div>
+            </div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Шрифт</div>
+            <div class="font-grid">
+              <div class="font-chip" style="font-family:'Montserrat'" onclick="pickFont(this,'Montserrat')">Montserrat</div>
+              <div class="font-chip sel" style="font-family:'PT Serif'" onclick="pickFont(this,'PT Serif')">PT Serif</div>
+              <div class="font-chip" style="font-family:'Merriweather'" onclick="pickFont(this,'Merriweather')">Merriweather</div>
+              <div class="font-chip" style="font-family:'Roboto'" onclick="pickFont(this,'Roboto')">Roboto</div>
+              <div class="font-chip" style="font-family:'Playfair Display'" onclick="pickFont(this,'Playfair Display')">Playfair</div>
+            </div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Цвет текста на слайде</div>
+            <div class="txt-clr-row">
+              <div class="txt-clr-chip sel" style="background:#1a1a2e;color:#fff;" onclick="pickTxtClr(this,'light')">Белый</div>
+              <div class="txt-clr-chip" style="background:#f5f5f5;color:#1a1a2e;" onclick="pickTxtClr(this,'dark')">Тёмный</div>
+              <div class="txt-clr-chip" style="background:linear-gradient(135deg,#fff 50%,#111 50%);color:transparent;" onclick="pickTxtClr(this,'auto')" title="Автоматически">Авто</div>
+            </div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Размер текста</div>
+            <div class="txt-size-row">
+              <div class="txt-size-chip" style="font-size:10px;" onclick="pickTxtSize(this,'small')">Мелкий</div>
+              <div class="txt-size-chip sel" style="font-size:12px;" onclick="pickTxtSize(this,'medium')">Средний</div>
+              <div class="txt-size-chip" style="font-size:14px;" onclick="pickTxtSize(this,'large')">Крупный</div>
+            </div>
           </div>
 
           <!-- Вкладка: ИИ -->
@@ -2974,16 +3033,9 @@ function showSlide(i) {
   document.getElementById('slideCounter').textContent = `${i+1} / ${SLIDES_DATA.length}`;
   const sn = document.getElementById('slideNum');
   if(sn) sn.textContent = `${i+1} / ${SLIDES_DATA.length}`;
-  const canvas = document.getElementById('slideCanvas');
-  if(s.bgImage) {
-    canvas.style.backgroundImage = `linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url(${s.bgImage})`;
-    canvas.style.backgroundSize = 'cover';
-    canvas.style.backgroundPosition = 'center';
-  } else {
-    canvas.style.backgroundImage = '';
-  }
-  const bgInput = document.getElementById('bgUrlInput');
-  if(bgInput) bgInput.value = s.bgImage || '';
+  applyBgToCanvas(s.bgImage, s.bgOverlay ?? 45);
+  const slider = document.getElementById('brightnessSlider');
+  if(slider) slider.value = s.bgOverlay ?? 45;
   renderSlideList();
 }
 
@@ -3063,16 +3115,11 @@ function pickPreset(el, theme, font) {
 }
 
 function setBgImage(url) {
+  if(!SLIDES_DATA[curSlide].bgOverlay) SLIDES_DATA[curSlide].bgOverlay = 45;
   SLIDES_DATA[curSlide].bgImage = url || '';
-  const canvas = document.getElementById('slideCanvas');
-  if(url) {
-    canvas.style.backgroundImage = `linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url(${url})`;
-    canvas.style.backgroundSize = 'cover';
-    canvas.style.backgroundPosition = 'center';
-  } else {
-    canvas.style.backgroundImage = '';
-  }
-  document.getElementById('bgUrlInput').value = url || '';
+  applyBgToCanvas(url, SLIDES_DATA[curSlide].bgOverlay);
+  const slider = document.getElementById('brightnessSlider');
+  if(slider) slider.value = SLIDES_DATA[curSlide].bgOverlay;
 }
 
 function setBgImageFromInput(val) {
@@ -3164,6 +3211,109 @@ function markThumb(el) {
   el.classList.add('sel');
 }
 
+// ══ ПОЛЗУНОК ЯРКОСТИ ══
+function applyBgToCanvas(url, overlay) {
+  const canvas = document.getElementById('slideCanvas');
+  if(url) {
+    const alpha = (overlay ?? 45) / 100;
+    canvas.style.backgroundImage = `linear-gradient(rgba(0,0,0,${alpha}),rgba(0,0,0,${alpha})),url(${url})`;
+    canvas.style.backgroundSize = 'cover';
+    canvas.style.backgroundPosition = 'center';
+  } else {
+    canvas.style.backgroundImage = '';
+  }
+  const row = document.getElementById('brightnessRow');
+  if(row) row.style.display = url ? 'flex' : 'none';
+}
+
+function setBrightness(val) {
+  SLIDES_DATA[curSlide].bgOverlay = parseInt(val);
+  applyBgToCanvas(SLIDES_DATA[curSlide].bgImage, val);
+}
+
+// ══ ЗАГРУЗКА ФОТО С ПК ══
+function loadBgFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    setBgImage(e.target.result);
+    closeBgCat();
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+// ══ ВСТАВКА СКРИНШОТА ══
+function pasteBgImage() {
+  navigator.clipboard.read().then(items => {
+    for(const item of items) {
+      const imgType = item.types.find(t => t.startsWith('image/'));
+      if(imgType) {
+        item.getType(imgType).then(blob => {
+          const reader = new FileReader();
+          reader.onload = e => { setBgImage(e.target.result); closeBgCat(); };
+          reader.readAsDataURL(blob);
+        });
+        return;
+      }
+    }
+    showToast('В буфере нет изображения. Скопируйте скриншот (Ctrl+C) и попробуйте снова.');
+  }).catch(() => showToast('Нет доступа к буферу обмена. Попробуйте Ctrl+V в поле браузера.'));
+}
+
+// Вставка через Ctrl+V в любом месте редактора
+document.addEventListener('paste', function(e) {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  for(const item of items) {
+    if(item.type.startsWith('image/')) {
+      const blob = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = ev => { setBgImage(ev.target.result); closeBgCat(); showToast('Фото вставлено!'); };
+      reader.readAsDataURL(blob);
+      e.preventDefault();
+      return;
+    }
+  }
+});
+
+// ══ ШРИФТЫ (вкладка Текст) ══
+function pickFont(el, font) {
+  el.closest('.font-grid').querySelectorAll('.font-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  presFont = font;
+  document.getElementById('slideCanvas').style.fontFamily = font + ', serif';
+}
+
+// ══ ЦВЕТ ТЕКСТА (вкладка Текст) ══
+let presTextClr = 'light';
+function pickTxtClr(el, mode) {
+  el.closest('.txt-clr-row').querySelectorAll('.txt-clr-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  presTextClr = mode;
+  const title = document.getElementById('scTitle');
+  const body  = document.getElementById('scBody');
+  if(mode === 'dark') {
+    title.style.color = 'var(--ink)';
+    body.style.color  = 'var(--ink3)';
+  } else {
+    title.style.color = '#fff';
+    body.style.color  = 'rgba(255,255,255,.85)';
+  }
+}
+
+// ══ РАЗМЕР ТЕКСТА (вкладка Текст) ══
+let presTxtSize = 'medium';
+const TXT_SIZES = { small: {title:'1.05em', body:'.72em'}, medium: {title:'1.3em', body:'.85em'}, large: {title:'1.6em', body:'1em'} };
+function pickTxtSize(el, size) {
+  el.closest('.txt-size-row').querySelectorAll('.txt-size-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  presTxtSize = size;
+  const s = TXT_SIZES[size];
+  document.getElementById('scTitle').style.fontSize = s.title;
+  document.getElementById('scBody').style.fontSize  = s.body;
+}
+
 function pickClr(el, c1, c2, textMode) {
   el.closest('.clr-row').querySelectorAll('.clr').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
@@ -3185,7 +3335,8 @@ function buildRevealHtml() {
     const bullets = s.body.split('\n').filter(l => l.trim()).map(l =>
       `<li>${escHtml(l.replace(/^[•\-·]\s*/,''))}</li>`
     ).join('');
-    const bgAttr = s.bgImage ? ` data-background-image="${s.bgImage}" data-background-opacity="0.25"` : '';
+    const bgOpacity = s.bgImage ? (1 - (s.bgOverlay ?? 45) / 100).toFixed(2) : '';
+    const bgAttr = s.bgImage ? ` data-background-image="${s.bgImage}" data-background-opacity="${bgOpacity}"` : '';
     return `<section${bgAttr}><h2>${escHtml(s.title)}</h2><ul>${bullets}</ul></section>`;
   }).join('\n');
   const fontLink = presFont !== 'Montserrat' ? `
