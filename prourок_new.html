@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ПроУрок — Помощник учителя</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Merriweather:wght@400;700&family=Roboto:wght@400;500;700&family=PT+Serif:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
 :root {
   /* Основная палитра: зелёный + светло-голубой */
@@ -1723,7 +1724,7 @@ header {
 .opt-section { font-size:11px; color:var(--ink3); letter-spacing:.8px; text-transform:uppercase; font-weight:600; margin:12px 0 8px; }
 
 /* ══ ВКЛАДКИ ПРАВОЙ ПАНЕЛИ ══ */
-.pres-right { display:flex !important; flex-direction:column !important; gap:0 !important; overflow-y:hidden !important; width:260px !important; padding:12px 10px !important; }
+.pres-right { display:flex !important; flex-direction:column !important; gap:0 !important; overflow-y:hidden !important; width:300px !important; padding:12px 12px !important; }
 .pr-tabs { display:flex; gap:3px; margin-bottom:10px; background:var(--bg); border-radius:10px; padding:3px; flex-shrink:0; }
 .pr-tab { flex:1; padding:6px 2px; border:none; border-radius:8px; background:transparent; font-size:11px; font-weight:600; color:var(--ink3); cursor:pointer; transition:.15s; white-space:nowrap; }
 .pr-tab:hover { background:var(--green-xl); color:var(--green-dark); }
@@ -1771,6 +1772,26 @@ header {
 .img-place-row { display:flex; gap:6px; }
 .img-place-btn { flex:1; padding:7px 4px; border-radius:7px; border:1.5px solid var(--border); background:var(--white); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink3); text-align:center; transition:.15s; }
 .img-place-btn:hover { border-color:var(--teal); color:var(--teal); }
+
+/* ══ КНОПКИ ЭКСПОРТА ══ */
+.export-btns { display:flex; flex-direction:column; gap:6px; }
+.btn-export { width:100%; padding:9px; border:none; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; text-align:center; }
+.btn-export.primary { background:var(--green-dark); color:#fff; }
+.btn-export.primary:hover { background:var(--green); }
+.btn-export.secondary { background:var(--bg); border:1.5px solid var(--border); color:var(--ink2); }
+.btn-export.secondary:hover { border-color:var(--green-dark); color:var(--green-dark); }
+
+/* ══ ВКЛАДКА РИСУНКИ ══ */
+.illus-list { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+.illus-item { display:flex; align-items:center; gap:8px; padding:6px 8px; background:var(--bg); border-radius:8px; border:1.5px solid var(--border); }
+.illus-thumb { width:44px; height:32px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+.illus-item-btns { display:flex; gap:4px; margin-left:auto; }
+.illus-item-btn { padding:3px 7px; border-radius:5px; border:1px solid var(--border); background:var(--white); font-size:10px; cursor:pointer; color:var(--ink3); }
+.illus-item-btn:hover { border-color:var(--rose); color:var(--rose); }
+.illus-pos-row { display:flex; gap:5px; margin-top:8px; }
+.illus-pos-btn { flex:1; padding:5px 2px; border-radius:6px; border:1.5px solid var(--border); background:var(--white); font-size:10px; font-weight:600; cursor:pointer; text-align:center; color:var(--ink3); transition:.15s; }
+.illus-pos-btn.sel { border-color:var(--green-dark); background:var(--green-xl); color:var(--green-dark); }
+.illus-pos-btn:hover { border-color:var(--green-mid); }
 
 /* ══ ИЛЛЮСТРАЦИЯ НА СЛАЙДЕ ══ */
 .slide-body-area { display:flex; gap:6px; flex:1; min-height:0; overflow:hidden; }
@@ -2331,6 +2352,7 @@ header {
           <div class="pr-tabs">
             <button class="pr-tab active" onclick="prTab(this,'pt-edit')">✏️ Слайд</button>
             <button class="pr-tab" onclick="prTab(this,'pt-style')">🎨 Фон</button>
+            <button class="pr-tab" onclick="prTab(this,'pt-illus')">🖼️ Рисунки</button>
             <button class="pr-tab" onclick="prTab(this,'pt-text')">📝 Текст</button>
             <button class="pr-tab" onclick="prTab(this,'pt-ai')">🤖 ИИ</button>
           </div>
@@ -2376,15 +2398,28 @@ header {
               <input type="range" class="brightness-slider" id="brightnessSlider" min="0" max="80" value="45" oninput="setBrightness(this.value)">
               <span>☀️</span>
             </div>
-            <input type="file" id="bgFileInput" accept="image/*" style="display:none" onchange="loadBgFile(this)">
-            <button class="upload-btn" onclick="document.getElementById('bgFileInput').click()">📥 Загрузить рисунок</button>
-            <div class="img-place-panel" id="imgPlacePanel" style="display:none;">
-              <div class="img-place-label">Куда добавить рисунок?</div>
-              <div class="img-place-row">
-                <button class="img-place-btn" onclick="applyImageAs('bg')">🖼️ Фоном</button>
-                <button class="img-place-btn" onclick="applyImageAs('illus')">📌 Иллюстрацией</button>
-              </div>
+            <input type="file" id="bgFileInput" accept="image/*" style="display:none" onchange="loadBgFileAsBg(this)">
+            <button class="upload-btn" onclick="document.getElementById('bgFileInput').click()">📥 Загрузить фото фона</button>
+          </div>
+
+          <!-- Вкладка: Рисунки -->
+          <div class="pr-panel" id="pt-illus" style="display:none;">
+            <div class="pres-section-label" style="margin-bottom:8px;">Иллюстрации на слайде</div>
+            <input type="file" id="illusFileInput" accept="image/*" style="display:none" onchange="loadIllusFile(this)">
+            <button class="upload-btn" style="margin-top:0;" onclick="document.getElementById('illusFileInput').click()">📥 Загрузить иллюстрацию</button>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Позиция</div>
+            <div class="illus-pos-row">
+              <div class="illus-pos-btn sel" id="illPos-right" onclick="setIllusPos(this,'right')">▶ Справа</div>
+              <div class="illus-pos-btn" id="illPos-left" onclick="setIllusPos(this,'left')">◀ Слева</div>
+              <div class="illus-pos-btn" id="illPos-bottom" onclick="setIllusPos(this,'bottom')">▼ Снизу</div>
             </div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Размер иллюстрации</div>
+            <div class="brightness-row" style="display:flex;">
+              <span style="font-size:10px;">S</span>
+              <input type="range" class="brightness-slider" id="illusSizeSlider" min="20" max="60" value="38" style="background:linear-gradient(to right,var(--green-xl),var(--green-dark));" oninput="setIllusSize(this.value)">
+              <span style="font-size:10px;">XL</span>
+            </div>
+            <div id="illusList" class="illus-list"></div>
           </div>
 
           <!-- Вкладка: Текст -->
@@ -2438,8 +2473,11 @@ header {
 
           <!-- Нижние кнопки (всегда видны) -->
           <div class="pr-bottom">
-            <button class="btn-full-primary" onclick="openReveal()">▶ Открыть презентацию</button>
-            <button class="btn-action save" style="width:100%;text-align:center;" onclick="downloadReveal()">⬇️ Скачать HTML</button>
+            <div class="export-btns">
+              <button class="btn-export primary" onclick="openReveal()">▶ Открыть презентацию</button>
+              <button class="btn-export secondary" onclick="downloadPPTX()">⬇️ Скачать PowerPoint (.pptx)</button>
+              <button class="btn-export secondary" onclick="downloadPDF()">📄 Скачать PDF</button>
+            </div>
           </div>
 
         </div>
@@ -3059,6 +3097,7 @@ function showSlide(i) {
   const slider = document.getElementById('brightnessSlider');
   if(slider) slider.value = s.bgOverlay ?? 45;
   renderIllustration(s.image || '');
+  renderIllusList();
   renderSlideList();
 }
 
@@ -3304,54 +3343,180 @@ function setBrightness(val) {
   applyBgToCanvas(SLIDES_DATA[curSlide].bgImage, val);
 }
 
-// ══ ЗАГРУЗКА РИСУНКА С ПК ══
-let pendingImageData = null;
-
-function loadBgFile(input) {
+// ══ ЗАГРУЗКА ФОТО ФОНА ══
+function loadBgFileAsBg(input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
-    pendingImageData = e.target.result;
-    document.getElementById('imgPlacePanel').style.display = 'block';
-  };
+  reader.onload = e => { setBgImage(e.target.result); closeBgCat(); showToast('Фото фона установлено'); };
   reader.readAsDataURL(file);
   input.value = '';
 }
 
-function applyImageAs(mode) {
-  if(!pendingImageData) return;
-  document.getElementById('imgPlacePanel').style.display = 'none';
-  if(mode === 'bg') {
-    setBgImage(pendingImageData);
-    closeBgCat();
-  } else {
-    setSlideIllustration(pendingImageData);
-  }
-  pendingImageData = null;
+// ══ ЗАГРУЗКА ИЛЛЮСТРАЦИИ ══
+let illusPos = 'right';
+let illusSize = 38;
+
+function loadIllusFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { setSlideIllustration(e.target.result); };
+  reader.readAsDataURL(file);
+  input.value = '';
 }
 
 function setSlideIllustration(url) {
-  SLIDES_DATA[curSlide].image = url;
+  SLIDES_DATA[curSlide].image    = url;
+  SLIDES_DATA[curSlide].illusPos  = illusPos;
+  SLIDES_DATA[curSlide].illusSize = illusSize;
   renderIllustration(url);
-  showToast('Иллюстрация добавлена на слайд');
+  renderIllusList();
+  showToast('Иллюстрация добавлена');
 }
 
 function renderIllustration(url) {
   const el = document.getElementById('scIllustration');
   if(!el) return;
+  const s = SLIDES_DATA[curSlide];
+  const size = s.illusSize || 38;
   if(url) {
+    el.style.width = size + '%';
     el.innerHTML = `<img src="${url}" alt="иллюстрация"><button class="illus-remove" onclick="removeIllustration()" title="Убрать">✕</button>`;
     el.classList.add('has-img');
+    // позиция
+    const bodyArea = document.querySelector('.slide-body-area');
+    if(bodyArea) {
+      if((s.illusPos || 'right') === 'left') {
+        bodyArea.style.flexDirection = 'row-reverse';
+      } else {
+        bodyArea.style.flexDirection = 'row';
+      }
+    }
   } else {
     el.innerHTML = '';
     el.classList.remove('has-img');
+    el.style.width = '';
+    const bodyArea = document.querySelector('.slide-body-area');
+    if(bodyArea) bodyArea.style.flexDirection = 'row';
+  }
+}
+
+function renderIllusList() {
+  const list = document.getElementById('illusList');
+  if(!list) return;
+  const s = SLIDES_DATA[curSlide];
+  if(s.image) {
+    list.innerHTML = `
+      <div class="illus-item">
+        <img class="illus-thumb" src="${s.image}">
+        <span style="font-size:11px;color:var(--ink3);flex:1;">Иллюстрация</span>
+        <div class="illus-item-btns">
+          <button class="illus-item-btn" onclick="removeIllustration()">✕ Убрать</button>
+        </div>
+      </div>`;
+  } else {
+    list.innerHTML = '<div style="font-size:11px;color:var(--ink3);padding:8px 0;">Иллюстраций нет</div>';
   }
 }
 
 function removeIllustration() {
   SLIDES_DATA[curSlide].image = '';
   renderIllustration('');
+  renderIllusList();
+}
+
+function setIllusPos(el, pos) {
+  document.querySelectorAll('.illus-pos-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  illusPos = pos;
+  if(SLIDES_DATA[curSlide].image) {
+    SLIDES_DATA[curSlide].illusPos = pos;
+    renderIllustration(SLIDES_DATA[curSlide].image);
+  }
+}
+
+function setIllusSize(val) {
+  illusSize = parseInt(val);
+  if(SLIDES_DATA[curSlide].image) {
+    SLIDES_DATA[curSlide].illusSize = illusSize;
+    renderIllustration(SLIDES_DATA[curSlide].image);
+  }
+}
+
+// ══ ЭКСПОРТ PPTX ══
+async function downloadPPTX() {
+  if(typeof PptxGenJS === 'undefined') { showToast('Библиотека PPTX не загружена, попробуйте позже'); return; }
+  showToast('Создаю PowerPoint…');
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_16x9';
+
+  const THEME_COLORS = {
+    black:  {bg:'111111', text:'FFFFFF', accent:'AAAAAA'},
+    white:  {bg:'FFFFFF', text:'111111', accent:'444444'},
+    night:  {bg:'1C1E20', text:'FFFFFF', accent:'AAAAAA'},
+    beige:  {bg:'F7F3DE', text:'333333', accent:'888866'},
+    moon:   {bg:'002B36', text:'FFFFFF', accent:'839496'},
+    dracula:{bg:'282A36', text:'F8F8F2', accent:'6272A4'},
+  };
+  const tc = THEME_COLORS[presTheme] || THEME_COLORS.black;
+
+  for(const s of SLIDES_DATA) {
+    const slide = pptx.addSlide();
+    slide.background = { color: tc.bg };
+
+    // Фото фона
+    if(s.bgImage && s.bgImage.startsWith('http')) {
+      try { slide.background = { path: s.bgImage }; } catch(e) {}
+    } else if(s.bgImage && s.bgImage.startsWith('data:')) {
+      try { slide.background = { data: s.bgImage }; } catch(e) {}
+    }
+
+    // Заголовок
+    slide.addText(s.title || '', {
+      x: 0.4, y: 0.3, w: 8.8, h: 1.1,
+      fontSize: 28, bold: true, color: tc.text,
+      fontFace: presFont, align: 'left',
+    });
+
+    // Тело
+    const bodyLines = (s.body || '').split('\n').filter(l => l.trim());
+    const bodyW = s.image ? (s.illusPos === 'left' ? 4.8 : 5.0) : 8.8;
+    const bodyX = (s.image && s.illusPos === 'left') ? 4.0 : 0.4;
+    if(bodyLines.length) {
+      const textObj = bodyLines.map(l => ({
+        text: l.replace(/^[•\-·]\s*/, ''),
+        options: { bullet: { type:'bullet' }, breakLine: true }
+      }));
+      slide.addText(textObj, {
+        x: bodyX, y: 1.55, w: bodyW, h: 4.5,
+        fontSize: 16, color: tc.text, fontFace: presFont,
+      });
+    }
+
+    // Иллюстрация
+    if(s.image) {
+      const iw = (s.illusSize || 38) / 100 * 9.14;
+      const ix = s.illusPos === 'left' ? 0.3 : (9.44 - iw - 0.3);
+      const imgOpt = { x: ix, y: 1.6, w: iw, h: 4.4, sizing: { type:'contain', w: iw, h: 4.4 } };
+      if(s.image.startsWith('data:')) slide.addImage({ ...imgOpt, data: s.image });
+      else slide.addImage({ ...imgOpt, path: s.image });
+    }
+  }
+
+  await pptx.writeFile({ fileName: 'Презентация_ПроУрок.pptx' });
+  showToast('PowerPoint сохранён!');
+}
+
+// ══ ЭКСПОРТ PDF ══
+function downloadPDF() {
+  const html = buildRevealHtml();
+  // Открываем в новой вкладке с инструкцией распечатать как PDF
+  const w = window.open('', '_blank');
+  w.document.write(html.replace('Reveal.initialize({',
+    'window.onload=()=>{ setTimeout(()=>{ window.print(); },1200); }; Reveal.initialize({'));
+  w.document.close();
+  showToast('Откроется диалог печати — выберите «Сохранить как PDF»');
 }
 
 // ══ ШРИФТЫ (вкладка Текст) ══
