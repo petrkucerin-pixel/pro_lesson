@@ -1793,13 +1793,22 @@ header {
 .illus-pos-btn.sel { border-color:var(--green-dark); background:var(--green-xl); color:var(--green-dark); }
 .illus-pos-btn:hover { border-color:var(--green-mid); }
 
-/* ══ ИЛЛЮСТРАЦИЯ НА СЛАЙДЕ ══ */
-.slide-body-area { display:flex; gap:6px; flex:1; min-height:0; overflow:hidden; }
-#scBody { flex:1; min-width:0; overflow:hidden; }
-#scIllustration { display:none; flex-shrink:0; width:38%; position:relative; }
-#scIllustration.has-img { display:flex; align-items:center; justify-content:center; }
-#scIllustration img { width:100%; max-height:100%; object-fit:contain; border-radius:4px; }
-.illus-remove { position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; border:none; cursor:pointer; font-size:9px; line-height:16px; text-align:center; padding:0; }
+/* ══ ИЛЛЮСТРАЦИИ — СЛОЙ ПОВЕРХ CANVAS ══ */
+#illusLayer { position:absolute; inset:0; z-index:5; pointer-events:none; }
+.illus-obj { position:absolute; pointer-events:all; cursor:move; user-select:none; box-sizing:border-box; }
+.illus-obj img { width:100%; height:100%; object-fit:contain; display:block; pointer-events:none; border-radius:3px; }
+.illus-obj.sel { outline:2px solid #1a8fa0; outline-offset:1px; }
+.illus-handle { position:absolute; width:10px; height:10px; background:#fff; border:2px solid #1a8fa0; border-radius:50%; z-index:10; }
+.illus-handle.nw { top:-6px; left:-6px; cursor:nw-resize; }
+.illus-handle.n  { top:-6px; left:calc(50% - 5px); cursor:n-resize; }
+.illus-handle.ne { top:-6px; right:-6px; cursor:ne-resize; }
+.illus-handle.e  { top:calc(50% - 5px); right:-6px; cursor:e-resize; }
+.illus-handle.se { bottom:-6px; right:-6px; cursor:se-resize; }
+.illus-handle.s  { bottom:-6px; left:calc(50% - 5px); cursor:s-resize; }
+.illus-handle.sw { bottom:-6px; left:-6px; cursor:sw-resize; }
+.illus-handle.w  { top:calc(50% - 5px); left:-6px; cursor:w-resize; }
+.illus-handle.rot { top:-26px; left:calc(50% - 6px); width:12px; height:12px; background:#1a8fa0; cursor:grab; border-radius:50%; }
+.illus-rot-line { position:absolute; top:-20px; left:50%; width:2px; height:14px; background:#1a8fa0; transform:translateX(-50%); pointer-events:none; }
 
 /* ══ ВКЛАДКА ТЕКСТ ══ */
 .font-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
@@ -2326,15 +2335,15 @@ header {
 
         <!-- Центр -->
         <div class="pres-center">
-          <div class="slide-canvas" id="slideCanvas">
+          <div class="slide-canvas" id="slideCanvas" onclick="canvasClickOutside(event)">
             <div class="slide-title-bar">
               <div id="scTitle">Заголовок слайда</div>
             </div>
             <div class="slide-body-area">
               <div id="scBody">• Содержание</div>
-              <div id="scIllustration"><button class="illus-remove" onclick="removeIllustration()" title="Убрать">✕</button></div>
             </div>
             <div class="slide-num" id="slideNum">1 / 8</div>
+            <div id="illusLayer"></div>
           </div>
           <div class="pres-controls">
             <button class="btn-slide-nav" onclick="showSlide(Math.max(0,curSlide-1))">←</button>
@@ -2407,19 +2416,8 @@ header {
             <div class="pres-section-label" style="margin-bottom:8px;">Иллюстрации на слайде</div>
             <input type="file" id="illusFileInput" accept="image/*" style="display:none" onchange="loadIllusFile(this)">
             <button class="upload-btn" style="margin-top:0;" onclick="document.getElementById('illusFileInput').click()">📥 Загрузить иллюстрацию</button>
-            <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Позиция</div>
-            <div class="illus-pos-row">
-              <div class="illus-pos-btn sel" id="illPos-right" onclick="setIllusPos(this,'right')">▶ Справа</div>
-              <div class="illus-pos-btn" id="illPos-left" onclick="setIllusPos(this,'left')">◀ Слева</div>
-              <div class="illus-pos-btn" id="illPos-bottom" onclick="setIllusPos(this,'bottom')">▼ Снизу</div>
-            </div>
-            <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Размер иллюстрации</div>
-            <div class="brightness-row" style="display:flex;">
-              <span style="font-size:10px;">S</span>
-              <input type="range" class="brightness-slider" id="illusSizeSlider" min="20" max="60" value="38" style="background:linear-gradient(to right,var(--green-xl),var(--green-dark));" oninput="setIllusSize(this.value)">
-              <span style="font-size:10px;">XL</span>
-            </div>
-            <div id="illusList" class="illus-list"></div>
+            <div style="font-size:10px;color:var(--ink3);margin-top:8px;line-height:1.5;">Кликни на рисунок — появятся узлы для перемещения, масштаба и поворота</div>
+            <div id="illusList" class="illus-list" style="margin-top:10px;"></div>
           </div>
 
           <!-- Вкладка: Текст -->
@@ -3096,7 +3094,8 @@ function showSlide(i) {
   applyBgToCanvas(s.bgImage, s.bgOverlay ?? 45);
   const slider = document.getElementById('brightnessSlider');
   if(slider) slider.value = s.bgOverlay ?? 45;
-  renderIllustration(s.image || '');
+  selectedIllusId = null;
+  renderIllusLayer();
   renderIllusList();
   renderSlideList();
 }
@@ -3353,95 +3352,158 @@ function loadBgFileAsBg(input) {
   input.value = '';
 }
 
-// ══ ЗАГРУЗКА ИЛЛЮСТРАЦИИ ══
-let illusPos = 'right';
-let illusSize = 38;
+// ══════ ИЛЛЮСТРАЦИИ — DRAG / RESIZE / ROTATE ══════
+let selectedIllusId = null;
+let dragState = null;
 
 function loadIllusFile(input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = e => { setSlideIllustration(e.target.result); };
+  reader.onload = e => { addIllustration(e.target.result); };
   reader.readAsDataURL(file);
   input.value = '';
 }
 
-function setSlideIllustration(url) {
-  SLIDES_DATA[curSlide].image    = url;
-  SLIDES_DATA[curSlide].illusPos  = illusPos;
-  SLIDES_DATA[curSlide].illusSize = illusSize;
-  renderIllustration(url);
+function addIllustration(src) {
+  if(!SLIDES_DATA[curSlide].images) SLIDES_DATA[curSlide].images = [];
+  const id = 'img_' + Date.now();
+  SLIDES_DATA[curSlide].images.push({ id, src, x: 30, y: 25, w: 36, h: 40, rot: 0 });
+  renderIllusLayer();
+  selectIllus(id);
   renderIllusList();
-  showToast('Иллюстрация добавлена');
+  showToast('Иллюстрация добавлена — перетащите её на слайде');
 }
 
-function renderIllustration(url) {
-  const el = document.getElementById('scIllustration');
+function renderIllusLayer() {
+  const layer = document.getElementById('illusLayer');
+  if(!layer) return;
+  const images = SLIDES_DATA[curSlide].images || [];
+  layer.innerHTML = images.map(img => `
+    <div class="illus-obj${img.id === selectedIllusId ? ' sel' : ''}" id="io_${img.id}"
+         style="left:${img.x}%;top:${img.y}%;width:${img.w}%;height:${img.h}%;transform:rotate(${img.rot}deg);"
+         onmousedown="illusMouseDown(event,'${img.id}','move')">
+      <img src="${img.src}" draggable="false">
+    </div>`).join('');
+  if(selectedIllusId && images.find(i => i.id === selectedIllusId)) attachHandles(selectedIllusId);
+}
+
+function attachHandles(id) {
+  document.querySelectorAll('.illus-obj').forEach(el => {
+    el.classList.remove('sel');
+    el.querySelectorAll('.illus-handle,.illus-rot-line').forEach(h => h.remove());
+  });
+  if(!id) { selectedIllusId = null; return; }
+  const el = document.getElementById('io_' + id);
   if(!el) return;
-  const s = SLIDES_DATA[curSlide];
-  const size = s.illusSize || 38;
-  if(url) {
-    el.style.width = size + '%';
-    el.innerHTML = `<img src="${url}" alt="иллюстрация"><button class="illus-remove" onclick="removeIllustration()" title="Убрать">✕</button>`;
-    el.classList.add('has-img');
-    // позиция
-    const bodyArea = document.querySelector('.slide-body-area');
-    if(bodyArea) {
-      if((s.illusPos || 'right') === 'left') {
-        bodyArea.style.flexDirection = 'row-reverse';
-      } else {
-        bodyArea.style.flexDirection = 'row';
-      }
-    }
+  selectedIllusId = id;
+  el.classList.add('sel');
+  // Линия к ручке поворота
+  const line = document.createElement('div');
+  line.className = 'illus-rot-line';
+  el.appendChild(line);
+  // 8 resize + 1 rotate
+  [
+    {cls:'nw',cur:'nw-resize'},{cls:'n',cur:'n-resize'},{cls:'ne',cur:'ne-resize'},
+    {cls:'e', cur:'e-resize'}, {cls:'se',cur:'se-resize'},{cls:'s', cur:'s-resize'},
+    {cls:'sw',cur:'sw-resize'},{cls:'w', cur:'w-resize'},{cls:'rot',cur:'grab'},
+  ].forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'illus-handle ' + h.cls;
+    div.style.cursor = h.cur;
+    div.onmousedown = e => { e.stopPropagation(); illusMouseDown(e, id, h.cls === 'rot' ? 'rotate' : 'resize-' + h.cls); };
+    el.appendChild(div);
+  });
+}
+
+function selectIllus(id) {
+  selectedIllusId = id;
+  attachHandles(id);
+}
+
+function illusMouseDown(e, id, type) {
+  e.preventDefault();
+  e.stopPropagation();
+  if(type === 'move') selectIllus(id);
+  const canvas = document.getElementById('slideCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const img = (SLIDES_DATA[curSlide].images || []).find(i => i.id === id);
+  if(!img) return;
+  dragState = { type, id, startX: e.clientX, startY: e.clientY,
+    snap: { ...img }, canvasW: rect.width, canvasH: rect.height, rect };
+}
+
+document.addEventListener('mousemove', e => {
+  if(!dragState) return;
+  const { type, id, startX, startY, snap, canvasW, canvasH, rect } = dragState;
+  const dx = (e.clientX - startX) / canvasW * 100;
+  const dy = (e.clientY - startY) / canvasH * 100;
+  const img = (SLIDES_DATA[curSlide].images || []).find(i => i.id === id);
+  if(!img) return;
+
+  if(type === 'move') {
+    img.x = Math.max(-10, Math.min(100, snap.x + dx));
+    img.y = Math.max(-10, Math.min(100, snap.y + dy));
+  } else if(type === 'rotate') {
+    const cx = rect.left + (img.x + img.w / 2) / 100 * canvasW;
+    const cy = rect.top  + (img.y + img.h / 2) / 100 * canvasH;
+    img.rot = Math.round(Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI + 90);
   } else {
-    el.innerHTML = '';
-    el.classList.remove('has-img');
-    el.style.width = '';
-    const bodyArea = document.querySelector('.slide-body-area');
-    if(bodyArea) bodyArea.style.flexDirection = 'row';
+    const dir = type.replace('resize-', '');
+    let { x, y, w, h } = snap;
+    if(dir.includes('e')) w = Math.max(5, snap.w + dx);
+    if(dir.includes('s')) h = Math.max(5, snap.h + dy);
+    if(dir.includes('w')) { x = snap.x + dx; w = Math.max(5, snap.w - dx); }
+    if(dir.includes('n')) { y = snap.y + dy; h = Math.max(5, snap.h - dy); }
+    img.x = x; img.y = y; img.w = w; img.h = h;
   }
+
+  // Обновляем DOM напрямую (без полного перерендера чтобы не потерять handles)
+  const el = document.getElementById('io_' + id);
+  if(el) {
+    el.style.left      = img.x + '%';
+    el.style.top       = img.y + '%';
+    el.style.width     = img.w + '%';
+    el.style.height    = img.h + '%';
+    el.style.transform = `rotate(${img.rot}deg)`;
+  }
+});
+
+document.addEventListener('mouseup', () => { dragState = null; });
+
+function canvasClickOutside(e) {
+  if(e.target === document.getElementById('slideCanvas') ||
+     e.target.closest('.slide-title-bar') ||
+     e.target.closest('.slide-body-area') ||
+     e.target.closest('.slide-num')) {
+    selectIllus(null);
+  }
+}
+
+function removeIllusById(id) {
+  const s = SLIDES_DATA[curSlide];
+  s.images = (s.images || []).filter(i => i.id !== id);
+  if(selectedIllusId === id) selectedIllusId = null;
+  renderIllusLayer();
+  renderIllusList();
 }
 
 function renderIllusList() {
   const list = document.getElementById('illusList');
   if(!list) return;
-  const s = SLIDES_DATA[curSlide];
-  if(s.image) {
-    list.innerHTML = `
-      <div class="illus-item">
-        <img class="illus-thumb" src="${s.image}">
-        <span style="font-size:11px;color:var(--ink3);flex:1;">Иллюстрация</span>
-        <div class="illus-item-btns">
-          <button class="illus-item-btn" onclick="removeIllustration()">✕ Убрать</button>
-        </div>
-      </div>`;
-  } else {
-    list.innerHTML = '<div style="font-size:11px;color:var(--ink3);padding:8px 0;">Иллюстраций нет</div>';
+  const images = SLIDES_DATA[curSlide].images || [];
+  if(!images.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--ink3);padding:4px 0;">Иллюстраций нет</div>';
+    return;
   }
-}
-
-function removeIllustration() {
-  SLIDES_DATA[curSlide].image = '';
-  renderIllustration('');
-  renderIllusList();
-}
-
-function setIllusPos(el, pos) {
-  document.querySelectorAll('.illus-pos-btn').forEach(b => b.classList.remove('sel'));
-  el.classList.add('sel');
-  illusPos = pos;
-  if(SLIDES_DATA[curSlide].image) {
-    SLIDES_DATA[curSlide].illusPos = pos;
-    renderIllustration(SLIDES_DATA[curSlide].image);
-  }
-}
-
-function setIllusSize(val) {
-  illusSize = parseInt(val);
-  if(SLIDES_DATA[curSlide].image) {
-    SLIDES_DATA[curSlide].illusSize = illusSize;
-    renderIllustration(SLIDES_DATA[curSlide].image);
-  }
+  list.innerHTML = images.map((img, i) => `
+    <div class="illus-item" onclick="selectIllus('${img.id}');renderIllusLayer()">
+      <img class="illus-thumb" src="${img.src}">
+      <span style="font-size:11px;color:var(--ink3);flex:1;">Рисунок ${i+1}</span>
+      <div class="illus-item-btns">
+        <button class="illus-item-btn" onclick="event.stopPropagation();removeIllusById('${img.id}')">✕</button>
+      </div>
+    </div>`).join('');
 }
 
 // ══ ЭКСПОРТ PPTX ══
@@ -3481,26 +3543,30 @@ async function downloadPPTX() {
 
     // Тело
     const bodyLines = (s.body || '').split('\n').filter(l => l.trim());
-    const bodyW = s.image ? (s.illusPos === 'left' ? 4.8 : 5.0) : 8.8;
-    const bodyX = (s.image && s.illusPos === 'left') ? 4.0 : 0.4;
     if(bodyLines.length) {
       const textObj = bodyLines.map(l => ({
         text: l.replace(/^[•\-·]\s*/, ''),
         options: { bullet: { type:'bullet' }, breakLine: true }
       }));
       slide.addText(textObj, {
-        x: bodyX, y: 1.55, w: bodyW, h: 4.5,
+        x: 0.4, y: 1.55, w: 8.8, h: 4.5,
         fontSize: 16, color: tc.text, fontFace: presFont,
       });
     }
 
-    // Иллюстрация
-    if(s.image) {
-      const iw = (s.illusSize || 38) / 100 * 9.14;
-      const ix = s.illusPos === 'left' ? 0.3 : (9.44 - iw - 0.3);
-      const imgOpt = { x: ix, y: 1.6, w: iw, h: 4.4, sizing: { type:'contain', w: iw, h: 4.4 } };
-      if(s.image.startsWith('data:')) slide.addImage({ ...imgOpt, data: s.image });
-      else slide.addImage({ ...imgOpt, path: s.image });
+    // Иллюстрации (новый формат images[])
+    for(const img of (s.images || [])) {
+      const PW = 9.14, PH = 5.14; // PPTX 16:9 дюймы
+      const ix = img.x / 100 * PW;
+      const iy = img.y / 100 * PH;
+      const iw = Math.max(0.3, img.w / 100 * PW);
+      const ih = Math.max(0.3, img.h / 100 * PH);
+      const imgOpt = { x: ix, y: iy, w: iw, h: ih, rotate: img.rot || 0,
+        sizing: { type:'contain', w: iw, h: ih } };
+      try {
+        if(img.src.startsWith('data:')) slide.addImage({ ...imgOpt, data: img.src });
+        else slide.addImage({ ...imgOpt, path: img.src });
+      } catch(e) {}
     }
   }
 
@@ -3579,8 +3645,10 @@ function buildRevealHtml() {
     ).join('');
     const bgOpacity = s.bgImage ? (1 - (s.bgOverlay ?? 45) / 100).toFixed(2) : '';
     const bgAttr = s.bgImage ? ` data-background-image="${s.bgImage}" data-background-opacity="${bgOpacity}"` : '';
-    const illustHtml = s.image ? `<div style="display:flex;gap:16px;align-items:flex-start"><div style="flex:1">${bullets.replace(/<li>/g,'<li>').replace(/<\/ul>/,'</ul>')}</div><img src="${s.image}" style="width:38%;border-radius:8px;object-fit:contain;max-height:300px"></div>` : `<ul>${bullets}</ul>`;
-    return `<section${bgAttr}><h2>${escHtml(s.title)}</h2>${s.image ? illustHtml : `<ul>${bullets}</ul>`}</section>`;
+    const illusHtml = (s.images || []).map(img =>
+      `<img src="${img.src}" style="position:absolute;left:${img.x}%;top:${img.y}%;width:${img.w}%;height:${img.h}%;object-fit:contain;transform:rotate(${img.rot||0}deg);border-radius:4px;">`
+    ).join('');
+    return `<section${bgAttr} style="position:relative;"><h2>${escHtml(s.title)}</h2><ul>${bullets}</ul>${illusHtml}</section>`;
   }).join('\n');
   const fontLink = presFont !== 'Montserrat' ? `
   <link href="https://fonts.googleapis.com/css2?family=${presFont.replace(/ /,'+')}:wght@400;700&display=swap" rel="stylesheet">
