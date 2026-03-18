@@ -1454,10 +1454,8 @@ header {
   flex: 1;
   background: linear-gradient(135deg, var(--green-dark), #1a5e78);
   border-radius: var(--r);
-  display: grid;
-  grid-template-rows: auto 1fr;
-  min-height: 0;
   position: relative;
+  min-height: 0;
   overflow: hidden;
 }
 .slide-canvas::before {
@@ -1478,43 +1476,68 @@ header {
   border-radius: 50%;
   pointer-events: none;
 }
-.slide-title-bar {
-  padding: 28px 36px 20px;
-  border-bottom: 1px solid rgba(255,255,255,.12);
-  position: relative;
-  z-index: 1;
+
+/* ══ ПЕРЕТАСКИВАЕМЫЕ ТЕКСТОВЫЕ БЛОКИ ══ */
+.text-block {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  padding: 6px 10px 8px 22px;
+  border: 1.5px dashed transparent;
+  border-radius: 7px;
+  transition: border-color .15s;
 }
+.text-block:hover, .text-block:focus-within {
+  border-color: rgba(255,255,255,.35);
+}
+.tb-handle {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 18px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px 0 0 5px;
+  transition: background .15s;
+  user-select: none;
+  z-index: 10;
+}
+.tb-handle::after {
+  content: '⋮⋮';
+  font-size: 11px;
+  color: rgba(255,255,255,.2);
+  letter-spacing: -3px;
+}
+.tb-handle:hover { background: rgba(255,255,255,.15); }
+.tb-handle:hover::after { color: rgba(255,255,255,.85); }
+.tb-handle:active { cursor: grabbing; }
+
 #scTitle {
   font-family: 'Merriweather', serif;
   font-size: 22px;
   font-weight: 700;
   color: #fff;
   line-height: 1.3;
-  margin: 0;
   cursor: text;
   outline: none;
   min-height: 1.3em;
+  width: 100%;
 }
 #scTitle:empty::before { content: 'Заголовок слайда'; opacity: .35; pointer-events:none; }
-#scBody { cursor: text; outline: none; min-height: 2em; width: 100%; }
-#scBody:empty::before { content: '• Текст слайда'; opacity: .35; pointer-events:none; }
-#scBody div { line-height: 1.7; }
-[contenteditable]:focus { outline: none; }
-.canvas-edit-hint { position:absolute; bottom:8px; right:12px; font-size:9px; color:rgba(255,255,255,.3); pointer-events:none; z-index:2; }
-.slide-body-area {
-  padding: 24px 36px 28px;
-  overflow-y: auto;
-  position: relative;
-  z-index: 1;
-}
 #scBody {
   font-size: 14.5px;
   color: rgba(255,255,255,.88);
-  white-space: pre-wrap;
   line-height: 1.9;
-  margin: 0;
+  cursor: text;
+  outline: none;
+  min-height: 2em;
+  width: 100%;
 }
-#scBody::before { content: ''; }
+#scBody:empty::before { content: '• Текст слайда'; opacity: .35; pointer-events:none; }
+#scBody div { line-height: inherit; }
+[contenteditable]:focus { outline: none; }
+.canvas-edit-hint { position:absolute; bottom:8px; right:12px; font-size:9px; color:rgba(255,255,255,.3); pointer-events:none; z-index:2; }
 
 .pres-controls {
   display: flex;
@@ -2370,14 +2393,16 @@ header {
         <!-- Центр -->
         <div class="pres-center">
           <div class="slide-canvas" id="slideCanvas" onclick="canvasClickOutside(event)">
-            <div class="slide-title-bar">
-              <div id="scTitle" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()">Заголовок слайда</div>
+            <div class="slide-num" id="slideNum">1 / 8</div>
+            <div class="canvas-edit-hint">✏️ текст &nbsp;⠿ тяни рамку</div>
+            <div class="text-block" id="titleBlock" style="left:4%;top:5%;width:92%;">
+              <div class="tb-handle" onmousedown="startTextDrag(event,'title')"></div>
+              <div id="scTitle" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()"></div>
             </div>
-            <div class="slide-body-area">
+            <div class="text-block" id="bodyBlock" style="left:4%;top:24%;width:92%;">
+              <div class="tb-handle" onmousedown="startTextDrag(event,'body')"></div>
               <div id="scBody" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()"><div>• Содержание</div></div>
             </div>
-            <div class="slide-num" id="slideNum">1 / 8</div>
-            <div class="canvas-edit-hint">✏️ кликни для редактирования</div>
             <div id="illusLayer"></div>
           </div>
           <div class="pres-controls">
@@ -2460,9 +2485,11 @@ header {
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('italic')" title="Курсив"><i>К</i></button>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('underline')" title="Подчёркнутый"><u>Ч</u></button>
               <div class="fmt-sep"></div>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(1)" title="Очень мелкий" style="font-size:9px;">XS</button>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(2)" title="Мелкий" style="font-size:10px;">S</button>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(4)" title="Средний" style="font-size:13px;">M</button>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(6)" title="Крупный" style="font-size:16px;">L</button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(3)" title="Обычный" style="font-size:12px;">M</button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(5)" title="Крупный" style="font-size:14px;">L</button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(7)" title="Очень крупный" style="font-size:16px;">XL</button>
               <div class="fmt-sep"></div>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('removeFormat')" title="Сбросить всё">✕</button>
             </div>
@@ -3201,6 +3228,13 @@ function showSlide(i) {
   applySlideStyles(s);
   const slider = document.getElementById('brightnessSlider');
   if(slider) slider.value = s.bgOverlay ?? 45;
+  // Восстановить позиции текстовых блоков
+  const tp = s.titlePos || { l: 4, t: 5 };
+  const bp = s.bodyPos  || { l: 4, t: 24 };
+  const tb = document.getElementById('titleBlock');
+  const bb = document.getElementById('bodyBlock');
+  if(tb) { tb.style.left = tp.l + '%'; tb.style.top = tp.t + '%'; }
+  if(bb) { bb.style.left = bp.l + '%'; bb.style.top = bp.t + '%'; }
   selectedIllusId = null;
   renderIllusLayer();
   renderIllusList();
@@ -3453,6 +3487,25 @@ function loadBgFileAsBg(input) {
   input.value = '';
 }
 
+// ══════ ПЕРЕМЕЩЕНИЕ ТЕКСТОВЫХ БЛОКОВ ══════
+let textDragState = null;
+
+function startTextDrag(e, which) {
+  e.preventDefault();
+  e.stopPropagation();
+  const blockEl = document.getElementById(which === 'title' ? 'titleBlock' : 'bodyBlock');
+  const canvas  = document.getElementById('slideCanvas');
+  const cRect   = canvas.getBoundingClientRect();
+  const bRect   = blockEl.getBoundingClientRect();
+  textDragState = {
+    which,
+    offX: e.clientX - bRect.left,
+    offY: e.clientY - bRect.top,
+    cLeft: cRect.left, cTop: cRect.top,
+    cW: cRect.width,   cH: cRect.height,
+  };
+}
+
 // ══════ ИЛЛЮСТРАЦИИ — DRAG / RESIZE / ROTATE ══════
 let selectedIllusId = null;
 let dragState = null;
@@ -3535,6 +3588,19 @@ function illusMouseDown(e, id, type) {
 }
 
 document.addEventListener('mousemove', e => {
+  // Drag текстовых блоков
+  if(textDragState) {
+    const { which, offX, offY, cLeft, cTop, cW, cH } = textDragState;
+    const blockId = which === 'title' ? 'titleBlock' : 'bodyBlock';
+    const block = document.getElementById(blockId);
+    let newL = (e.clientX - offX - cLeft) / cW * 100;
+    let newT = (e.clientY - offY - cTop)  / cH * 100;
+    newL = Math.max(0, Math.min(80, newL));
+    newT = Math.max(0, Math.min(80, newT));
+    block.style.left = newL + '%';
+    block.style.top  = newT + '%';
+    return;
+  }
   if(!dragState) return;
   const { type, id, startX, startY, snap, canvasW, canvasH, rect } = dragState;
   const dx = (e.clientX - startX) / canvasW * 100;
@@ -3570,7 +3636,17 @@ document.addEventListener('mousemove', e => {
   }
 });
 
-document.addEventListener('mouseup', () => { dragState = null; });
+document.addEventListener('mouseup', () => {
+  if(textDragState) {
+    const blockId = textDragState.which === 'title' ? 'titleBlock' : 'bodyBlock';
+    const block = document.getElementById(blockId);
+    const key = textDragState.which === 'title' ? 'titlePos' : 'bodyPos';
+    SLIDES_DATA[curSlide][key] = { l: parseFloat(block.style.left), t: parseFloat(block.style.top) };
+    textDragState = null;
+    scheduleAutosave();
+  }
+  dragState = null;
+});
 
 // ══ КЛАВИШИ В РЕДАКТОРЕ CANVAS ══
 document.addEventListener('DOMContentLoaded', () => {
@@ -3626,8 +3702,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function canvasClickOutside(e) {
   if(e.target === document.getElementById('slideCanvas') ||
-     e.target.closest('.slide-title-bar') ||
-     e.target.closest('.slide-body-area') ||
+     e.target.closest('.text-block') ||
      e.target.closest('.slide-num')) {
     selectIllus(null);
   }
@@ -3683,17 +3758,16 @@ async function downloadPPTX() {
     const sC2 = (s.bgC2 || '#1a5e78').replace('#','');
     const sTxtClr = s.textClr === 'dark' ? '1a1a2e' : 'FFFFFF';
     const sFont   = s.font || presFont;
-    if(s.bgImage) {
-      try {
-        if(s.bgImage.startsWith('data:')) slide.background = { data: s.bgImage };
-        else slide.background = { path: s.bgImage };
-      } catch(e) { slide.background = { color: sC1 }; }
+    if(s.bgImage && !s.bgImage.startsWith('data:')) {
+      slide.background = { path: s.bgImage };
     } else {
-      // Gradient via rect shape
-      slide.addShape(pptx.ShapeType.rect, {
-        x:0, y:0, w:'100%', h:'100%',
-        fill:{ type:'grad', stops:[{position:0,color:sC1},{position:100,color:sC2}], angle:135 },
-        line:{ type:'none' }
+      // Solid background (gradient via two-color rect behind text)
+      slide.background = { color: sC1 };
+      // Second gradient color as right-side accent rect
+      slide.addShape('rect', {
+        x: '55%', y: 0, w: '45%', h: '100%',
+        fill: { color: sC2, transparency: 60 },
+        line: { type: 'none' }
       });
     }
 
@@ -3781,8 +3855,13 @@ function pickFont(el, font) {
   el.closest('.font-grid').querySelectorAll('.font-chip').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
   presFont = font;
-  SLIDES_DATA[curSlide].font = font;
-  document.getElementById('slideCanvas').style.fontFamily = font + ', serif';
+  if(hasSel()) {
+    document.execCommand('fontName', false, font);
+    syncFromCanvas();
+  } else {
+    SLIDES_DATA[curSlide].font = font;
+    document.getElementById('slideCanvas').style.fontFamily = font + ', serif';
+  }
 }
 
 // ══ ЦВЕТ ТЕКСТА (вкладка Текст) ══
@@ -3791,8 +3870,14 @@ function pickTxtClr(el, mode) {
   el.closest('.txt-clr-row').querySelectorAll('.txt-clr-chip').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
   presTextClr = mode;
-  SLIDES_DATA[curSlide].textClr = mode;
-  applyTextClr(mode);
+  if(hasSel()) {
+    const clr = mode === 'dark' ? '#1a1a2e' : '#ffffff';
+    document.execCommand('foreColor', false, clr);
+    syncFromCanvas();
+  } else {
+    SLIDES_DATA[curSlide].textClr = mode;
+    applyTextClr(mode);
+  }
 }
 
 // ══ РАЗМЕР ТЕКСТА (вкладка Текст) ══
@@ -4269,26 +4354,25 @@ async function doForgot() {
 }
 
 // ══ ФОРМАТИРОВАНИЕ ТЕКСТА (execCommand) ══
-function fmtCheckSel() {
+function hasSel() {
   const sel = window.getSelection();
-  if(!sel || sel.isCollapsed) { showToast('Сначала выдели текст на слайде'); return false; }
-  return true;
+  return !!(sel && !sel.isCollapsed);
 }
 
 function fmt(cmd) {
-  if(!fmtCheckSel()) return;
+  if(!hasSel()) { showToast('Сначала выдели текст на слайде'); return; }
   document.execCommand(cmd, false, null);
   syncFromCanvas();
 }
 
 function fmtSize(val) {
-  if(!fmtCheckSel()) return;
+  if(!hasSel()) { showToast('Сначала выдели текст на слайде'); return; }
   document.execCommand('fontSize', false, val);
   syncFromCanvas();
 }
 
 function fmtColor(color) {
-  if(!fmtCheckSel()) return;
+  if(!hasSel()) { showToast('Сначала выдели текст на слайде'); return; }
   document.execCommand('foreColor', false, color);
   syncFromCanvas();
 }
