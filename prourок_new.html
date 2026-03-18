@@ -1782,6 +1782,23 @@ header {
 .img-place-btn { flex:1; padding:7px 4px; border-radius:7px; border:1.5px solid var(--border); background:var(--white); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink3); text-align:center; transition:.15s; }
 .img-place-btn:hover { border-color:var(--teal); color:var(--teal); }
 
+/* ══ ФОРМАТИРОВАНИЕ ТЕКСТА ══ */
+.fmt-toolbar { display:flex; align-items:center; gap:3px; flex-wrap:wrap; padding:6px; background:var(--bg); border-radius:8px; border:1.5px solid var(--border); margin-bottom:10px; }
+.fmt-btn { min-width:28px; height:28px; padding:0 6px; border:1.5px solid transparent; border-radius:6px; background:var(--white); cursor:pointer; font-size:13px; font-weight:700; color:var(--ink2); transition:.12s; display:flex; align-items:center; justify-content:center; }
+.fmt-btn:hover { background:var(--green-xl); border-color:var(--green-mid); }
+.fmt-btn.active { background:var(--green-light); border-color:var(--green-dark); color:var(--green-dark); }
+.fmt-sep { width:1px; height:18px; background:var(--border); margin:0 2px; flex-shrink:0; }
+.fmt-clr-label { position:relative; min-width:28px; height:28px; border:1.5px solid var(--border); border-radius:6px; background:var(--white); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--ink2); overflow:hidden; }
+.fmt-clr-label input[type=color] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.fmt-clr-bar { position:absolute; bottom:2px; left:4px; right:4px; height:3px; border-radius:2px; }
+
+/* ══ АВТОСОХРАНЕНИЕ ══ */
+.autosave-banner { display:none; align-items:center; gap:10px; padding:10px 16px; background:var(--green-xl); border-bottom:1.5px solid var(--green-light); font-size:12px; color:var(--green-dark); flex-shrink:0; }
+.autosave-banner b { font-weight:700; }
+.autosave-restore-btn { padding:5px 12px; border-radius:7px; border:1.5px solid var(--green-dark); background:var(--green-dark); color:#fff; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.autosave-dismiss { margin-left:auto; cursor:pointer; opacity:.5; font-size:14px; }
+.autosave-ind { font-size:10px; color:var(--ink4); flex-shrink:0; padding:0 4px; }
+
 /* ══ КНОПКИ ЭКСПОРТА ══ */
 .export-btns { display:flex; flex-direction:column; gap:6px; }
 .btn-export { width:100%; padding:9px; border:none; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; text-align:center; }
@@ -2337,6 +2354,12 @@ header {
 
     <!-- ПРЕЗЕНТАЦИЯ -->
     <div class="screen" id="s-pres">
+      <!-- Баннер автосохранения -->
+      <div class="autosave-banner" id="autosaveBanner">
+        💾 <b>Найдено несохранённое изменение</b> от <span id="autosaveBannerTime"></span>
+        <button class="autosave-restore-btn" onclick="restoreAutosave()">Восстановить</button>
+        <span class="autosave-dismiss" onclick="dismissAutosave()" title="Закрыть">✕</span>
+      </div>
       <div class="pres-layout">
 
         <!-- Список слайдов -->
@@ -2359,8 +2382,8 @@ header {
             <button class="btn-slide-nav" onclick="showSlide(Math.max(0,curSlide-1))">←</button>
             <div class="slide-counter-text" id="slideCounter">1 / 8</div>
             <button class="btn-slide-nav" onclick="showSlide(Math.min(SLIDES_DATA.length-1,curSlide+1))">→</button>
-            <button class="btn-action save" onclick="addSlide()">+ Слайд</button>
-            <button class="btn-action" onclick="go('welcome')">← Назад</button>
+            <button class="btn-action save" id="btnAddSlide" onclick="addSlide()">+ Слайд</button>
+            <span class="autosave-ind" id="autosaveInd">💾</span>
           </div>
         </div>
 
@@ -2369,20 +2392,15 @@ header {
 
           <!-- Вкладки -->
           <div class="pr-tabs">
-            <button class="pr-tab active" onclick="prTab(this,'pt-edit')">✏️ Слайд</button>
+            <button class="pr-tab active" onclick="prTab(this,'pt-text')">✏️ Текст</button>
             <button class="pr-tab" onclick="prTab(this,'pt-style')">🎨 Фон</button>
             <button class="pr-tab" onclick="prTab(this,'pt-illus')">🖼️ Рисунки</button>
-            <button class="pr-tab" onclick="prTab(this,'pt-text')">📝 Текст</button>
             <button class="pr-tab" onclick="prTab(this,'pt-ai')">🤖 ИИ</button>
           </div>
 
-          <!-- Вкладка: Редактор -->
-          <div class="pr-panel" id="pt-edit">
-            <div class="pres-section-label">Заголовок</div>
-            <input class="pres-edit-input" id="sTitleEdit" oninput="syncSlide()" placeholder="Заголовок слайда">
-            <div class="pres-section-label" style="margin-top:10px;">Содержание</div>
-            <textarea class="pres-edit-ta" id="sBodyEdit" oninput="syncSlide()" placeholder="• Пункт 1&#10;• Пункт 2"></textarea>
-          </div>
+          <!-- Скрытые input для sync (не показываются) -->
+          <input id="sTitleEdit" style="display:none">
+          <textarea id="sBodyEdit" style="display:none"></textarea>
 
           <!-- Вкладка: Фон -->
           <div class="pr-panel" id="pt-style" style="display:none;">
@@ -2430,18 +2448,25 @@ header {
             <div id="illusList" class="illus-list" style="margin-top:10px;"></div>
           </div>
 
-          <!-- Вкладка: Текст -->
-          <div class="pr-panel" id="pt-text" style="display:none;">
-            <div class="pres-section-label" style="margin-bottom:8px;">Стиль презентации</div>
-            <div class="preset-grid">
-              <div class="preset-chip sel" onclick="pickPreset(this,'black','PT Serif')"><div class="preset-prev" style="background:#111"></div>Строгий</div>
-              <div class="preset-chip" onclick="pickPreset(this,'white','Merriweather')"><div class="preset-prev" style="background:#fff;border:1px solid #ddd"></div>Академич.</div>
-              <div class="preset-chip" onclick="pickPreset(this,'night','Roboto')"><div class="preset-prev" style="background:#1c1e20"></div>Современный</div>
-              <div class="preset-chip" onclick="pickPreset(this,'beige','Merriweather')"><div class="preset-prev" style="background:#f7f3de"></div>Классика</div>
-              <div class="preset-chip" onclick="pickPreset(this,'moon','Montserrat')"><div class="preset-prev" style="background:#002b36"></div>Минимал</div>
-              <div class="preset-chip" onclick="pickPreset(this,'dracula','Roboto')"><div class="preset-prev" style="background:#282a36"></div>Технологии</div>
+          <!-- Вкладка: Текст (объединённая) -->
+          <div class="pr-panel" id="pt-text">
+            <div class="pres-section-label" style="margin-bottom:6px;">Форматирование выделенного</div>
+            <div class="fmt-toolbar">
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('bold')" title="Жирный"><b>Ж</b></button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('italic')" title="Курсив"><i>К</i></button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('underline')" title="Подчёркнутый"><u>Ч</u></button>
+              <div class="fmt-sep"></div>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(2)" title="Мелкий" style="font-size:10px;">S</button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(4)" title="Средний" style="font-size:13px;">M</button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(6)" title="Крупный" style="font-size:16px;">L</button>
+              <div class="fmt-sep"></div>
+              <label class="fmt-clr-label" title="Цвет текста" onmousedown="event.preventDefault()">
+                A<span class="fmt-clr-bar" id="fmtClrBar" style="background:#fff;"></span>
+                <input type="color" id="fmtColorPicker" value="#ffffff" oninput="fmtColor(this.value)">
+              </label>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('removeFormat')" title="Сбросить">✕</button>
             </div>
-            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Шрифт</div>
+            <div class="pres-section-label" style="margin-bottom:8px;">Шрифт слайда</div>
             <div class="font-grid">
               <div class="font-chip" style="font-family:'Montserrat'" onclick="pickFont(this,'Montserrat')">Montserrat</div>
               <div class="font-chip sel" style="font-family:'PT Serif'" onclick="pickFont(this,'PT Serif')">PT Serif</div>
@@ -2449,17 +2474,19 @@ header {
               <div class="font-chip" style="font-family:'Roboto'" onclick="pickFont(this,'Roboto')">Roboto</div>
               <div class="font-chip" style="font-family:'Playfair Display'" onclick="pickFont(this,'Playfair Display')">Playfair</div>
             </div>
-            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Цвет текста на слайде</div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Цвет текста</div>
             <div class="txt-clr-row">
               <div class="txt-clr-chip sel" style="background:#1a1a2e;color:#fff;" onclick="pickTxtClr(this,'light')">Белый</div>
               <div class="txt-clr-chip" style="background:#f5f5f5;color:#1a1a2e;" onclick="pickTxtClr(this,'dark')">Тёмный</div>
-              <div class="txt-clr-chip" style="background:linear-gradient(135deg,#fff 50%,#111 50%);color:transparent;" onclick="pickTxtClr(this,'auto')" title="Автоматически">Авто</div>
             </div>
-            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Размер текста</div>
-            <div class="txt-size-row">
-              <div class="txt-size-chip" style="font-size:10px;" onclick="pickTxtSize(this,'small')">Мелкий</div>
-              <div class="txt-size-chip sel" style="font-size:12px;" onclick="pickTxtSize(this,'medium')">Средний</div>
-              <div class="txt-size-chip" style="font-size:14px;" onclick="pickTxtSize(this,'large')">Крупный</div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Стиль для экспорта</div>
+            <div class="preset-grid">
+              <div class="preset-chip sel" onclick="pickPreset(this,'black','PT Serif')"><div class="preset-prev" style="background:#111"></div>Строгий</div>
+              <div class="preset-chip" onclick="pickPreset(this,'white','Merriweather')"><div class="preset-prev" style="background:#fff;border:1px solid #ddd"></div>Академич.</div>
+              <div class="preset-chip" onclick="pickPreset(this,'night','Roboto')"><div class="preset-prev" style="background:#1c1e20"></div>Современный</div>
+              <div class="preset-chip" onclick="pickPreset(this,'beige','Merriweather')"><div class="preset-prev" style="background:#f7f3de"></div>Классика</div>
+              <div class="preset-chip" onclick="pickPreset(this,'moon','Montserrat')"><div class="preset-prev" style="background:#002b36"></div>Минимал</div>
+              <div class="preset-chip" onclick="pickPreset(this,'dracula','Roboto')"><div class="preset-prev" style="background:#282a36"></div>Технологии</div>
             </div>
           </div>
 
@@ -2657,6 +2684,7 @@ function go(name) {
   }
 
   if(name === 'kopilka') renderKopilka();
+  if(name === 'pres') checkAutosave();
 }
 
 // ══════ FORM ══════
@@ -3099,13 +3127,15 @@ function syncFromCanvas() {
   const bodyEl  = document.getElementById('scBody');
   const title = titleEl.textContent || '';
   const body  = editableToText(bodyEl);
-  SLIDES_DATA[curSlide].title = title;
-  SLIDES_DATA[curSlide].body  = body;
+  SLIDES_DATA[curSlide].title   = title;
+  SLIDES_DATA[curSlide].body    = body;
+  SLIDES_DATA[curSlide].bodyHtml = bodyEl.innerHTML;
   const ti = document.getElementById('sTitleEdit');
   const bi = document.getElementById('sBodyEdit');
   if(ti) ti.value = title;
   if(bi) bi.value = body;
   renderSlideList();
+  scheduleAutosave();
 }
 
 // Панель → canvas + SLIDES_DATA
@@ -3148,7 +3178,7 @@ function showSlide(i) {
   curSlide = i;
   const s = SLIDES_DATA[i];
   document.getElementById('scTitle').textContent = s.title;
-  document.getElementById('scBody').innerHTML    = bodyToEditable(s.body);
+  document.getElementById('scBody').innerHTML    = s.bodyHtml || bodyToEditable(s.body);
   document.getElementById('sTitleEdit').value    = s.title;
   document.getElementById('sBodyEdit').value     = s.body;
   document.getElementById('slideCounter').textContent = `${i+1} / ${SLIDES_DATA.length}`;
@@ -3164,8 +3194,12 @@ function showSlide(i) {
 }
 
 function addSlide() {
+  if(SLIDES_DATA.length >= 20) { showToast('Максимум 20 слайдов'); return; }
   SLIDES_DATA.push({title:`Новый слайд ${SLIDES_DATA.length+1}`, body:'• Содержание...'});
   showSlide(SLIDES_DATA.length-1);
+  const btn = document.getElementById('btnAddSlide');
+  if(btn) btn.disabled = SLIDES_DATA.length >= 20;
+  scheduleAutosave();
 }
 
 async function qEdit(action) {
@@ -3692,12 +3726,16 @@ async function downloadPPTX() {
 // ══ ЭКСПОРТ PDF ══
 function downloadPDF() {
   const html = buildRevealHtml();
-  // Открываем в новой вкладке с инструкцией распечатать как PDF
-  const w = window.open('', '_blank');
-  w.document.write(html.replace('Reveal.initialize({',
-    'window.onload=()=>{ setTimeout(()=>{ window.print(); },1200); }; Reveal.initialize({'));
-  w.document.close();
-  showToast('Откроется диалог печати — выберите «Сохранить как PDF»');
+  const blob = new Blob([html], {type: 'application/octet-stream'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const topic = document.getElementById('topicInput')?.value.trim() || 'Презентация';
+  a.download = `${topic}_ПроУрок.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('Файл скачан. Откройте → Ctrl+P → Сохранить как PDF');
 }
 
 // ══ ШРИФТЫ (вкладка Текст) ══
@@ -3739,13 +3777,21 @@ function pickClr(el, c1, c2, textMode) {
   SLIDES_DATA[curSlide].textClr  = textMode;
   SLIDES_DATA[curSlide].bgImage  = '';
   applySlideStyles(SLIDES_DATA[curSlide]);
+  scheduleAutosave();
 }
 
 function buildRevealHtml() {
   const slidesHtml = SLIDES_DATA.map(s => {
-    const bullets = s.body.split('\n').filter(l => l.trim()).map(l =>
-      `<li>${escHtml(l.replace(/^[•\-·]\s*/,''))}</li>`
-    ).join('');
+    // Используем bodyHtml (с форматированием) если есть, иначе plain text
+    let bodyContent;
+    if(s.bodyHtml) {
+      bodyContent = `<div style="font-size:0.85em;line-height:1.6;">${s.bodyHtml}</div>`;
+    } else {
+      const bullets = s.body.split('\n').filter(l => l.trim()).map(l =>
+        `<li>${escHtml(l.replace(/^[•\-·]\s*/,''))}</li>`
+      ).join('');
+      bodyContent = `<ul>${bullets}</ul>`;
+    }
     let bgAttr = '';
     if(s.bgImage) {
       const bgOpacity = (1 - (s.bgOverlay ?? 45) / 100).toFixed(2);
@@ -3761,9 +3807,9 @@ function buildRevealHtml() {
     const illusHtml = (s.images || []).map(img =>
       `<img src="${img.src}" style="position:absolute;left:${img.x}%;top:${img.y}%;width:${img.w}%;height:${img.h}%;object-fit:contain;transform:rotate(${img.rot||0}deg);border-radius:4px;">`
     ).join('');
-    return `<section${bgAttr} style="position:relative;font-family:'${font}',serif;">` +
+    return `<section${bgAttr} style="position:relative;font-family:'${font}',serif;color:${bClr};">` +
       `<h2 style="color:${tClr};font-family:'${font}',serif;">${escHtml(s.title)}</h2>` +
-      `<ul style="color:${bClr};">${bullets}</ul>${illusHtml}</section>`;
+      `${bodyContent}${illusHtml}</section>`;
   }).join('\n')
   const fontLink = presFont !== 'Montserrat' ? `
   <link href="https://fonts.googleapis.com/css2?family=${presFont.replace(/ /,'+')}:wght@400;700&display=swap" rel="stylesheet">
@@ -4182,6 +4228,87 @@ async function doForgot() {
     const d = await r.json();
     setLoginMsg(d.ok ? 'Письмо отправлено! Проверьте почту.' : (d.error||'Ошибка'), d.ok?'ok':'err');
   } catch(e) { setLoginMsg('Не удалось подключиться к серверу','err'); }
+}
+
+// ══ ФОРМАТИРОВАНИЕ ТЕКСТА (execCommand) ══
+function fmt(cmd) {
+  document.execCommand(cmd, false, null);
+  syncFromCanvas();
+}
+
+function fmtSize(val) {
+  document.execCommand('fontSize', false, val);
+  syncFromCanvas();
+}
+
+function fmtColor(color) {
+  const bar = document.getElementById('fmtClrBar');
+  if(bar) bar.style.background = color;
+  document.execCommand('foreColor', false, color);
+  syncFromCanvas();
+}
+
+// ══ АВТОСОХРАНЕНИЕ ══
+const AUTOSAVE_KEY = 'prourok_pres_autosave';
+let autosaveTimer = null;
+
+function scheduleAutosave() {
+  if(autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(doAutosave, 2000);
+}
+
+function doAutosave() {
+  try {
+    const data = {
+      slides: SLIDES_DATA,
+      time: Date.now(),
+      topic: document.getElementById('topicInput')?.value.trim() || ''
+    };
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    const ind = document.getElementById('autosaveInd');
+    if(ind) { ind.textContent = '💾 сохранено'; setTimeout(() => { if(ind) ind.textContent = '💾'; }, 2000); }
+  } catch(e) {}
+}
+
+function checkAutosave() {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(!data || !data.slides || !data.slides.length) return;
+    // показываем баннер только если есть реальные данные (не текущая сессия)
+    const banner = document.getElementById('autosaveBanner');
+    const timeEl = document.getElementById('autosaveBannerTime');
+    if(!banner) return;
+    const d = new Date(data.time);
+    const timeStr = d.toLocaleString('ru', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    if(timeEl) timeEl.textContent = timeStr;
+    banner.style.display = 'flex';
+  } catch(e) {}
+}
+
+function restoreAutosave() {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(!data || !data.slides || !data.slides.length) return;
+    SLIDES_DATA.splice(0, SLIDES_DATA.length, ...data.slides);
+    if(data.topic) {
+      const ti = document.getElementById('topicInput');
+      if(ti) ti.value = data.topic;
+    }
+    showSlide(0);
+    dismissAutosave();
+    showToast('Презентация восстановлена!');
+    const btn = document.getElementById('btnAddSlide');
+    if(btn) btn.disabled = SLIDES_DATA.length >= 20;
+  } catch(e) { showToast('Ошибка восстановления'); }
+}
+
+function dismissAutosave() {
+  const banner = document.getElementById('autosaveBanner');
+  if(banner) banner.style.display = 'none';
 }
 
 // ══════ ИНИЦИАЛИЗАЦИЯ ══════
