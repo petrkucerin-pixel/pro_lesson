@@ -1788,9 +1788,9 @@ header {
 .fmt-btn:hover { background:var(--green-xl); border-color:var(--green-mid); }
 .fmt-btn.active { background:var(--green-light); border-color:var(--green-dark); color:var(--green-dark); }
 .fmt-sep { width:1px; height:18px; background:var(--border); margin:0 2px; flex-shrink:0; }
-.fmt-clr-label { position:relative; min-width:28px; height:28px; border:1.5px solid var(--border); border-radius:6px; background:var(--white); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--ink2); overflow:hidden; }
-.fmt-clr-label input[type=color] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-.fmt-clr-bar { position:absolute; bottom:2px; left:4px; right:4px; height:3px; border-radius:2px; }
+.fmt-colors { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
+.fmt-clr-swatch { width:24px; height:24px; border-radius:5px; border:1.5px solid rgba(0,0,0,.18); cursor:pointer; padding:0; flex-shrink:0; transition:.1s; }
+.fmt-clr-swatch:hover { transform:scale(1.25); border-color:rgba(0,0,0,.5); }
 
 /* ══ АВТОСОХРАНЕНИЕ ══ */
 .autosave-banner { display:none; align-items:center; gap:10px; padding:10px 16px; background:var(--green-xl); border-bottom:1.5px solid var(--green-light); font-size:12px; color:var(--green-dark); flex-shrink:0; }
@@ -1798,6 +1798,8 @@ header {
 .autosave-restore-btn { padding:5px 12px; border-radius:7px; border:1.5px solid var(--green-dark); background:var(--green-dark); color:#fff; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
 .autosave-dismiss { margin-left:auto; cursor:pointer; opacity:.5; font-size:14px; }
 .autosave-ind { font-size:10px; color:var(--ink4); flex-shrink:0; padding:0 4px; }
+.btn-slide-del { padding:0 9px; height:32px; border:1.5px solid var(--border); border-radius:8px; background:var(--white); cursor:pointer; font-size:14px; transition:.15s; flex-shrink:0; }
+.btn-slide-del:hover { border-color:var(--rose); background:var(--rose-l); }
 
 /* ══ КНОПКИ ЭКСПОРТА ══ */
 .export-btns { display:flex; flex-direction:column; gap:6px; }
@@ -2383,6 +2385,7 @@ header {
             <div class="slide-counter-text" id="slideCounter">1 / 8</div>
             <button class="btn-slide-nav" onclick="showSlide(Math.min(SLIDES_DATA.length-1,curSlide+1))">→</button>
             <button class="btn-action save" id="btnAddSlide" onclick="addSlide()">+ Слайд</button>
+            <button class="btn-slide-del" id="btnDelSlide" onclick="deleteSlide()" title="Удалить текущий слайд">🗑️</button>
             <span class="autosave-ind" id="autosaveInd">💾</span>
           </div>
         </div>
@@ -2450,7 +2453,8 @@ header {
 
           <!-- Вкладка: Текст (объединённая) -->
           <div class="pr-panel" id="pt-text">
-            <div class="pres-section-label" style="margin-bottom:6px;">Форматирование выделенного</div>
+            <div class="pres-section-label" style="margin-bottom:6px;">Форматирование выделенного текста</div>
+            <div style="font-size:10px;color:var(--ink3);margin-bottom:6px;">Выдели текст на слайде, затем нажми кнопку</div>
             <div class="fmt-toolbar">
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('bold')" title="Жирный"><b>Ж</b></button>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('italic')" title="Курсив"><i>К</i></button>
@@ -2460,11 +2464,22 @@ header {
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(4)" title="Средний" style="font-size:13px;">M</button>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(6)" title="Крупный" style="font-size:16px;">L</button>
               <div class="fmt-sep"></div>
-              <label class="fmt-clr-label" title="Цвет текста" onmousedown="event.preventDefault()">
-                A<span class="fmt-clr-bar" id="fmtClrBar" style="background:#fff;"></span>
-                <input type="color" id="fmtColorPicker" value="#ffffff" oninput="fmtColor(this.value)">
-              </label>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('removeFormat')" title="Сбросить">✕</button>
+              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('removeFormat')" title="Сбросить всё">✕</button>
+            </div>
+            <div class="pres-section-label" style="margin-bottom:6px;">Цвет выделенного текста</div>
+            <div class="fmt-colors">
+              <button class="fmt-clr-swatch" style="background:#ffffff;border-color:#bbb" onmousedown="event.preventDefault()" onclick="fmtColor('#ffffff')" title="Белый"></button>
+              <button class="fmt-clr-swatch" style="background:#000000" onmousedown="event.preventDefault()" onclick="fmtColor('#000000')" title="Чёрный"></button>
+              <button class="fmt-clr-swatch" style="background:#e53935" onmousedown="event.preventDefault()" onclick="fmtColor('#e53935')" title="Красный"></button>
+              <button class="fmt-clr-swatch" style="background:#1565c0" onmousedown="event.preventDefault()" onclick="fmtColor('#1565c0')" title="Синий"></button>
+              <button class="fmt-clr-swatch" style="background:#2e7d32" onmousedown="event.preventDefault()" onclick="fmtColor('#2e7d32')" title="Зелёный"></button>
+              <button class="fmt-clr-swatch" style="background:#f9a825" onmousedown="event.preventDefault()" onclick="fmtColor('#f9a825')" title="Жёлтый"></button>
+              <button class="fmt-clr-swatch" style="background:#ef6c00" onmousedown="event.preventDefault()" onclick="fmtColor('#ef6c00')" title="Оранжевый"></button>
+              <button class="fmt-clr-swatch" style="background:#7b1fa2" onmousedown="event.preventDefault()" onclick="fmtColor('#7b1fa2')" title="Фиолетовый"></button>
+              <button class="fmt-clr-swatch" style="background:#00838f" onmousedown="event.preventDefault()" onclick="fmtColor('#00838f')" title="Бирюзовый"></button>
+              <button class="fmt-clr-swatch" style="background:#c62828" onmousedown="event.preventDefault()" onclick="fmtColor('#c62828')" title="Тёмно-красный"></button>
+              <button class="fmt-clr-swatch" style="background:#f48fb1" onmousedown="event.preventDefault()" onclick="fmtColor('#f48fb1')" title="Розовый"></button>
+              <button class="fmt-clr-swatch" style="background:#90caf9" onmousedown="event.preventDefault()" onclick="fmtColor('#90caf9')" title="Голубой"></button>
             </div>
             <div class="pres-section-label" style="margin-bottom:8px;">Шрифт слайда</div>
             <div class="font-grid">
@@ -2607,12 +2622,11 @@ const FORMS = {
   },
   pres: {title:'Презентация к уроку', hint:'ИИ создаст структуру презентации: заголовки и содержание каждого слайда по ФГОС', btnText:'Создать презентацию', dl:'⬇️ Скачать PPTX', showLt:true, showOpts:false, extra:`
     <div class="form-card">
-      <div class="fg-label">Количество слайдов</div>
-      <div class="opt-row">
-        <div class="o-chip" onclick="po(this)">6</div>
-        <div class="o-chip sel" onclick="po(this)">8</div>
-        <div class="o-chip" onclick="po(this)">10</div>
-        <div class="o-chip" onclick="po(this)">12</div>
+      <div class="fg-label">Количество слайдов (1–20)</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+        <input type="number" id="slideCountInput" min="1" max="20" value="8"
+          style="width:72px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:15px;font-family:inherit;color:var(--ink);font-weight:600;">
+        <span style="font-size:12px;color:var(--ink3);">рекомендуется 6–12</span>
       </div>
     </div>`
   }
@@ -2800,7 +2814,7 @@ async function doCreate() {
     const quarter = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>c.textContent.includes('четверть')||c.textContent==='Год').map(c=>c.textContent).join('') || '1 четверть';
     prompt = `Опиши структуру таблицы успеваемости Excel для учителя.\n${topic ? 'Класс: '+topic : ''}\nПредмет: ${selSubj || 'любой'}\nКоличество учеников: ${students}\nПериод: ${quarter}\nОпиши названия колонок, формулы расчёта среднего балла и итоговой оценки, условное форматирование по оценкам.${NODIALOG}`;
   } else if(curForm === 'pres') {
-    const slideCount = [...document.querySelectorAll('#extraFields .o-chip.sel')].map(c=>c.textContent).join('') || '8';
+    const slideCount = Math.min(20, Math.max(1, parseInt(document.getElementById('slideCountInput')?.value) || 8));
     document.getElementById('resultBox').innerHTML = `<div style="text-align:center;padding:50px;color:var(--ink4);">
       <div class="dots"><span></span><span></span><span></span></div>
       <div style="margin-top:14px;font-size:13px;">Генерирую презентацию…</div>
@@ -3723,19 +3737,43 @@ async function downloadPPTX() {
   showToast('PowerPoint сохранён!');
 }
 
-// ══ ЭКСПОРТ PDF ══
-function downloadPDF() {
-  const html = buildRevealHtml();
-  const blob = new Blob([html], {type: 'application/octet-stream'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+// ══ ЭКСПОРТ PDF (html2canvas + jsPDF) ══
+function loadScriptOnce(src, globalName) {
+  return new Promise((resolve, reject) => {
+    if(window[globalName]) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function downloadPDF() {
+  showToast('Загружаю библиотеки…');
+  try {
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'html2canvas');
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'jspdf');
+  } catch(e) { showToast('Ошибка загрузки библиотек'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const canvasEl = document.getElementById('slideCanvas');
+  const W = canvasEl.offsetWidth, H = canvasEl.offsetHeight;
+  const savedSlide = curSlide;
+
+  showToast('Создаю PDF…');
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [W, H] });
+
+  for(let i = 0; i < SLIDES_DATA.length; i++) {
+    showSlide(i);
+    await new Promise(r => setTimeout(r, 180));
+    const img = await html2canvas(canvasEl, { scale: 2, useCORS: true, allowTaint: true, logging: false });
+    if(i > 0) pdf.addPage([W, H], 'landscape');
+    pdf.addImage(img.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, W, H);
+  }
+
+  showSlide(savedSlide);
   const topic = document.getElementById('topicInput')?.value.trim() || 'Презентация';
-  a.download = `${topic}_ПроУрок.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
-  showToast('Файл скачан. Откройте → Ctrl+P → Сохранить как PDF');
+  pdf.save(`${topic}_ПроУрок.pdf`);
+  showToast('PDF скачан!');
 }
 
 // ══ ШРИФТЫ (вкладка Текст) ══
@@ -4231,21 +4269,40 @@ async function doForgot() {
 }
 
 // ══ ФОРМАТИРОВАНИЕ ТЕКСТА (execCommand) ══
+function fmtCheckSel() {
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed) { showToast('Сначала выдели текст на слайде'); return false; }
+  return true;
+}
+
 function fmt(cmd) {
+  if(!fmtCheckSel()) return;
   document.execCommand(cmd, false, null);
   syncFromCanvas();
 }
 
 function fmtSize(val) {
+  if(!fmtCheckSel()) return;
   document.execCommand('fontSize', false, val);
   syncFromCanvas();
 }
 
 function fmtColor(color) {
-  const bar = document.getElementById('fmtClrBar');
-  if(bar) bar.style.background = color;
+  if(!fmtCheckSel()) return;
   document.execCommand('foreColor', false, color);
   syncFromCanvas();
+}
+
+// ══ УДАЛИТЬ СЛАЙД ══
+function deleteSlide() {
+  if(SLIDES_DATA.length <= 1) { showToast('Нельзя удалить единственный слайд'); return; }
+  if(!confirm(`Удалить слайд ${curSlide+1}?`)) return;
+  SLIDES_DATA.splice(curSlide, 1);
+  const nextIdx = Math.min(curSlide, SLIDES_DATA.length-1);
+  showSlide(nextIdx);
+  const btn = document.getElementById('btnAddSlide');
+  if(btn) btn.disabled = SLIDES_DATA.length >= 20;
+  scheduleAutosave();
 }
 
 // ══ АВТОСОХРАНЕНИЕ ══
