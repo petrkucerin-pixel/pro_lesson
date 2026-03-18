@@ -1581,7 +1581,7 @@ header {
   color: var(--ink);
   outline: none;
   resize: none;
-  min-height: 90px;
+  min-height: 160px;
   transition: .15s;
 }
 .pres-edit-ta:focus {
@@ -1764,9 +1764,21 @@ header {
 .brightness-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--green-dark); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.3); cursor:pointer; }
 
 /* ══ ЗАГРУЗКА ФОТО ══ */
-.upload-row { display:flex; gap:6px; margin-top:8px; }
-.upload-btn { flex:1; padding:7px 4px; border:1.5px dashed var(--border); border-radius:8px; background:var(--white); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink3); text-align:center; transition:.15s; }
+.upload-btn { width:100%; padding:8px; border:1.5px dashed var(--border); border-radius:8px; background:var(--white); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink3); text-align:center; transition:.15s; margin-top:8px; display:block; }
 .upload-btn:hover { border-color:var(--teal); color:var(--teal); background:var(--green-xl); }
+.img-place-panel { margin-top:8px; padding:8px; background:var(--bg); border-radius:8px; border:1.5px solid var(--border); }
+.img-place-label { font-size:10px; font-weight:600; color:var(--ink3); margin-bottom:6px; }
+.img-place-row { display:flex; gap:6px; }
+.img-place-btn { flex:1; padding:7px 4px; border-radius:7px; border:1.5px solid var(--border); background:var(--white); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink3); text-align:center; transition:.15s; }
+.img-place-btn:hover { border-color:var(--teal); color:var(--teal); }
+
+/* ══ ИЛЛЮСТРАЦИЯ НА СЛАЙДЕ ══ */
+.slide-body-area { display:flex; gap:6px; flex:1; min-height:0; overflow:hidden; }
+#scBody { flex:1; min-width:0; overflow:hidden; }
+#scIllustration { display:none; flex-shrink:0; width:38%; position:relative; }
+#scIllustration.has-img { display:flex; align-items:center; justify-content:center; }
+#scIllustration img { width:100%; max-height:100%; object-fit:contain; border-radius:4px; }
+.illus-remove { position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; border:none; cursor:pointer; font-size:9px; line-height:16px; text-align:center; padding:0; }
 
 /* ══ ВКЛАДКА ТЕКСТ ══ */
 .font-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
@@ -2299,6 +2311,7 @@ header {
             </div>
             <div class="slide-body-area">
               <div id="scBody">• Содержание</div>
+              <div id="scIllustration"><button class="illus-remove" onclick="removeIllustration()" title="Убрать">✕</button></div>
             </div>
             <div class="slide-num" id="slideNum">1 / 8</div>
           </div>
@@ -2328,7 +2341,11 @@ header {
             <input class="pres-edit-input" id="sTitleEdit" oninput="syncSlide()" placeholder="Заголовок слайда">
             <div class="pres-section-label" style="margin-top:10px;">Содержание</div>
             <textarea class="pres-edit-ta" id="sBodyEdit" oninput="syncSlide()" placeholder="• Пункт 1&#10;• Пункт 2"></textarea>
-            <div class="pres-section-label" style="margin-top:10px;margin-bottom:8px;">Цвет фона</div>
+          </div>
+
+          <!-- Вкладка: Фон -->
+          <div class="pr-panel" id="pt-style" style="display:none;">
+            <div class="pres-section-label" style="margin-bottom:8px;">Цвет фона слайда</div>
             <div class="clr-row">
               <div class="clr sel" style="background:linear-gradient(135deg,#1b6b4a,#1a5e78)" onclick="pickClr(this,'#1b6b4a','#1a5e78','light')"></div>
               <div class="clr" style="background:linear-gradient(135deg,#1a8fa0,#24906a)" onclick="pickClr(this,'#1a8fa0','#24906a','light')"></div>
@@ -2339,29 +2356,34 @@ header {
               <div class="clr" style="background:linear-gradient(135deg,#2d6a4f,#74c69d)" onclick="pickClr(this,'#2d6a4f','#74c69d','light')"></div>
               <div class="clr" style="background:linear-gradient(135deg,#c9184a,#ff4d6d)" onclick="pickClr(this,'#c9184a','#ff4d6d','light')"></div>
             </div>
-          </div>
-
-          <!-- Вкладка: Фон -->
-          <div class="pr-panel" id="pt-style" style="display:none;">
-            <div class="pres-section-label" style="margin-bottom:8px;">Фото на фоне слайда</div>
+            <div class="pres-section-label" style="margin-top:12px;margin-bottom:8px;">Фото на фоне слайда</div>
             <div class="bg-presets">
               <button class="bg-btn" id="bgCat-tech" title="Технологии" onclick="toggleBgCat(this,'tech')">💻</button>
               <button class="bg-btn" id="bgCat-book" title="Книги и учёба" onclick="toggleBgCat(this,'book')">📚</button>
               <button class="bg-btn" id="bgCat-sci" title="Наука" onclick="toggleBgCat(this,'sci')">🔬</button>
-              <button class="bg-btn" id="bgCat-geo" title="Природа и мир" onclick="toggleBgCat(this,'geo')">🌍</button>
+              <button class="bg-btn" id="bgCat-geo" title="География" onclick="toggleBgCat(this,'geo')">🌍</button>
               <button class="bg-btn" id="bgCat-school" title="Школа" onclick="toggleBgCat(this,'school')">🏫</button>
+              <button class="bg-btn" id="bgCat-sea" title="Море" onclick="toggleBgCat(this,'sea')">🌊</button>
+              <button class="bg-btn" id="bgCat-nature" title="Природа" onclick="toggleBgCat(this,'nature')">🌿</button>
+              <button class="bg-btn" id="bgCat-abstract" title="Абстракция" onclick="toggleBgCat(this,'abstract')">🎨</button>
+              <button class="bg-btn" id="bgCat-business" title="Бизнес" onclick="toggleBgCat(this,'business')">💼</button>
+              <button class="bg-btn" id="bgCat-space" title="Космос" onclick="toggleBgCat(this,'space')">🚀</button>
               <button class="bg-btn bg-btn-clear" title="Убрать фото" onclick="setBgImage('');closeBgCat()">✕</button>
             </div>
             <div class="bg-picker" id="bgPicker"></div>
-            <div class="upload-row">
-              <input type="file" id="bgFileInput" accept="image/*" style="display:none" onchange="loadBgFile(this)">
-              <button class="upload-btn" onclick="document.getElementById('bgFileInput').click()">📁 С компьютера</button>
-              <button class="upload-btn" id="pasteBtn" onclick="pasteBgImage()">📋 Вставить скрин</button>
-            </div>
             <div class="brightness-row" id="brightnessRow" style="display:none;">
               <span>🌑</span>
               <input type="range" class="brightness-slider" id="brightnessSlider" min="0" max="80" value="45" oninput="setBrightness(this.value)">
               <span>☀️</span>
+            </div>
+            <input type="file" id="bgFileInput" accept="image/*" style="display:none" onchange="loadBgFile(this)">
+            <button class="upload-btn" onclick="document.getElementById('bgFileInput').click()">📥 Загрузить рисунок</button>
+            <div class="img-place-panel" id="imgPlacePanel" style="display:none;">
+              <div class="img-place-label">Куда добавить рисунок?</div>
+              <div class="img-place-row">
+                <button class="img-place-btn" onclick="applyImageAs('bg')">🖼️ Фоном</button>
+                <button class="img-place-btn" onclick="applyImageAs('illus')">📌 Иллюстрацией</button>
+              </div>
             </div>
           </div>
 
@@ -3036,6 +3058,7 @@ function showSlide(i) {
   applyBgToCanvas(s.bgImage, s.bgOverlay ?? 45);
   const slider = document.getElementById('brightnessSlider');
   if(slider) slider.value = s.bgOverlay ?? 45;
+  renderIllustration(s.image || '');
   renderSlideList();
 }
 
@@ -3177,6 +3200,56 @@ const BG_PHOTOS = {
     'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=800&q=70',
     'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=70',
   ],
+  sea: [
+    'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=800&q=70',
+    'https://images.unsplash.com/photo-1505144808419-1957a94ca61e?w=800&q=70',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=70',
+    'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=70',
+    'https://images.unsplash.com/photo-1484821582734-6692f43bb0e9?w=800&q=70',
+    'https://images.unsplash.com/photo-1530053969600-caed2596d242?w=800&q=70',
+    'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=800&q=70',
+    'https://images.unsplash.com/photo-1476673160081-cf065607f449?w=800&q=70',
+  ],
+  nature: [
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=70',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=70',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=70',
+    'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=70',
+    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=70',
+    'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=800&q=70',
+    'https://images.unsplash.com/photo-1417325384643-5f57c1c4ba92?w=800&q=70',
+    'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800&q=70',
+  ],
+  abstract: [
+    'https://images.unsplash.com/photo-1550859492-d5da9d8e45f3?w=800&q=70',
+    'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=800&q=70',
+    'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&q=70',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=70',
+    'https://images.unsplash.com/photo-1553356084-58ef4a67b2a7?w=800&q=70',
+    'https://images.unsplash.com/photo-1604076913837-52ab5629fba9?w=800&q=70',
+    'https://images.unsplash.com/photo-1518562180175-34a163b1a9a6?w=800&q=70',
+    'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&q=70',
+  ],
+  business: [
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=70',
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70',
+    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=70',
+    'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=70',
+    'https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?w=800&q=70',
+    'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=800&q=70',
+    'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=70',
+    'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&q=70',
+  ],
+  space: [
+    'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=70',
+    'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=800&q=70',
+    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&q=70',
+    'https://images.unsplash.com/photo-1454789548928-9efd52dc4031?w=800&q=70',
+    'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=800&q=70',
+    'https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=800&q=70',
+    'https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=800&q=70',
+    'https://images.unsplash.com/photo-1538370621607-4919ce7889b3?w=800&q=70',
+  ],
 };
 
 let activeBgCat = null;
@@ -3231,51 +3304,55 @@ function setBrightness(val) {
   applyBgToCanvas(SLIDES_DATA[curSlide].bgImage, val);
 }
 
-// ══ ЗАГРУЗКА ФОТО С ПК ══
+// ══ ЗАГРУЗКА РИСУНКА С ПК ══
+let pendingImageData = null;
+
 function loadBgFile(input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    setBgImage(e.target.result);
-    closeBgCat();
+    pendingImageData = e.target.result;
+    document.getElementById('imgPlacePanel').style.display = 'block';
   };
   reader.readAsDataURL(file);
   input.value = '';
 }
 
-// ══ ВСТАВКА СКРИНШОТА ══
-function pasteBgImage() {
-  navigator.clipboard.read().then(items => {
-    for(const item of items) {
-      const imgType = item.types.find(t => t.startsWith('image/'));
-      if(imgType) {
-        item.getType(imgType).then(blob => {
-          const reader = new FileReader();
-          reader.onload = e => { setBgImage(e.target.result); closeBgCat(); };
-          reader.readAsDataURL(blob);
-        });
-        return;
-      }
-    }
-    showToast('В буфере нет изображения. Скопируйте скриншот (Ctrl+C) и попробуйте снова.');
-  }).catch(() => showToast('Нет доступа к буферу обмена. Попробуйте Ctrl+V в поле браузера.'));
+function applyImageAs(mode) {
+  if(!pendingImageData) return;
+  document.getElementById('imgPlacePanel').style.display = 'none';
+  if(mode === 'bg') {
+    setBgImage(pendingImageData);
+    closeBgCat();
+  } else {
+    setSlideIllustration(pendingImageData);
+  }
+  pendingImageData = null;
 }
 
-// Вставка через Ctrl+V в любом месте редактора
-document.addEventListener('paste', function(e) {
-  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-  for(const item of items) {
-    if(item.type.startsWith('image/')) {
-      const blob = item.getAsFile();
-      const reader = new FileReader();
-      reader.onload = ev => { setBgImage(ev.target.result); closeBgCat(); showToast('Фото вставлено!'); };
-      reader.readAsDataURL(blob);
-      e.preventDefault();
-      return;
-    }
+function setSlideIllustration(url) {
+  SLIDES_DATA[curSlide].image = url;
+  renderIllustration(url);
+  showToast('Иллюстрация добавлена на слайд');
+}
+
+function renderIllustration(url) {
+  const el = document.getElementById('scIllustration');
+  if(!el) return;
+  if(url) {
+    el.innerHTML = `<img src="${url}" alt="иллюстрация"><button class="illus-remove" onclick="removeIllustration()" title="Убрать">✕</button>`;
+    el.classList.add('has-img');
+  } else {
+    el.innerHTML = '';
+    el.classList.remove('has-img');
   }
-});
+}
+
+function removeIllustration() {
+  SLIDES_DATA[curSlide].image = '';
+  renderIllustration('');
+}
 
 // ══ ШРИФТЫ (вкладка Текст) ══
 function pickFont(el, font) {
@@ -3337,7 +3414,8 @@ function buildRevealHtml() {
     ).join('');
     const bgOpacity = s.bgImage ? (1 - (s.bgOverlay ?? 45) / 100).toFixed(2) : '';
     const bgAttr = s.bgImage ? ` data-background-image="${s.bgImage}" data-background-opacity="${bgOpacity}"` : '';
-    return `<section${bgAttr}><h2>${escHtml(s.title)}</h2><ul>${bullets}</ul></section>`;
+    const illustHtml = s.image ? `<div style="display:flex;gap:16px;align-items:flex-start"><div style="flex:1">${bullets.replace(/<li>/g,'<li>').replace(/<\/ul>/,'</ul>')}</div><img src="${s.image}" style="width:38%;border-radius:8px;object-fit:contain;max-height:300px"></div>` : `<ul>${bullets}</ul>`;
+    return `<section${bgAttr}><h2>${escHtml(s.title)}</h2>${s.image ? illustHtml : `<ul>${bullets}</ul>`}</section>`;
   }).join('\n');
   const fontLink = presFont !== 'Montserrat' ? `
   <link href="https://fonts.googleapis.com/css2?family=${presFont.replace(/ /,'+')}:wght@400;700&display=swap" rel="stylesheet">
