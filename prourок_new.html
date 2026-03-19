@@ -1942,6 +1942,12 @@ header {
 .btn-ai-apply:hover { background:var(--teal); }
 .btn-ai-all { width:100%; margin-top:4px; padding:7px; border:1.5px solid var(--green-mid); border-radius:8px; background:transparent; color:var(--green-dark); font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
 .btn-ai-all:hover { background:var(--green-xl); }
+.btn-ai-magic { width:100%; margin-top:10px; padding:10px 8px; border:none; border-radius:9px; background:linear-gradient(135deg,var(--green-dark) 0%,var(--teal) 100%); color:#fff; font-size:12px; font-weight:700; cursor:pointer; transition:opacity .15s,transform .1s; letter-spacing:.3px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.btn-ai-magic:hover { opacity:.88; }
+.btn-ai-magic:active { transform:scale(.98); }
+.btn-ai-magic:disabled { opacity:.5; cursor:default; }
+.ai-magic-sep { width:100%; height:1px; background:var(--border); margin:10px 0 8px; }
+.ai-magic-hint { font-size:10px; color:var(--ink3); line-height:1.5; margin-bottom:4px; }
 </style>
 </head>
 <body>
@@ -2605,6 +2611,10 @@ header {
 
           <!-- Вкладка: ИИ -->
           <div class="pr-panel" id="pt-ai" style="display:none;">
+            <div class="pres-section-label" style="margin-bottom:6px;">Дизайн-оптимизация</div>
+            <div class="ai-magic-hint">ИИ проанализирует фон, иллюстрации и расположение блоков — и подстроит текст, шрифт и позиции под визуал слайда.</div>
+            <button class="btn-ai-magic" id="btnVisualOptimize" onclick="aiVisualOptimize()">✨ Оптимизировать под визуал</button>
+            <div class="ai-magic-sep"></div>
             <div class="pres-section-label" style="margin-bottom:8px;">Быстрые правки слайда</div>
             <div class="ai-btns-compact">
               <button class="ai-btn-sm" onclick="qEdit('shorter')">✂️ Короче</button>
@@ -4244,6 +4254,129 @@ async function aiEditAll() {
       showToast('Презентация обновлена!');
     } else showToast('Ошибка: ' + (data.error||''));
   } catch(e) { showToast('Ошибка сети'); }
+}
+
+// ══════ ОПТИМИЗАЦИЯ ПОД ВИЗУАЛ ══════
+async function aiVisualOptimize() {
+  const s = SLIDES_DATA[curSlide];
+  const token = localStorage.getItem('prourok_session');
+  if(!token) { showToast('Необходимо войти в аккаунт'); return; }
+
+  const btn = document.getElementById('btnVisualOptimize');
+  btn.disabled = true;
+  btn.textContent = '✨ Анализирую…';
+
+  // Собираем визуальный контекст
+  const hasBgPhoto  = !!s.bgImage;
+  const images      = s.images || [];
+  const imgDesc     = images.length
+    ? images.map((img, i) =>
+        `Иллюстрация ${i+1}: left ${Math.round(img.x)}%, top ${Math.round(img.y)}%, ` +
+        `ширина ${Math.round(img.w)}%, высота ${Math.round(img.h)}%`
+      ).join('\n')
+    : 'нет';
+
+  const bgDesc = hasBgPhoto
+    ? 'фотографический фон (детализированное изображение)'
+    : `градиент (${s.bgC1 || '#1b6b4a'} → ${s.bgC2 || '#1a5e78'})`;
+
+  const tp = s.titlePos || { l:4, t:5,  w:92, rot:0 };
+  const bp = s.bodyPos  || { l:4, t:24, w:92, rot:0 };
+
+  const prompt = `Ты профессиональный дизайнер презентаций. Оптимизируй слайд под его визуальный контекст.
+
+ВИЗУАЛЬНЫЙ КОНТЕКСТ СЛАЙДА:
+• Фон: ${bgDesc}
+• Цвет текста: ${s.textClr === 'dark' ? 'тёмный (#1a1a2e)' : 'светлый (белый)'}
+• Шрифт слайда: ${s.font || 'PT Serif'}
+• Иллюстрации на слайде: ${images.length ? images.length + ' шт.' : 'нет'}
+${images.length ? imgDesc : ''}
+
+ПОЗИЦИИ ТЕКСТОВЫХ БЛОКОВ (в % от размера слайда):
+• Заголовок: left ${tp.l}%, top ${tp.t}%, ширина ${tp.w ?? 92}%
+• Основной текст: left ${bp.l}%, top ${bp.t}%, ширина ${bp.w ?? 92}%
+
+ТЕКУЩИЙ КОНТЕНТ:
+Заголовок: ${s.title}
+Основной текст:
+${s.body}
+
+ЗАДАЧА — оптимизируй как дизайнер:
+1. Если есть фотофон — текст должен быть коротким, ёмким, крупным для читаемости
+2. Если есть иллюстрации — смести текстовые блоки чтобы не перекрывать рисунки
+3. Подбери шрифт под настроение слайда (PT Serif — академично, Montserrat — современно, Playfair Display — элегантно)
+4. Оптимизируй ширину блоков — на фото лучше уже (60-70%), на градиенте шире (85-92%)
+5. Заголовок — максимум 8 слов, тело — максимум 5 коротких пунктов
+
+Верни ТОЛЬКО JSON (без markdown, без пояснений вне JSON):
+{
+  "title": "оптимизированный заголовок",
+  "body": "• пункт\\n• пункт\\n• пункт",
+  "font": "название шрифта (один из: PT Serif, Montserrat, Merriweather, Roboto, Playfair Display) или null",
+  "titlePos": {"l": число, "t": число, "w": число},
+  "bodyPos":  {"l": число, "t": число, "w": число},
+  "comment": "одна строка — что изменено и почему, на русском"
+}`;
+
+  try {
+    const res = await fetch(`${API_URL}/api/chat`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Session-Token':token},
+      body: JSON.stringify({message: prompt, history: []})
+    });
+    const data = await res.json();
+    if(!data.ok) {
+      showToast('Ошибка: ' + (data.error || ''));
+      if(data.unauthorized) doLogout();
+      return;
+    }
+
+    // Парсим JSON из ответа
+    let result;
+    try {
+      const clean = data.reply.replace(/```(?:json)?\n?|\n?```/g, '').trim();
+      const start = clean.indexOf('{');
+      const end   = clean.lastIndexOf('}');
+      result = JSON.parse(clean.slice(start, end + 1));
+    } catch(e) {
+      showToast('ИИ вернул неожиданный формат — попробуй ещё раз');
+      return;
+    }
+
+    // Применяем title
+    if(result.title) {
+      s.title    = result.title;
+      s.titleHtml = null;
+    }
+    // Применяем body
+    if(result.body) {
+      s.body    = result.body;
+      s.bodyHtml = null;
+    }
+    // Применяем шрифт
+    if(result.font && result.font !== 'null' && result.font !== null) {
+      s.font = result.font;
+      // Синхронизируем chip шрифта в панели
+      document.querySelectorAll('.font-chip').forEach(c => {
+        c.classList.toggle('sel', c.textContent.trim().includes(result.font.split(' ')[0]));
+      });
+    }
+    // Применяем позиции
+    if(result.titlePos) s.titlePos = Object.assign({}, tp, result.titlePos);
+    if(result.bodyPos)  s.bodyPos  = Object.assign({}, bp,  result.bodyPos);
+
+    showSlide(curSlide);
+    if(data.queries_used != null) updateBalance(data.queries_used, data.queries_limit);
+    scheduleAutosave();
+
+    showToast('✨ ' + (result.comment || 'Слайд оптимизирован под визуал'));
+
+  } catch(e) {
+    showToast('Ошибка сети');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Оптимизировать под визуал';
+  }
 }
 
 // ══════ CHAT ══════
