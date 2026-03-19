@@ -2944,6 +2944,19 @@ async function doCreate() {
       <div class="dots"><span></span><span></span><span></span></div>
       <div style="margin-top:14px;font-size:13px;">Генерирую презентацию…</div>
     </div>`;
+    // Вычисляем реальную вместимость слайда
+    const _canvas = document.getElementById('slideCanvas');
+    const _cW = (_canvas && _canvas.offsetWidth)  || 620;
+    const _cH = (_canvas && _canvas.offsetHeight) || (_cW * 9 / 16);
+    const _bodyFsz  = 14.5; // px
+    const _lineH    = Math.ceil(_bodyFsz * 1.9);          // ~27 px
+    const _bodyTopH = _cH * 0.24;                         // блок тела начинается на 24% сверху
+    const _availH   = _cH - _bodyTopH - 14;               // доступная высота минус padding
+    const _maxLines = Math.max(3, Math.floor(_availH / _lineH));
+    const _availW   = _cW * 0.92 - 32;                    // ширина блока минус padding
+    const _maxChars = Math.max(40, Math.floor(_availW / (_bodyFsz * 0.52)));
+    const _maxBullets = Math.min(6, Math.max(3, Math.floor(_maxLines * 0.75)));
+    presSlideConstraints = { max_bullets: _maxBullets, max_chars_per_bullet: _maxChars };
     prompt = `Составь содержание презентации для урока по ФГОС ООО.\nПредмет: ${selSubj}, ${selCls} класс${subjNote}\nТема: ${topic}\nТип урока: ${selLt}\n\nСоздай ровно ${slideCount} слайдов. Строго соблюдай формат каждого слайда:\n\nСЛАЙД 1: [заголовок]\n• [пункт]\n• [пункт]\n• [пункт]\n\nСЛАЙД 2: [заголовок]\n...\n\nСлайды: 1-Тема урока, 2-Цели и УУД, 3-Актуализация знаний, 4-Новый материал, 5-Примеры и задачи, 6-Практическая работа, 7-Рефлексия, 8-Домашнее задание.${NODIALOG}`;
   }
 
@@ -2951,7 +2964,7 @@ async function doCreate() {
     const res = await fetch(`${API_URL}/api/generate`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, type: curForm})
+      body: JSON.stringify({message: prompt, type: curForm, ...presSlideConstraints})
     });
     const data = await res.json();
     if(data.ok) {
@@ -3501,6 +3514,7 @@ async function qEdit(action) {
 
 let presTheme = 'black';
 let presFont  = 'Montserrat';
+let presSlideConstraints = { max_bullets: 5, max_chars_per_bullet: 70 };
 
 function prTab(el, panelId) {
   el.closest('.pr-tabs').querySelectorAll('.pr-tab').forEach(t => t.classList.remove('active'));
