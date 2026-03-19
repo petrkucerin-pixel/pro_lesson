@@ -1879,6 +1879,11 @@ header {
 .autosave-ind { font-size:10px; color:var(--ink4); flex-shrink:0; padding:0 4px; }
 .btn-slide-del { padding:0 9px; height:32px; border:1.5px solid var(--border); border-radius:8px; background:var(--white); cursor:pointer; font-size:14px; transition:.15s; flex-shrink:0; }
 .btn-slide-del:hover { border-color:var(--rose); background:var(--rose-l); }
+.btn-undo { padding:0 9px; height:32px; border:1.5px solid var(--border); border-radius:8px; background:var(--white); cursor:pointer; font-size:14px; transition:.15s; flex-shrink:0; color:var(--ink3); display:flex; align-items:center; gap:4px; font-size:11px; font-weight:600; }
+.btn-undo:hover:not(:disabled) { border-color:var(--teal); color:var(--teal); background:var(--teal-xl); }
+.btn-undo:disabled { opacity:.35; cursor:default; }
+.undo-counter { font-size:9px; background:var(--teal); color:#fff; border-radius:8px; padding:1px 5px; display:none; }
+.btn-undo:not(:disabled) .undo-counter { display:inline; }
 
 /* ══ КНОПКИ ЭКСПОРТА ══ */
 .export-btns { display:flex; flex-direction:column; gap:6px; }
@@ -2477,6 +2482,9 @@ header {
             <button class="btn-slide-nav" onclick="showSlide(Math.min(SLIDES_DATA.length-1,curSlide+1))">→</button>
             <button class="btn-action save" id="btnAddSlide" onclick="addSlide()">+ Слайд</button>
             <button class="btn-action" onclick="addTextBlock()" title="Добавить свободный текстовый блок">+ Текст</button>
+            <button class="btn-undo" id="btnUndo" onclick="presUndo()" title="Отменить последнее действие (Ctrl+Z)" disabled>
+              ↩ <span id="undoLabel">Отмена</span> <span class="undo-counter" id="undoCounter"></span>
+            </button>
             <button class="btn-slide-del" id="btnDelSlide" onclick="deleteSlide()" title="Удалить текущий слайд">🗑️</button>
             <span class="autosave-ind" id="autosaveInd">💾</span>
           </div>
@@ -3338,6 +3346,7 @@ function showSlide(i) {
 
 function addSlide() {
   if(SLIDES_DATA.length >= 20) { showToast('Максимум 20 слайдов'); return; }
+  savePresHistory('Добавить слайд');
   SLIDES_DATA.push({title:`Новый слайд ${SLIDES_DATA.length+1}`, body:'• Содержание...'});
   showSlide(SLIDES_DATA.length-1);
   const btn = document.getElementById('btnAddSlide');
@@ -3345,11 +3354,71 @@ function addSlide() {
   scheduleAutosave();
 }
 
+// ══════ ИСТОРИЯ / ОТМЕНА ══════
+const PRES_HISTORY = [];        // [{label, slides, slide}, ...]
+const PRES_HISTORY_MAX = 30;
+
+function savePresHistory(label) {
+  // Обрезаем будущее если оно есть (не используем redo, просто линейная история)
+  const snap = {
+    label: label || 'Действие',
+    slides: JSON.parse(JSON.stringify(SLIDES_DATA)),
+    slide: curSlide,
+  };
+  PRES_HISTORY.push(snap);
+  if(PRES_HISTORY.length > PRES_HISTORY_MAX) PRES_HISTORY.shift();
+  updateUndoBtn();
+}
+
+function presUndo() {
+  if(!PRES_HISTORY.length) return;
+  const snap = PRES_HISTORY.pop();
+  SLIDES_DATA.splice(0, SLIDES_DATA.length, ...snap.slides);
+  showSlide(Math.min(snap.slide, SLIDES_DATA.length - 1));
+  const addBtn = document.getElementById('btnAddSlide');
+  if(addBtn) addBtn.disabled = SLIDES_DATA.length >= 20;
+  scheduleAutosave();
+  updateUndoBtn();
+  showToast('↩ Отменено: ' + snap.label);
+}
+
+function updateUndoBtn() {
+  const btn = document.getElementById('btnUndo');
+  const counter = document.getElementById('undoCounter');
+  const label   = document.getElementById('undoLabel');
+  if(!btn) return;
+  btn.disabled = PRES_HISTORY.length === 0;
+  if(counter) counter.textContent = PRES_HISTORY.length || '';
+  if(label && PRES_HISTORY.length) {
+    const last = PRES_HISTORY[PRES_HISTORY.length - 1];
+    label.textContent = last.label.length > 14 ? last.label.slice(0,14) + '…' : last.label;
+  } else if(label) {
+    label.textContent = 'Отмена';
+  }
+}
+
+// Ctrl+Z в редакторе презентации
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    const pres = document.getElementById('s-pres');
+    if(pres && pres.style.display !== 'none' && pres.classList.contains('active')) {
+      // Только если фокус не внутри contenteditable
+      if(!document.activeElement.isContentEditable) {
+        e.preventDefault();
+        presUndo();
+      }
+    }
+  }
+});
+
 async function qEdit(action) {
   const ta = document.getElementById('sBodyEdit');
   const cur = ta.value;
   const token = localStorage.getItem('prourok_session');
   if(!token) { showToast('Необходимо войти в аккаунт'); return; }
+
+  const labels = {rewrite:'Переписать',shorter:'Сократить',longer:'Добавить детали',example:'Добавить пример',question:'Добавить вопрос'};
+  savePresHistory(labels[action] || 'Правка ИИ');
 
   const slideTitle = document.getElementById('sTitleEdit').value;
   const prompts = {
@@ -4214,6 +4283,7 @@ function downloadReveal() {
 async function aiEditSlide() {
   const req = document.getElementById('aiPresInput').value.trim();
   if(!req) { showToast('Введите запрос'); return; }
+  savePresHistory('Свой запрос к слайду');
   const s = SLIDES_DATA[curSlide];
   const prompt = `Измени содержание слайда согласно запросу учителя.\nЗаголовок слайда: ${s.title}\nТекущее содержание:\n${s.body}\n\nЗапрос: ${req}\n\nВерни ТОЛЬКО новое содержание слайда буллетами (• пункт), без заголовка, без пояснений.`;
   const ta = document.getElementById('sBodyEdit');
@@ -4236,6 +4306,7 @@ async function aiEditSlide() {
 async function aiEditAll() {
   const req = document.getElementById('aiPresInput').value.trim();
   if(!req) { showToast('Введите запрос'); return; }
+  savePresHistory('Переделать всю презентацию');
   const slidesSummary = SLIDES_DATA.map((s,i) => `СЛАЙД ${i+1}: ${s.title}\n${s.body}`).join('\n\n');
   const prompt = `Вот текущая презентация:\n${slidesSummary}\n\nЗапрос учителя: ${req}\n\nПереработай презентацию с учётом запроса. Верни ТОЛЬКО JSON-массив:\n[{"title":"...","body":"• ...\n• ..."},...]`;
   showToast('Перерабатываю презентацию…');
@@ -4261,6 +4332,8 @@ async function aiVisualOptimize() {
   const s = SLIDES_DATA[curSlide];
   const token = localStorage.getItem('prourok_session');
   if(!token) { showToast('Необходимо войти в аккаунт'); return; }
+
+  savePresHistory('Оптимизация под визуал');
 
   const btn = document.getElementById('btnVisualOptimize');
   btn.disabled = true;
@@ -4319,13 +4392,14 @@ async function aiVisualOptimize() {
 ${s.body}
 
 ЗАДАЧА:
+ЗАПРЕЩЕНО: сокращать, удалять или объединять пункты текста. Весь исходный смысл должен остаться.
+РАЗРЕШЕНО: переформулировать для ясности, изменять позиции блоков, менять шрифт.
+
 ${images.length > 0
   ? `— Сдвинь текстовые блоки в свободную зону (указана выше), чтобы НЕ перекрывать иллюстрации`
-  : `— Позиции блоков можно не менять если они уже хорошие`}
-${hasBgPhoto ? `— На фотофоне сделай формулировки чёткими и лаконичными (не теряя смысл)` : ''}
+  : `— Позиции блоков оставь как есть если они уже хорошие`}
 — Подбери шрифт: PT Serif — академично, Montserrat — современно, Playfair Display — торжественно
-— Ширина блоков: ${hasBgPhoto || images.length > 0 ? '50–70% чтобы не перекрывать визуал' : '80–92% для читаемости'}
-— Заголовок: до 10 слов. Текст: до 5 пунктов, каждый до 10 слов.
+— Ширина блоков: ${images.length > 0 ? '45–65% чтобы не перекрывать иллюстрации' : hasBgPhoto ? '60–80%' : '80–92% для читаемости'}
 
 Верни ТОЛЬКО JSON без markdown:
 {
