@@ -1816,7 +1816,12 @@ header {
 .pr-tab:hover { background:var(--green-xl); color:var(--green-dark); }
 .pr-tab.active { background:var(--white); color:var(--green-dark); box-shadow:0 1px 4px rgba(0,0,0,.08); }
 .pr-panel { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:0; }
-.pr-bottom { flex-shrink:0; padding-top:10px; border-top:1px solid var(--border); margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.pr-bottom { flex-shrink:0; padding-top:10px; border-top:1px solid var(--border); margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+.reset-btns { display:flex; gap:6px; }
+.btn-reset-slide { flex:1; padding:7px 6px; border:1.5px solid var(--border2); border-radius:8px; background:var(--white); color:var(--ink2); font-size:11px; font-weight:600; cursor:pointer; transition:.15s; }
+.btn-reset-slide:hover { border-color:var(--teal); color:var(--teal); background:var(--teal-xl); }
+.btn-reset-all { padding:7px 10px; border:1.5px solid var(--rose); border-radius:8px; background:var(--white); color:var(--rose); font-size:11px; font-weight:600; cursor:pointer; transition:.15s; white-space:nowrap; }
+.btn-reset-all:hover { background:var(--rose-l); }
 
 /* ══ ВНУТРИ ПАНЕЛЕЙ — ОТСТУПЫ ══ */
 .pr-panel .pres-section-label { margin-bottom:6px; margin-top:10px; }
@@ -2624,13 +2629,16 @@ header {
             <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Свой запрос</div>
             <textarea id="aiPresInput" class="ai-pres-ta" placeholder="Например: сделай акцент на примерах, добавь интерактив, упрости язык..."></textarea>
             <button class="btn-ai-apply" onclick="aiEditSlide()">✦ Применить к этому слайду</button>
-            <button class="btn-ai-all" onclick="resetCurSlide()" title="Вернуть этот слайд к исходной генерации">↩ Переделать слайд</button>
-            <button class="btn-ai-all" onclick="resetAllSlides()" title="Вернуть всю презентацию к исходной генерации" style="margin-top:4px;border-color:var(--rose);color:var(--rose);">↺ Переделать всю презентацию</button>
           </div>
 
           <!-- Нижние кнопки (всегда видны) -->
           <div class="pr-bottom">
-            <div class="export-btns">
+            <div class="pres-section-label" style="margin-bottom:5px;">Сброс к оригиналу</div>
+            <div class="reset-btns">
+              <button class="btn-reset-slide" onclick="resetCurSlide()" title="Вернуть этот слайд к исходной генерации">↩ Переделать слайд</button>
+              <button class="btn-reset-all" onclick="resetAllSlides()" title="Вернуть всю презентацию к исходной генерации">↺ Всю</button>
+            </div>
+            <div class="export-btns" style="margin-top:8px;">
               <button class="btn-export primary" onclick="openReveal()">▶ Открыть презентацию</button>
               <button class="btn-export secondary" onclick="downloadPPTX()">⬇️ Скачать PowerPoint (.pptx)</button>
               <button class="btn-export secondary" onclick="downloadPDF()">📄 Скачать PDF</button>
