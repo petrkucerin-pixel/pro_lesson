@@ -1512,6 +1512,60 @@ header {
 .tb-handle:hover { background: rgba(255,255,255,.15); }
 .tb-handle:hover::after { color: rgba(255,255,255,.85); }
 .tb-handle:active { cursor: grabbing; }
+.tb-resize-e {
+  position: absolute;
+  right: -7px; top: 0; bottom: 0;
+  width: 14px;
+  cursor: e-resize;
+  z-index: 11;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.tb-resize-e::after {
+  content: '';
+  position: absolute;
+  right: 3px; top: 50%;
+  transform: translateY(-50%);
+  width: 5px; height: 22px;
+  background: rgba(255,255,255,.55);
+  border-radius: 3px;
+}
+.tb-rot-handle {
+  position: absolute;
+  top: -22px; left: 50%;
+  transform: translateX(-50%);
+  width: 14px; height: 14px;
+  background: #fff;
+  border: 2px solid rgba(255,255,255,.6);
+  border-radius: 50%;
+  cursor: grab;
+  z-index: 11;
+  display: none;
+}
+.tb-extra-del {
+  position: absolute;
+  top: -9px; right: -9px;
+  width: 18px; height: 18px;
+  background: rgba(210,40,40,.85);
+  border-radius: 50%;
+  border: none;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 12;
+  padding: 0;
+  line-height: 1;
+}
+.text-block:hover .tb-resize-e,
+.text-block:focus-within .tb-resize-e { display: flex; }
+.text-block:hover .tb-rot-handle,
+.text-block:focus-within .tb-rot-handle { display: block; }
+.text-block:hover .tb-extra-del,
+.text-block:focus-within .tb-extra-del { display: flex; }
 
 #scTitle {
   font-family: 'Merriweather', serif;
@@ -1811,6 +1865,8 @@ header {
 .fmt-btn:hover { background:var(--green-xl); border-color:var(--green-mid); }
 .fmt-btn.active { background:var(--green-light); border-color:var(--green-dark); color:var(--green-dark); }
 .fmt-sep { width:1px; height:18px; background:var(--border); margin:0 2px; flex-shrink:0; }
+.fmt-size-select { padding:2px 3px; border:1.5px solid var(--border2); border-radius:6px; font-size:11px; font-family:'Montserrat',sans-serif; color:var(--ink2); background:var(--white); cursor:pointer; height:28px; width:54px; }
+.fmt-size-select:focus { outline:none; border-color:var(--green-mid); }
 .fmt-colors { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
 .fmt-clr-swatch { width:24px; height:24px; border-radius:5px; border:1.5px solid rgba(0,0,0,.18); cursor:pointer; padding:0; flex-shrink:0; transition:.1s; }
 .fmt-clr-swatch:hover { transform:scale(1.25); border-color:rgba(0,0,0,.5); }
@@ -2398,10 +2454,14 @@ header {
             <div class="text-block" id="titleBlock" style="left:4%;top:5%;width:92%;">
               <div class="tb-handle" onmousedown="startTextDrag(event,'title')"></div>
               <div id="scTitle" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()"></div>
+              <div class="tb-resize-e" onmousedown="startTextResize(event,'title')"></div>
+              <div class="tb-rot-handle" onmousedown="startTextRotate(event,'title')"></div>
             </div>
             <div class="text-block" id="bodyBlock" style="left:4%;top:24%;width:92%;">
               <div class="tb-handle" onmousedown="startTextDrag(event,'body')"></div>
               <div id="scBody" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()"><div>• Содержание</div></div>
+              <div class="tb-resize-e" onmousedown="startTextResize(event,'body')"></div>
+              <div class="tb-rot-handle" onmousedown="startTextRotate(event,'body')"></div>
             </div>
             <div id="illusLayer"></div>
           </div>
@@ -2410,6 +2470,7 @@ header {
             <div class="slide-counter-text" id="slideCounter">1 / 8</div>
             <button class="btn-slide-nav" onclick="showSlide(Math.min(SLIDES_DATA.length-1,curSlide+1))">→</button>
             <button class="btn-action save" id="btnAddSlide" onclick="addSlide()">+ Слайд</button>
+            <button class="btn-action" onclick="addTextBlock()" title="Добавить свободный текстовый блок">+ Текст</button>
             <button class="btn-slide-del" id="btnDelSlide" onclick="deleteSlide()" title="Удалить текущий слайд">🗑️</button>
             <span class="autosave-ind" id="autosaveInd">💾</span>
           </div>
@@ -2485,11 +2546,21 @@ header {
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('italic')" title="Курсив"><i>К</i></button>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('underline')" title="Подчёркнутый"><u>Ч</u></button>
               <div class="fmt-sep"></div>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(1)" title="Очень мелкий" style="font-size:9px;">XS</button>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(2)" title="Мелкий" style="font-size:10px;">S</button>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(3)" title="Обычный" style="font-size:12px;">M</button>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(5)" title="Крупный" style="font-size:14px;">L</button>
-              <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmtSize(7)" title="Очень крупный" style="font-size:16px;">XL</button>
+              <select class="fmt-size-select" onmousedown="event.stopPropagation()" onchange="fmtSizePx(this.value);this.value=''" title="Размер шрифта (px)">
+                <option value="">px</option>
+                <option value="10">10</option>
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16">16</option>
+                <option value="18">18</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+                <option value="28">28</option>
+                <option value="32">32</option>
+                <option value="36">36</option>
+                <option value="48">48</option>
+                <option value="64">64</option>
+              </select>
               <div class="fmt-sep"></div>
               <button class="fmt-btn" onmousedown="event.preventDefault()" onclick="fmt('removeFormat')" title="Сбросить всё">✕</button>
             </div>
@@ -3168,8 +3239,9 @@ function syncFromCanvas() {
   const bodyEl  = document.getElementById('scBody');
   const title = titleEl.textContent || '';
   const body  = editableToText(bodyEl);
-  SLIDES_DATA[curSlide].title   = title;
-  SLIDES_DATA[curSlide].body    = body;
+  SLIDES_DATA[curSlide].title    = title;
+  SLIDES_DATA[curSlide].titleHtml = titleEl.innerHTML;
+  SLIDES_DATA[curSlide].body     = body;
   SLIDES_DATA[curSlide].bodyHtml = bodyEl.innerHTML;
   const ti = document.getElementById('sTitleEdit');
   const bi = document.getElementById('sBodyEdit');
@@ -3218,7 +3290,9 @@ function applySlideStyles(s) {
 function showSlide(i) {
   curSlide = i;
   const s = SLIDES_DATA[i];
-  document.getElementById('scTitle').textContent = s.title;
+  const titleEl = document.getElementById('scTitle');
+  if(s.titleHtml) titleEl.innerHTML = s.titleHtml;
+  else titleEl.textContent = s.title;
   document.getElementById('scBody').innerHTML    = s.bodyHtml || bodyToEditable(s.body);
   document.getElementById('sTitleEdit').value    = s.title;
   document.getElementById('sBodyEdit').value     = s.body;
@@ -3228,16 +3302,27 @@ function showSlide(i) {
   applySlideStyles(s);
   const slider = document.getElementById('brightnessSlider');
   if(slider) slider.value = s.bgOverlay ?? 45;
-  // Восстановить позиции текстовых блоков
-  const tp = s.titlePos || { l: 4, t: 5 };
-  const bp = s.bodyPos  || { l: 4, t: 24 };
+  // Восстановить позиции, размеры и поворот текстовых блоков
+  const tp = s.titlePos || { l: 4, t: 5, w: 92, rot: 0 };
+  const bp = s.bodyPos  || { l: 4, t: 24, w: 92, rot: 0 };
   const tb = document.getElementById('titleBlock');
   const bb = document.getElementById('bodyBlock');
-  if(tb) { tb.style.left = tp.l + '%'; tb.style.top = tp.t + '%'; }
-  if(bb) { bb.style.left = bp.l + '%'; bb.style.top = bp.t + '%'; }
+  if(tb) {
+    tb.style.left      = tp.l + '%';
+    tb.style.top       = tp.t + '%';
+    tb.style.width     = (tp.w ?? 92) + '%';
+    tb.style.transform = tp.rot ? `rotate(${tp.rot}deg)` : '';
+  }
+  if(bb) {
+    bb.style.left      = bp.l + '%';
+    bb.style.top       = bp.t + '%';
+    bb.style.width     = (bp.w ?? 92) + '%';
+    bb.style.transform = bp.rot ? `rotate(${bp.rot}deg)` : '';
+  }
   selectedIllusId = null;
   renderIllusLayer();
   renderIllusList();
+  renderExtraBlocks();
   renderSlideList();
 }
 
@@ -3440,7 +3525,7 @@ function toggleBgCat(el, cat) {
   picker.innerHTML = BG_PHOTOS[cat].map(url => {
     const fullUrl = url.replace('w=800', 'w=1920');
     const isSel = curBg === fullUrl ? ' sel' : '';
-    return `<img class="bg-thumb${isSel}" src="${url}" loading="lazy" onclick="setBgImage('${fullUrl}');markThumb(this)" title="Выбрать фото">`;
+    return `<img class="bg-thumb${isSel}" src="${url}" loading="lazy" onerror="this.style.display='none'" onclick="setBgImage('${fullUrl}');markThumb(this)" title="Выбрать фото">`;
   }).join('');
   picker.classList.add('open');
 }
@@ -3490,10 +3575,16 @@ function loadBgFileAsBg(input) {
 // ══════ ПЕРЕМЕЩЕНИЕ ТЕКСТОВЫХ БЛОКОВ ══════
 let textDragState = null;
 
+function _tbBlockId(which) {
+  if(which === 'title') return 'titleBlock';
+  if(which === 'body')  return 'bodyBlock';
+  return 'xtb_' + which;
+}
+
 function startTextDrag(e, which) {
   e.preventDefault();
   e.stopPropagation();
-  const blockEl = document.getElementById(which === 'title' ? 'titleBlock' : 'bodyBlock');
+  const blockEl = document.getElementById(_tbBlockId(which));
   const canvas  = document.getElementById('slideCanvas');
   const cRect   = canvas.getBoundingClientRect();
   const bRect   = blockEl.getBoundingClientRect();
@@ -3503,6 +3594,34 @@ function startTextDrag(e, which) {
     offY: e.clientY - bRect.top,
     cLeft: cRect.left, cTop: cRect.top,
     cW: cRect.width,   cH: cRect.height,
+  };
+}
+
+let textResizeState = null;
+function startTextResize(e, which) {
+  e.preventDefault();
+  e.stopPropagation();
+  const blockEl = document.getElementById(_tbBlockId(which));
+  const canvas  = document.getElementById('slideCanvas');
+  const cRect   = canvas.getBoundingClientRect();
+  textResizeState = {
+    which,
+    startX: e.clientX,
+    startW: parseFloat(blockEl.style.width) || 92,
+    cW: cRect.width,
+  };
+}
+
+let textRotateState = null;
+function startTextRotate(e, which) {
+  e.preventDefault();
+  e.stopPropagation();
+  const blockEl = document.getElementById(_tbBlockId(which));
+  const bRect   = blockEl.getBoundingClientRect();
+  textRotateState = {
+    which,
+    cx: bRect.left + bRect.width  / 2,
+    cy: bRect.top  + bRect.height / 2,
   };
 }
 
@@ -3591,14 +3710,30 @@ document.addEventListener('mousemove', e => {
   // Drag текстовых блоков
   if(textDragState) {
     const { which, offX, offY, cLeft, cTop, cW, cH } = textDragState;
-    const blockId = which === 'title' ? 'titleBlock' : 'bodyBlock';
-    const block = document.getElementById(blockId);
+    const block = document.getElementById(_tbBlockId(which));
     let newL = (e.clientX - offX - cLeft) / cW * 100;
     let newT = (e.clientY - offY - cTop)  / cH * 100;
-    newL = Math.max(0, Math.min(80, newL));
-    newT = Math.max(0, Math.min(80, newT));
+    newL = Math.max(0, Math.min(90, newL));
+    newT = Math.max(0, Math.min(90, newT));
     block.style.left = newL + '%';
     block.style.top  = newT + '%';
+    return;
+  }
+  // Resize текстовых блоков (ширина)
+  if(textResizeState) {
+    const { which, startX, startW, cW } = textResizeState;
+    const block = document.getElementById(_tbBlockId(which));
+    const dx = (e.clientX - startX) / cW * 100;
+    const newW = Math.max(15, Math.min(96, startW + dx));
+    block.style.width = newW + '%';
+    return;
+  }
+  // Rotate текстовых блоков
+  if(textRotateState) {
+    const { which, cx, cy } = textRotateState;
+    const block = document.getElementById(_tbBlockId(which));
+    const angle = Math.round(Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI + 90);
+    block.style.transform = `rotate(${angle}deg)`;
     return;
   }
   if(!dragState) return;
@@ -3638,11 +3773,49 @@ document.addEventListener('mousemove', e => {
 
 document.addEventListener('mouseup', () => {
   if(textDragState) {
-    const blockId = textDragState.which === 'title' ? 'titleBlock' : 'bodyBlock';
-    const block = document.getElementById(blockId);
-    const key = textDragState.which === 'title' ? 'titlePos' : 'bodyPos';
-    SLIDES_DATA[curSlide][key] = { l: parseFloat(block.style.left), t: parseFloat(block.style.top) };
+    const which = textDragState.which;
+    const block = document.getElementById(_tbBlockId(which));
+    if(which === 'title' || which === 'body') {
+      const key = which === 'title' ? 'titlePos' : 'bodyPos';
+      if(!SLIDES_DATA[curSlide][key]) SLIDES_DATA[curSlide][key] = {};
+      SLIDES_DATA[curSlide][key].l = parseFloat(block.style.left);
+      SLIDES_DATA[curSlide][key].t = parseFloat(block.style.top);
+    } else {
+      const tb = (SLIDES_DATA[curSlide].textBlocks || []).find(b => b.id === which);
+      if(tb) { tb.l = parseFloat(block.style.left); tb.t = parseFloat(block.style.top); }
+    }
     textDragState = null;
+    scheduleAutosave();
+  }
+  if(textResizeState) {
+    const which = textResizeState.which;
+    const block = document.getElementById(_tbBlockId(which));
+    const newW  = parseFloat(block.style.width) || 92;
+    if(which === 'title' || which === 'body') {
+      const key = which === 'title' ? 'titlePos' : 'bodyPos';
+      if(!SLIDES_DATA[curSlide][key]) SLIDES_DATA[curSlide][key] = {};
+      SLIDES_DATA[curSlide][key].w = newW;
+    } else {
+      const tb = (SLIDES_DATA[curSlide].textBlocks || []).find(b => b.id === which);
+      if(tb) tb.w = newW;
+    }
+    textResizeState = null;
+    scheduleAutosave();
+  }
+  if(textRotateState) {
+    const which = textRotateState.which;
+    const block = document.getElementById(_tbBlockId(which));
+    const m = (block.style.transform || '').match(/rotate\(([^)]+)deg\)/);
+    const rot = m ? parseFloat(m[1]) : 0;
+    if(which === 'title' || which === 'body') {
+      const key = which === 'title' ? 'titlePos' : 'bodyPos';
+      if(!SLIDES_DATA[curSlide][key]) SLIDES_DATA[curSlide][key] = {};
+      SLIDES_DATA[curSlide][key].rot = rot;
+    } else {
+      const tb = (SLIDES_DATA[curSlide].textBlocks || []).find(b => b.id === which);
+      if(tb) tb.rot = rot;
+    }
+    textRotateState = null;
     scheduleAutosave();
   }
   dragState = null;
@@ -3714,6 +3887,53 @@ function removeIllusById(id) {
   if(selectedIllusId === id) selectedIllusId = null;
   renderIllusLayer();
   renderIllusList();
+}
+
+// ══════ СВОБОДНЫЕ ТЕКСТОВЫЕ БЛОКИ ══════
+function addTextBlock() {
+  if(!SLIDES_DATA[curSlide].textBlocks) SLIDES_DATA[curSlide].textBlocks = [];
+  const id = 'tb_' + Date.now();
+  SLIDES_DATA[curSlide].textBlocks.push({ id, html: '<div>Текст</div>', l: 10, t: 40, w: 40, rot: 0 });
+  renderExtraBlocks();
+  scheduleAutosave();
+  showToast('Текстовый блок добавлен — перетащите его на слайде');
+}
+
+function renderExtraBlocks() {
+  document.querySelectorAll('.text-block-extra').forEach(el => el.remove());
+  const canvas = document.getElementById('slideCanvas');
+  if(!canvas) return;
+  const blocks = SLIDES_DATA[curSlide].textBlocks || [];
+  const s = SLIDES_DATA[curSlide];
+  const txtClr = s.textClr === 'dark' ? 'var(--ink)' : '#fff';
+  const font   = s.font || 'PT Serif';
+  blocks.forEach(tb => {
+    const div = document.createElement('div');
+    div.className = 'text-block text-block-extra';
+    div.id = 'xtb_' + tb.id;
+    div.style.cssText = `left:${tb.l}%;top:${tb.t}%;width:${tb.w}%;transform:rotate(${tb.rot || 0}deg);color:${txtClr};font-family:'${font}',serif;`;
+    div.innerHTML = `<div class="tb-handle" onmousedown="startTextDrag(event,'${tb.id}')"></div>` +
+      `<div class="tb-extra-content" contenteditable="true" spellcheck="false" style="padding-left:4px;min-height:1.4em;outline:none;font-size:14px;" oninput="syncExtraBlock('${tb.id}')">${tb.html}</div>` +
+      `<div class="tb-resize-e" onmousedown="startTextResize(event,'${tb.id}')"></div>` +
+      `<div class="tb-rot-handle" onmousedown="startTextRotate(event,'${tb.id}')"></div>` +
+      `<button class="tb-extra-del" onmousedown="event.stopPropagation()" onclick="removeExtraBlock('${tb.id}')" title="Удалить блок">✕</button>`;
+    canvas.appendChild(div);
+  });
+}
+
+function syncExtraBlock(id) {
+  const el = document.querySelector(`#xtb_${id} .tb-extra-content`);
+  if(!el) return;
+  const tb = (SLIDES_DATA[curSlide].textBlocks || []).find(b => b.id === id);
+  if(tb) tb.html = el.innerHTML;
+  scheduleAutosave();
+}
+
+function removeExtraBlock(id) {
+  if(!SLIDES_DATA[curSlide].textBlocks) return;
+  SLIDES_DATA[curSlide].textBlocks = SLIDES_DATA[curSlide].textBlocks.filter(b => b.id !== id);
+  renderExtraBlocks();
+  scheduleAutosave();
 }
 
 function renderIllusList() {
@@ -4365,9 +4585,20 @@ function fmt(cmd) {
   syncFromCanvas();
 }
 
-function fmtSize(val) {
+function fmtSizePx(px) {
   if(!hasSel()) { showToast('Сначала выдели текст на слайде'); return; }
-  document.execCommand('fontSize', false, val);
+  if(!px) return;
+  // Применяем размер: используем execCommand как маркер, потом заменяем span'ом с px
+  document.execCommand('fontSize', false, '7');
+  [document.getElementById('scTitle'), document.getElementById('scBody')].forEach(el => {
+    if(!el) return;
+    el.querySelectorAll('font[size="7"]').forEach(font => {
+      const span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      span.innerHTML = font.innerHTML;
+      font.replaceWith(span);
+    });
+  });
   syncFromCanvas();
 }
 
