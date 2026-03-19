@@ -1927,10 +1927,12 @@ header {
 .illus-handle.rot { top:-26px; left:calc(50% - 6px); width:12px; height:12px; background:#1a8fa0; cursor:grab; border-radius:50%; }
 .illus-rot-line { position:absolute; top:-20px; left:50%; width:2px; height:14px; background:#1a8fa0; transform:translateX(-50%); pointer-events:none; }
 
-/* ══ ОБТЕКАНИЕ ТЕКСТА (SHAPE-OUTSIDE) ══ */
-.poly-node { position:absolute; width:12px; height:12px; background:#ff6b35; border:2px solid #fff; border-radius:50%; z-index:20; cursor:crosshair; transform:translate(-50%,-50%); pointer-events:all; }
-.illus-item-btn.wrap-on { border-color:#ff6b35; color:#ff6b35; background:#fff5f0; }
-.shape-float { float:left; pointer-events:none; background:transparent; }
+/* ══ ПОЛИГОНАЛЬНАЯ ДЕФОРМАЦИЯ ТЕКСТОВЫХ БЛОКОВ ══ */
+.tb-poly-node { position:absolute; width:11px; height:11px; background:#ff6b35; border:2px solid #fff; border-radius:3px; z-index:20; cursor:crosshair; transform:translate(-50%,-50%); pointer-events:all; transition:transform .1s; }
+.tb-poly-node:hover { transform:translate(-50%,-50%) scale(1.35); }
+.tb-poly-btn { position:absolute; top:-18px; right:22px; width:18px; height:18px; background:rgba(0,0,0,.45); color:rgba(255,255,255,.65); border:none; border-radius:4px; cursor:pointer; font-size:11px; display:none; align-items:center; justify-content:center; z-index:10; padding:0; }
+.tb-poly-btn.active { color:#ff6b35; background:rgba(255,107,53,.25); }
+.text-block:hover .tb-poly-btn, .text-block:focus-within .tb-poly-btn { display:flex; }
 
 /* ══ ВКЛАДКА ТЕКСТ ══ */
 .font-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
@@ -2471,12 +2473,14 @@ header {
               <div id="scTitle" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()"></div>
               <div class="tb-resize-e" onmousedown="startTextResize(event,'title')"></div>
               <div class="tb-rot-handle" onmousedown="startTextRotate(event,'title')"></div>
+              <button class="tb-poly-btn" id="tbPolyBtnTitle" onclick="toggleTbPolyMode('title')" title="Деформировать форму блока">◇</button>
             </div>
             <div class="text-block" id="bodyBlock" style="left:4%;top:24%;width:92%;">
               <div class="tb-handle" onmousedown="startTextDrag(event,'body')"></div>
               <div id="scBody" contenteditable="true" spellcheck="false" oninput="syncFromCanvas()"><div>• Содержание</div></div>
               <div class="tb-resize-e" onmousedown="startTextResize(event,'body')"></div>
               <div class="tb-rot-handle" onmousedown="startTextRotate(event,'body')"></div>
+              <button class="tb-poly-btn" id="tbPolyBtnBody" onclick="toggleTbPolyMode('body')" title="Деформировать форму блока">◇</button>
             </div>
             <div id="illusLayer"></div>
           </div>
@@ -2645,6 +2649,7 @@ header {
             </div>
             <div class="export-btns" style="margin-top:8px;">
               <button class="btn-export primary" onclick="openReveal()">▶ Открыть презентацию</button>
+              <button class="btn-export secondary" onclick="fitTextToSlide()" title="Уменьшить шрифт тела слайда чтобы весь текст вошёл в слайд">↕ Вписать текст</button>
               <button class="btn-export secondary" onclick="downloadPPTX()">⬇️ Скачать PowerPoint (.pptx)</button>
               <button class="btn-export secondary" onclick="downloadPDF()">📄 Скачать PDF</button>
             </div>
@@ -3335,13 +3340,19 @@ function showSlide(i) {
     tb.style.top       = tp.t + '%';
     tb.style.width     = (tp.w ?? 92) + '%';
     tb.style.transform = tp.rot ? `rotate(${tp.rot}deg)` : '';
+    applyTbClipPath(tb, tp.polygon || null);
   }
   if(bb) {
     bb.style.left      = bp.l + '%';
     bb.style.top       = bp.t + '%';
     bb.style.width     = (bp.w ?? 92) + '%';
     bb.style.transform = bp.rot ? `rotate(${bp.rot}deg)` : '';
+    applyTbClipPath(bb, bp.polygon || null);
   }
+  // Сбросить режим полигона при смене слайда
+  document.querySelectorAll('.tb-poly-node').forEach(el => el.remove());
+  document.querySelectorAll('.tb-poly-btn').forEach(b => b.classList.remove('active'));
+  tbPolyEditBlock = null;
   selectedIllusId = null;
   renderIllusLayer();
   renderIllusList();
@@ -3739,7 +3750,8 @@ function startTextRotate(e, which) {
 // ══════ ИЛЛЮСТРАЦИИ — DRAG / RESIZE / ROTATE ══════
 let selectedIllusId = null;
 let dragState = null;
-let polyNodeDragState = null;
+let tbPolyNodeDragState = null; // { idx, blockRect }
+let tbPolyEditBlock = null;     // 'title' | 'body' | extra-block-id
 
 function loadIllusFile(input) {
   const file = input.files[0];
@@ -3760,96 +3772,112 @@ function addIllustration(src) {
   showToast('Иллюстрация добавлена — перетащите её на слайде');
 }
 
-// ══ SHAPE-OUTSIDE TEXT WRAPPING ══
-function getDefaultPolygon() {
-  return [[0,0],[100,0],[100,100],[0,100]];
+// ══ ПОЛИГОНАЛЬНАЯ ДЕФОРМАЦИЯ ТЕКСТОВЫХ БЛОКОВ ══
+function getDefaultTbPolygon() {
+  // 8 узлов: 4 угла + 4 середины сторон (TL, Tmid, TR, Rmid, BR, Bmid, BL, Lmid)
+  return [[0,0],[50,0],[100,0],[100,50],[100,100],[50,100],[0,100],[0,50]];
 }
 
-function toggleWrapMode(id) {
-  const images = SLIDES_DATA[curSlide].images || [];
-  const img = images.find(i => i.id === id);
-  if(!img) return;
-  savePresHistory('Обтекание текста');
-  img.wrap = !img.wrap;
-  if(img.wrap && !img.polygon) img.polygon = getDefaultPolygon();
-  renderIllusList();
-  renderWrapHelpers();
-  scheduleAutosave();
+function getTbPolygon(which) {
+  if(which === 'title') return (SLIDES_DATA[curSlide].titlePos || {}).polygon || null;
+  if(which === 'body')  return (SLIDES_DATA[curSlide].bodyPos  || {}).polygon || null;
+  const tb = (SLIDES_DATA[curSlide].textBlocks || []).find(b => b.id === which);
+  return tb ? (tb.polygon || null) : null;
 }
 
-function renderWrapHelpers() {
-  // Убрать старые float-сентинели и узлы полигона
-  document.querySelectorAll('.shape-float').forEach(el => el.remove());
-  document.querySelectorAll('.poly-node').forEach(el => el.remove());
+function setTbPolygon(which, poly) {
+  if(which === 'title') {
+    if(!SLIDES_DATA[curSlide].titlePos) SLIDES_DATA[curSlide].titlePos = {l:4,t:5,w:92,rot:0};
+    SLIDES_DATA[curSlide].titlePos.polygon = poly;
+  } else if(which === 'body') {
+    if(!SLIDES_DATA[curSlide].bodyPos) SLIDES_DATA[curSlide].bodyPos = {l:4,t:24,w:92,rot:0};
+    SLIDES_DATA[curSlide].bodyPos.polygon = poly;
+  } else {
+    const tb = (SLIDES_DATA[curSlide].textBlocks || []).find(b => b.id === which);
+    if(tb) tb.polygon = poly;
+  }
+}
 
-  const images = (SLIDES_DATA[curSlide].images || []).filter(i => i.wrap);
-  if(!images.length) return;
+function applyTbClipPath(blockEl, poly) {
+  if(!blockEl) return;
+  blockEl.style.clipPath = poly ? `polygon(${poly.map(([x,y]) => `${x}% ${y}%`).join(',')})` : '';
+}
 
+function toggleTbPolyMode(which) {
+  const isActive = tbPolyEditBlock === which;
+  // Close current mode
+  document.querySelectorAll('.tb-poly-node').forEach(el => el.remove());
+  document.querySelectorAll('.tb-poly-btn').forEach(b => b.classList.remove('active'));
+  tbPolyEditBlock = null;
+  if(isActive) return; // toggle off
+  // Open mode for new block
+  if(!getTbPolygon(which)) setTbPolygon(which, getDefaultTbPolygon());
+  tbPolyEditBlock = which;
+  const btn = document.getElementById(which === 'title' ? 'tbPolyBtnTitle' : which === 'body' ? 'tbPolyBtnBody' : null);
+  if(btn) btn.classList.add('active');
+  renderTbPolyNodes();
+}
+
+function renderTbPolyNodes() {
+  document.querySelectorAll('.tb-poly-node').forEach(el => el.remove());
+  if(!tbPolyEditBlock) return;
+  const poly = getTbPolygon(tbPolyEditBlock);
+  if(!poly) return;
+  const blockEl = document.getElementById(_tbBlockId(tbPolyEditBlock));
+  if(!blockEl) return;
   const canvas = document.getElementById('slideCanvas');
-  if(!canvas) return;
   const cRect = canvas.getBoundingClientRect();
-  const cW = cRect.width, cH = cRect.height;
-
-  const bb = document.getElementById('bodyBlock');
-  const bodyEl = document.getElementById('scBody');
-  if(!bb || !bodyEl) return;
-  const bRect = bb.getBoundingClientRect();
-
-  images.forEach(img => {
-    const iX = img.x / 100 * cW;
-    const iY = img.y / 100 * cH;
-    const iW = img.w / 100 * cW;
-    const iH = img.h / 100 * cH;
-
-    // Определяем сторону float по центру X изображения относительно тела
-    const imgCenterX = iX + iW / 2;
-    const bodyCenterX = bRect.left - cRect.left + bRect.width / 2;
-    const floatSide = imgCenterX < bodyCenterX ? 'left' : 'right';
-
-    // Отступ сверху внутри bodyBlock
-    const marginTopPx = Math.max(0, iY - (bRect.top - cRect.top));
-    const floatHPx = Math.max(iH, 10);
-
-    const poly = img.polygon || getDefaultPolygon();
-    const polyStr = poly.map(([px,py]) => `${px}% ${py}%`).join(', ');
-
-    const floatDiv = document.createElement('div');
-    floatDiv.className = 'shape-float';
-    floatDiv.style.cssText = `
-      float:${floatSide};
-      width:${iW}px;
-      height:${floatHPx}px;
-      margin-top:${marginTopPx}px;
-      ${floatSide === 'right' ? 'margin-left:10px;' : 'margin-right:10px;'}
-      shape-outside:polygon(${polyStr});
-      shape-margin:4px;
-    `;
-    bodyEl.insertBefore(floatDiv, bodyEl.firstChild);
-
-    // Узлы полигона на illusLayer
-    const layer = document.getElementById('illusLayer');
-    if(layer) {
-      poly.forEach(([px, py], idx) => {
-        const nx = iX + px / 100 * iW;
-        const ny = iY + py / 100 * iH;
-        const node = document.createElement('div');
-        node.className = 'poly-node';
-        node.style.left = (nx / cW * 100) + '%';
-        node.style.top  = (ny / cH * 100) + '%';
-        node.title = `Точка ${idx+1}`;
-        node.onmousedown = e => startPolyNodeDrag(e, img.id, idx);
-        layer.appendChild(node);
-      });
-    }
+  const bRect = blockEl.getBoundingClientRect();
+  const layer = document.getElementById('illusLayer');
+  if(!layer) return;
+  poly.forEach(([px, py], idx) => {
+    const nx = (bRect.left - cRect.left + px / 100 * bRect.width) / cRect.width * 100;
+    const ny = (bRect.top  - cRect.top  + py / 100 * bRect.height) / cRect.height * 100;
+    const node = document.createElement('div');
+    node.className = 'tb-poly-node';
+    node.style.left = nx + '%';
+    node.style.top  = ny + '%';
+    node.title = `Узел ${idx + 1}`;
+    node.onmousedown = e => startTbPolyNodeDrag(e, idx);
+    layer.appendChild(node);
   });
 }
 
-function startPolyNodeDrag(e, id, idx) {
+function startTbPolyNodeDrag(e, idx) {
   e.preventDefault();
   e.stopPropagation();
-  const canvas = document.getElementById('slideCanvas');
-  const rect = canvas.getBoundingClientRect();
-  polyNodeDragState = { id, idx, rect };
+  const blockEl = document.getElementById(_tbBlockId(tbPolyEditBlock));
+  if(!blockEl) return;
+  tbPolyNodeDragState = { idx, blockRect: blockEl.getBoundingClientRect() };
+}
+
+function resetTbPoly(which) {
+  setTbPolygon(which, null);
+  const blockEl = document.getElementById(_tbBlockId(which));
+  if(blockEl) blockEl.style.clipPath = '';
+  if(tbPolyEditBlock === which) {
+    tbPolyEditBlock = null;
+    document.querySelectorAll('.tb-poly-node').forEach(el => el.remove());
+    document.querySelectorAll('.tb-poly-btn').forEach(b => b.classList.remove('active'));
+  }
+  scheduleAutosave();
+}
+
+// Вписать текст в слайд (авто-уменьшение шрифта)
+function fitTextToSlide() {
+  const bodyEl    = document.getElementById('scBody');
+  const bodyBlock = document.getElementById('bodyBlock');
+  const canvas    = document.getElementById('slideCanvas');
+  if(!bodyEl || !bodyBlock || !canvas) return;
+  const maxH = canvas.offsetHeight - bodyBlock.offsetTop - 12;
+  let fs = parseFloat(getComputedStyle(bodyEl).fontSize);
+  while(bodyEl.scrollHeight > maxH && fs > 7) {
+    fs -= 0.5;
+    bodyEl.style.fontSize = fs + 'px';
+  }
+  syncFromCanvas();
+  scheduleAutosave();
+  showToast('Текст вписан в слайд');
 }
 
 function renderIllusLayer() {
@@ -3863,7 +3891,7 @@ function renderIllusLayer() {
       <img src="${img.src}" draggable="false">
     </div>`).join('');
   if(selectedIllusId && images.find(i => i.id === selectedIllusId)) attachHandles(selectedIllusId);
-  renderWrapHelpers();
+  renderTbPolyNodes(); // redraw poly nodes after layer re-render
 }
 
 function attachHandles(id) {
@@ -3941,17 +3969,17 @@ document.addEventListener('mousemove', e => {
     block.style.transform = `rotate(${angle}deg)`;
     return;
   }
-  // Перетаскивание узлов полигона
-  if(polyNodeDragState) {
-    const { id, idx, rect } = polyNodeDragState;
-    const img = (SLIDES_DATA[curSlide].images || []).find(i => i.id === id);
-    if(img && img.polygon) {
-      const cX = (e.clientX - rect.left) / rect.width * 100;
-      const cY = (e.clientY - rect.top) / rect.height * 100;
-      const px = Math.max(0, Math.min(100, (cX - img.x) / img.w * 100));
-      const py = Math.max(0, Math.min(100, (cY - img.y) / img.h * 100));
-      img.polygon[idx] = [px, py];
-      renderWrapHelpers();
+  // Перетаскивание узлов полигона текстового блока
+  if(tbPolyNodeDragState) {
+    const { idx, blockRect } = tbPolyNodeDragState;
+    const px = (e.clientX - blockRect.left) / blockRect.width  * 100;
+    const py = (e.clientY - blockRect.top)  / blockRect.height * 100;
+    const poly = getTbPolygon(tbPolyEditBlock);
+    if(poly) {
+      poly[idx] = [Math.max(-20, Math.min(120, px)), Math.max(-20, Math.min(120, py))];
+      const blockEl = document.getElementById(_tbBlockId(tbPolyEditBlock));
+      applyTbClipPath(blockEl, poly);
+      renderTbPolyNodes();
     }
     return;
   }
@@ -3988,7 +4016,6 @@ document.addEventListener('mousemove', e => {
     el.style.height    = img.h + '%';
     el.style.transform = `rotate(${img.rot}deg)`;
   }
-  if(img.wrap) renderWrapHelpers();
 });
 
 document.addEventListener('mouseup', () => {
@@ -4038,8 +4065,8 @@ document.addEventListener('mouseup', () => {
     textRotateState = null;
     scheduleAutosave();
   }
-  if(polyNodeDragState) {
-    polyNodeDragState = null;
+  if(tbPolyNodeDragState) {
+    tbPolyNodeDragState = null;
     scheduleAutosave();
   }
   dragState = null;
@@ -4140,7 +4167,9 @@ function renderExtraBlocks() {
       `<div class="tb-extra-content" contenteditable="true" spellcheck="false" style="padding-left:4px;min-height:1.4em;outline:none;font-size:14px;" oninput="syncExtraBlock('${tb.id}')">${tb.html}</div>` +
       `<div class="tb-resize-e" onmousedown="startTextResize(event,'${tb.id}')"></div>` +
       `<div class="tb-rot-handle" onmousedown="startTextRotate(event,'${tb.id}')"></div>` +
-      `<button class="tb-extra-del" onmousedown="event.stopPropagation()" onclick="removeExtraBlock('${tb.id}')" title="Удалить блок">✕</button>`;
+      `<button class="tb-extra-del" onmousedown="event.stopPropagation()" onclick="removeExtraBlock('${tb.id}')" title="Удалить блок">✕</button>` +
+      `<button class="tb-poly-btn" id="tbPolyBtn_${tb.id}" onclick="toggleTbPolyMode('${tb.id}')" title="Деформировать форму блока">◇</button>`;
+    if(tb.polygon) div.style.clipPath = `polygon(${tb.polygon.map(([x,y]) => `${x}% ${y}%`).join(',')})`;
     canvas.appendChild(div);
   });
 }
@@ -4173,7 +4202,6 @@ function renderIllusList() {
       <img class="illus-thumb" src="${img.src}">
       <span style="font-size:11px;color:var(--ink3);flex:1;">Рисунок ${i+1}</span>
       <div class="illus-item-btns">
-        <button class="illus-item-btn${img.wrap ? ' wrap-on' : ''}" onclick="event.stopPropagation();toggleWrapMode('${img.id}')" title="Обтекание текстом">⌑</button>
         <button class="illus-item-btn" onclick="event.stopPropagation();removeIllusById('${img.id}')">✕</button>
       </div>
     </div>`).join('');
@@ -4348,70 +4376,81 @@ function pickClr(el, c1, c2, textMode) {
   scheduleAutosave();
 }
 
-function buildRevealHtml() {
-  const slidesHtml = SLIDES_DATA.map(s => {
-    // Используем bodyHtml (с форматированием) если есть, иначе plain text
-    let bodyContent;
-    if(s.bodyHtml) {
-      bodyContent = `<div style="font-size:0.85em;line-height:1.6;">${s.bodyHtml}</div>`;
-    } else {
-      const bullets = s.body.split('\n').filter(l => l.trim()).map(l =>
-        `<li>${escHtml(l.replace(/^[•\-·]\s*/,''))}</li>`
-      ).join('');
-      bodyContent = `<ul>${bullets}</ul>`;
-    }
-    let bgAttr = '';
-    if(s.bgImage) {
-      const bgOpacity = (1 - (s.bgOverlay ?? 45) / 100).toFixed(2);
-      bgAttr = ` data-background-image="${s.bgImage}" data-background-opacity="${bgOpacity}"`;
-    } else {
-      const c1 = s.bgC1 || '#1b6b4a';
-      const c2 = s.bgC2 || '#1a5e78';
-      bgAttr = ` data-background-gradient="linear-gradient(135deg, ${c1}, ${c2})"`;
-    }
+function buildCustomHtml() {
+  // Сохранить текущий слайд перед генерацией
+  syncFromCanvas();
+
+  const canvasEl = document.getElementById('slideCanvas');
+  const cW = canvasEl.offsetWidth;
+  const cH = canvasEl.offsetHeight;
+  const titleFsz = parseFloat(getComputedStyle(document.getElementById('scTitle')).fontSize) || 22;
+  const bodyFsz  = parseFloat(getComputedStyle(document.getElementById('scBody')).fontSize)  || 14.5;
+
+  const slidesHtml = SLIDES_DATA.map((s, si) => {
+    const tp   = s.titlePos || {l:4, t:5,  w:92, rot:0};
+    const bp   = s.bodyPos  || {l:4, t:24, w:92, rot:0};
+    const font = s.font || presFont || 'Montserrat';
     const tClr = s.textClr === 'dark' ? '#1a1a2e' : '#ffffff';
     const bClr = s.textClr === 'dark' ? '#3a4f46' : 'rgba(255,255,255,.88)';
-    const font  = s.font || presFont;
-    const illusHtml = (s.images || []).map(img =>
-      `<img src="${img.src}" style="position:absolute;left:${img.x}%;top:${img.y}%;width:${img.w}%;height:${img.h}%;object-fit:contain;transform:rotate(${img.rot||0}deg);border-radius:4px;">`
+
+    let bgStyle;
+    if(s.bgImage) {
+      bgStyle = `background:url('${s.bgImage}') center/cover no-repeat;`;
+    } else {
+      bgStyle = `background:linear-gradient(135deg,${s.bgC1||'#1b6b4a'},${s.bgC2||'#1a5e78'});`;
+    }
+    const overlayHtml = s.bgImage
+      ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,${((s.bgOverlay??45)/100).toFixed(2)});"></div>`
+      : '';
+
+    const titleContent = s.titleHtml || escHtml(s.title || '');
+    const titleClip = tp.polygon ? `clip-path:polygon(${tp.polygon.map(([x,y])=>`${x}% ${y}%`).join(',')});` : '';
+    const titleHtml = `<div style="position:absolute;left:${tp.l}%;top:${tp.t}%;width:${tp.w??92}%;transform:rotate(${tp.rot||0}deg);font-family:'${font}',serif;font-weight:700;font-size:${titleFsz}px;color:${tClr};line-height:1.3;z-index:2;overflow:hidden;${titleClip}">${titleContent}</div>`;
+
+    const bodyContent = s.bodyHtml || (s.body||'').split('\n').filter(l=>l.trim()).map(l=>`<div>${escHtml(l)}</div>`).join('');
+    const bodyClip = bp.polygon ? `clip-path:polygon(${bp.polygon.map(([x,y])=>`${x}% ${y}%`).join(',')});` : '';
+    const bodyHtml = `<div style="position:absolute;left:${bp.l}%;top:${bp.t}%;width:${bp.w??92}%;transform:rotate(${bp.rot||0}deg);font-family:'${font}',serif;font-size:${bodyFsz}px;color:${bClr};line-height:1.9;z-index:2;overflow:hidden;${bodyClip}">${bodyContent}</div>`;
+
+    const extrasHtml = (s.textBlocks||[]).map(tb => {
+      const tbClip = tb.polygon ? `clip-path:polygon(${tb.polygon.map(([x,y])=>`${x}% ${y}%`).join(',')});` : '';
+      return `<div style="position:absolute;left:${tb.l||10}%;top:${tb.t||40}%;width:${tb.w||50}%;transform:rotate(${tb.rot||0}deg);font-family:'${font}',serif;font-size:${bodyFsz}px;color:${bClr};line-height:1.9;z-index:3;overflow:hidden;${tbClip}">${tb.html||''}</div>`;
+    }).join('');
+
+    const illusHtml = (s.images||[]).map(img =>
+      `<img src="${img.src}" style="position:absolute;left:${img.x}%;top:${img.y}%;width:${img.w}%;height:${img.h}%;object-fit:contain;transform:rotate(${img.rot||0}deg);border-radius:3px;z-index:4;" draggable="false">`
     ).join('');
-    return `<section${bgAttr} style="position:relative;font-family:'${font}',serif;color:${bClr};">` +
-      `<h2 style="color:${tClr};font-family:'${font}',serif;">${escHtml(s.title)}</h2>` +
-      `${bodyContent}${illusHtml}</section>`;
-  }).join('\n')
-  const fontLink = presFont !== 'Montserrat' ? `
-  <link href="https://fonts.googleapis.com/css2?family=${presFont.replace(/ /,'+')}:wght@400;700&display=swap" rel="stylesheet">
-  <style>.reveal { font-family: '${presFont}', sans-serif; } .reveal h2 { font-family: '${presFont}', sans-serif; }</style>` : '';
+
+    return `<div class="slide" style="display:${si===0?'block':'none'};${bgStyle}overflow:hidden;">${overlayHtml}${titleHtml}${bodyHtml}${extrasHtml}${illusHtml}</div>`;
+  }).join('\n');
+
+  const fontFace = (presFont||'Montserrat').replace(/ /,'+');
   return `<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="ru"><head><meta charset="UTF-8">
 <title>Презентация — ПроУрок</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/${presTheme}.css">
-${fontLink}
-<style>
-  .reveal ul { list-style: none; padding: 0; margin: 0; }
-  .reveal ul li { padding: 8px 0 8px 28px; position: relative; font-size: 0.85em; line-height: 1.5; }
-  .reveal ul li::before { content: "●"; position: absolute; left: 0; color: rgba(255,255,255,.5); font-size: .6em; top: 12px; }
-  .reveal h2 { font-size: 1.4em; margin-bottom: 0.6em; }
-</style>
-</head>
-<body>
-<div class="reveal">
-  <div class="slides">
-${slidesHtml}
-  </div>
-</div>
-<scr` + `ipt src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></scr` + `ipt>
-<scr` + `ipt>Reveal.initialize({ hash: true, transition: 'slide', backgroundTransition: 'fade' });</scr` + `ipt>
-</body>
-</html>`;
+<link href="https://fonts.googleapis.com/css2?family=${fontFace}:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#000;display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:hidden;}#deck{position:relative;width:${cW}px;height:${cH}px;transform-origin:center center;}.slide{position:absolute;inset:0;}.slide div{line-height:inherit;}.counter{position:fixed;bottom:10px;right:14px;color:rgba(255,255,255,.5);font-size:12px;font-family:sans-serif;pointer-events:none;}.progress{position:fixed;bottom:0;left:0;height:3px;background:rgba(255,255,255,.55);transition:width .25s;}.hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.28);font-size:11px;font-family:sans-serif;pointer-events:none;}</style></head>
+<body><div id="deck">${slidesHtml}</div>
+<div class="counter" id="ctr">1 / ${SLIDES_DATA.length}</div>
+<div class="progress" id="prg" style="width:${(1/SLIDES_DATA.length*100).toFixed(1)}%;"></div>
+<div class="hint">← → Пробел — навигация &nbsp;·&nbsp; F — полный экран &nbsp;·&nbsp; Esc — закрыть</div>
+<script>
+let cur=0;const tot=${SLIDES_DATA.length};
+function scale(){const s=Math.min(innerWidth/${cW},innerHeight/${cH});document.getElementById('deck').style.transform='scale('+s+')';}
+scale();window.addEventListener('resize',scale);
+function go(n){if(n<0||n>=tot)return;document.querySelectorAll('.slide').forEach((s,i)=>s.style.display=i===n?'block':'none');cur=n;document.getElementById('ctr').textContent=(cur+1)+' / '+tot;document.getElementById('prg').style.width=((cur+1)/tot*100).toFixed(1)+'%';}
+go(0);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();go(cur+1);}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();go(cur-1);}
+  if(e.key==='Escape')window.close();
+  if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+});
+document.getElementById('deck').addEventListener('click',()=>go(cur+1));
+</script></body></html>`;
 }
 
 function openReveal() {
-  const html = buildRevealHtml();
+  const html = buildCustomHtml();
   const blob = new Blob([html], {type: 'text/html'});
   window.open(URL.createObjectURL(blob), '_blank');
 }
