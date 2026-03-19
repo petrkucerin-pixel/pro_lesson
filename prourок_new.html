@@ -1927,6 +1927,11 @@ header {
 .illus-handle.rot { top:-26px; left:calc(50% - 6px); width:12px; height:12px; background:#1a8fa0; cursor:grab; border-radius:50%; }
 .illus-rot-line { position:absolute; top:-20px; left:50%; width:2px; height:14px; background:#1a8fa0; transform:translateX(-50%); pointer-events:none; }
 
+/* ══ ОБТЕКАНИЕ ТЕКСТА (SHAPE-OUTSIDE) ══ */
+.poly-node { position:absolute; width:12px; height:12px; background:#ff6b35; border:2px solid #fff; border-radius:50%; z-index:20; cursor:crosshair; transform:translate(-50%,-50%); pointer-events:all; }
+.illus-item-btn.wrap-on { border-color:#ff6b35; color:#ff6b35; background:#fff5f0; }
+.shape-float { float:left; pointer-events:none; background:transparent; }
+
 /* ══ ВКЛАДКА ТЕКСТ ══ */
 .font-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
 .font-chip { padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; font-size:11px; font-weight:600; color:var(--ink); transition:.15s; background:var(--white); text-align:center; }
@@ -3734,6 +3739,7 @@ function startTextRotate(e, which) {
 // ══════ ИЛЛЮСТРАЦИИ — DRAG / RESIZE / ROTATE ══════
 let selectedIllusId = null;
 let dragState = null;
+let polyNodeDragState = null;
 
 function loadIllusFile(input) {
   const file = input.files[0];
@@ -3754,6 +3760,98 @@ function addIllustration(src) {
   showToast('Иллюстрация добавлена — перетащите её на слайде');
 }
 
+// ══ SHAPE-OUTSIDE TEXT WRAPPING ══
+function getDefaultPolygon() {
+  return [[0,0],[100,0],[100,100],[0,100]];
+}
+
+function toggleWrapMode(id) {
+  const images = SLIDES_DATA[curSlide].images || [];
+  const img = images.find(i => i.id === id);
+  if(!img) return;
+  savePresHistory('Обтекание текста');
+  img.wrap = !img.wrap;
+  if(img.wrap && !img.polygon) img.polygon = getDefaultPolygon();
+  renderIllusList();
+  renderWrapHelpers();
+  scheduleAutosave();
+}
+
+function renderWrapHelpers() {
+  // Убрать старые float-сентинели и узлы полигона
+  document.querySelectorAll('.shape-float').forEach(el => el.remove());
+  document.querySelectorAll('.poly-node').forEach(el => el.remove());
+
+  const images = (SLIDES_DATA[curSlide].images || []).filter(i => i.wrap);
+  if(!images.length) return;
+
+  const canvas = document.getElementById('slideCanvas');
+  if(!canvas) return;
+  const cRect = canvas.getBoundingClientRect();
+  const cW = cRect.width, cH = cRect.height;
+
+  const bb = document.getElementById('bodyBlock');
+  const bodyEl = document.getElementById('scBody');
+  if(!bb || !bodyEl) return;
+  const bRect = bb.getBoundingClientRect();
+
+  images.forEach(img => {
+    const iX = img.x / 100 * cW;
+    const iY = img.y / 100 * cH;
+    const iW = img.w / 100 * cW;
+    const iH = img.h / 100 * cH;
+
+    // Определяем сторону float по центру X изображения относительно тела
+    const imgCenterX = iX + iW / 2;
+    const bodyCenterX = bRect.left - cRect.left + bRect.width / 2;
+    const floatSide = imgCenterX < bodyCenterX ? 'left' : 'right';
+
+    // Отступ сверху внутри bodyBlock
+    const marginTopPx = Math.max(0, iY - (bRect.top - cRect.top));
+    const floatHPx = Math.max(iH, 10);
+
+    const poly = img.polygon || getDefaultPolygon();
+    const polyStr = poly.map(([px,py]) => `${px}% ${py}%`).join(', ');
+
+    const floatDiv = document.createElement('div');
+    floatDiv.className = 'shape-float';
+    floatDiv.style.cssText = `
+      float:${floatSide};
+      width:${iW}px;
+      height:${floatHPx}px;
+      margin-top:${marginTopPx}px;
+      ${floatSide === 'right' ? 'margin-left:10px;' : 'margin-right:10px;'}
+      shape-outside:polygon(${polyStr});
+      shape-margin:4px;
+    `;
+    bodyEl.insertBefore(floatDiv, bodyEl.firstChild);
+
+    // Узлы полигона на illusLayer
+    const layer = document.getElementById('illusLayer');
+    if(layer) {
+      poly.forEach(([px, py], idx) => {
+        const nx = iX + px / 100 * iW;
+        const ny = iY + py / 100 * iH;
+        const node = document.createElement('div');
+        node.className = 'poly-node';
+        node.style.left = (nx / cW * 100) + '%';
+        node.style.top  = (ny / cH * 100) + '%';
+        node.title = `Точка ${idx+1}`;
+        node.onmousedown = e => startPolyNodeDrag(e, img.id, idx);
+        layer.appendChild(node);
+      });
+    }
+  });
+}
+
+function startPolyNodeDrag(e, id, idx) {
+  e.preventDefault();
+  e.stopPropagation();
+  const canvas = document.getElementById('slideCanvas');
+  const rect = canvas.getBoundingClientRect();
+  polyNodeDragState = { id, idx, rect };
+}
+
 function renderIllusLayer() {
   const layer = document.getElementById('illusLayer');
   if(!layer) return;
@@ -3765,6 +3863,7 @@ function renderIllusLayer() {
       <img src="${img.src}" draggable="false">
     </div>`).join('');
   if(selectedIllusId && images.find(i => i.id === selectedIllusId)) attachHandles(selectedIllusId);
+  renderWrapHelpers();
 }
 
 function attachHandles(id) {
@@ -3842,6 +3941,20 @@ document.addEventListener('mousemove', e => {
     block.style.transform = `rotate(${angle}deg)`;
     return;
   }
+  // Перетаскивание узлов полигона
+  if(polyNodeDragState) {
+    const { id, idx, rect } = polyNodeDragState;
+    const img = (SLIDES_DATA[curSlide].images || []).find(i => i.id === id);
+    if(img && img.polygon) {
+      const cX = (e.clientX - rect.left) / rect.width * 100;
+      const cY = (e.clientY - rect.top) / rect.height * 100;
+      const px = Math.max(0, Math.min(100, (cX - img.x) / img.w * 100));
+      const py = Math.max(0, Math.min(100, (cY - img.y) / img.h * 100));
+      img.polygon[idx] = [px, py];
+      renderWrapHelpers();
+    }
+    return;
+  }
   if(!dragState) return;
   const { type, id, startX, startY, snap, canvasW, canvasH, rect } = dragState;
   const dx = (e.clientX - startX) / canvasW * 100;
@@ -3875,6 +3988,7 @@ document.addEventListener('mousemove', e => {
     el.style.height    = img.h + '%';
     el.style.transform = `rotate(${img.rot}deg)`;
   }
+  if(img.wrap) renderWrapHelpers();
 });
 
 document.addEventListener('mouseup', () => {
@@ -3922,6 +4036,10 @@ document.addEventListener('mouseup', () => {
       if(tb) tb.rot = rot;
     }
     textRotateState = null;
+    scheduleAutosave();
+  }
+  if(polyNodeDragState) {
+    polyNodeDragState = null;
     scheduleAutosave();
   }
   dragState = null;
@@ -4055,6 +4173,7 @@ function renderIllusList() {
       <img class="illus-thumb" src="${img.src}">
       <span style="font-size:11px;color:var(--ink3);flex:1;">Рисунок ${i+1}</span>
       <div class="illus-item-btns">
+        <button class="illus-item-btn${img.wrap ? ' wrap-on' : ''}" onclick="event.stopPropagation();toggleWrapMode('${img.id}')" title="Обтекание текстом">⌑</button>
         <button class="illus-item-btn" onclick="event.stopPropagation();removeIllusById('${img.id}')">✕</button>
       </div>
     </div>`).join('');
