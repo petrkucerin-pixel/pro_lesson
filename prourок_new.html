@@ -1947,12 +1947,6 @@ header {
 .btn-ai-apply:hover { background:var(--teal); }
 .btn-ai-all { width:100%; margin-top:4px; padding:7px; border:1.5px solid var(--green-mid); border-radius:8px; background:transparent; color:var(--green-dark); font-size:12px; font-weight:600; cursor:pointer; transition:.15s; }
 .btn-ai-all:hover { background:var(--green-xl); }
-.btn-ai-magic { width:100%; margin-top:10px; padding:10px 8px; border:none; border-radius:9px; background:linear-gradient(135deg,var(--green-dark) 0%,var(--teal) 100%); color:#fff; font-size:12px; font-weight:700; cursor:pointer; transition:opacity .15s,transform .1s; letter-spacing:.3px; display:flex; align-items:center; justify-content:center; gap:6px; }
-.btn-ai-magic:hover { opacity:.88; }
-.btn-ai-magic:active { transform:scale(.98); }
-.btn-ai-magic:disabled { opacity:.5; cursor:default; }
-.ai-magic-sep { width:100%; height:1px; background:var(--border); margin:10px 0 8px; }
-.ai-magic-hint { font-size:10px; color:var(--ink3); line-height:1.5; margin-bottom:4px; }
 </style>
 </head>
 <body>
@@ -2619,10 +2613,6 @@ header {
 
           <!-- Вкладка: ИИ -->
           <div class="pr-panel" id="pt-ai" style="display:none;">
-            <div class="pres-section-label" style="margin-bottom:6px;">Дизайн-оптимизация</div>
-            <div class="ai-magic-hint">ИИ проанализирует фон, иллюстрации и расположение блоков — и подстроит текст, шрифт и позиции под визуал слайда.</div>
-            <button class="btn-ai-magic" id="btnVisualOptimize" onclick="aiVisualOptimize()">✨ Оптимизировать под визуал</button>
-            <div class="ai-magic-sep"></div>
             <div class="pres-section-label" style="margin-bottom:8px;">Быстрые правки слайда</div>
             <div class="ai-btns-compact">
               <button class="ai-btn-sm" onclick="qEdit('shorter')">✂️ Короче</button>
@@ -2634,7 +2624,8 @@ header {
             <div class="pres-section-label" style="margin-top:12px;margin-bottom:6px;">Свой запрос</div>
             <textarea id="aiPresInput" class="ai-pres-ta" placeholder="Например: сделай акцент на примерах, добавь интерактив, упрости язык..."></textarea>
             <button class="btn-ai-apply" onclick="aiEditSlide()">✦ Применить к этому слайду</button>
-            <button class="btn-ai-all" onclick="aiEditAll()">↺ Переделать всю презентацию</button>
+            <button class="btn-ai-all" onclick="resetCurSlide()" title="Вернуть этот слайд к исходной генерации">↩ Переделать слайд</button>
+            <button class="btn-ai-all" onclick="resetAllSlides()" title="Вернуть всю презентацию к исходной генерации" style="margin-top:4px;border-color:var(--rose);color:var(--rose);">↺ Переделать всю презентацию</button>
           </div>
 
           <!-- Нижние кнопки (всегда видны) -->
@@ -2949,6 +2940,7 @@ async function doCreate() {
       if(curForm === 'pres') {
         if(data.slides && data.slides.length > 0) {
           SLIDES_DATA.splice(0, SLIDES_DATA.length, ...data.slides);
+          SLIDES_ORIGINAL = JSON.parse(JSON.stringify(data.slides)); // сохраняем оригинал
           renderSlideList();
           showSlide(0);
           go('pres');
@@ -3354,6 +3346,33 @@ function addSlide() {
   scheduleAutosave();
 }
 
+// ══════ ОРИГИНАЛ ГЕНЕРАЦИИ ══════
+let SLIDES_ORIGINAL = null; // сохраняется при первой генерации
+
+function resetCurSlide() {
+  if(!SLIDES_ORIGINAL) { showToast('Нет сохранённого оригинала — сначала сгенерируй презентацию'); return; }
+  if(!SLIDES_ORIGINAL[curSlide]) { showToast('Для этого слайда нет оригинала'); return; }
+  if(!confirm(`Вернуть слайд ${curSlide+1} к исходной генерации? Все правки этого слайда будут потеряны.`)) return;
+  savePresHistory('Переделать слайд');
+  SLIDES_DATA[curSlide] = JSON.parse(JSON.stringify(SLIDES_ORIGINAL[curSlide]));
+  showSlide(curSlide);
+  scheduleAutosave();
+  showToast('Слайд восстановлен до оригинала');
+}
+
+function resetAllSlides() {
+  if(!SLIDES_ORIGINAL) { showToast('Нет сохранённого оригинала — сначала сгенерируй презентацию'); return; }
+  if(!confirm('Вернуть ВСЮ презентацию к исходной генерации? Все правки будут потеряны.')) return;
+  savePresHistory('Переделать всю презентацию');
+  SLIDES_DATA.splice(0, SLIDES_DATA.length, ...JSON.parse(JSON.stringify(SLIDES_ORIGINAL)));
+  const btn = document.getElementById('btnAddSlide');
+  if(btn) btn.disabled = SLIDES_DATA.length >= 20;
+  renderSlideList();
+  showSlide(0);
+  scheduleAutosave();
+  showToast('Презентация восстановлена до оригинала');
+}
+
 // ══════ ИСТОРИЯ / ОТМЕНА ══════
 const PRES_HISTORY = [];        // [{label, slides, slide}, ...]
 const PRES_HISTORY_MAX = 30;
@@ -3401,8 +3420,8 @@ function updateUndoBtn() {
 document.addEventListener('keydown', e => {
   if((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
     const pres = document.getElementById('s-pres');
-    if(pres && pres.style.display !== 'none' && pres.classList.contains('active')) {
-      // Только если фокус не внутри contenteditable
+    if(pres && pres.classList.contains('on')) {
+      // Только если фокус не внутри contenteditable (там работает нативный undo браузера)
       if(!document.activeElement.isContentEditable) {
         e.preventDefault();
         presUndo();
@@ -4303,185 +4322,8 @@ async function aiEditSlide() {
   } catch(e) { ta.value = prev; syncSlide(); showToast('Ошибка сети'); }
 }
 
-async function aiEditAll() {
-  const req = document.getElementById('aiPresInput').value.trim();
-  if(!req) { showToast('Введите запрос'); return; }
-  savePresHistory('Переделать всю презентацию');
-  const slidesSummary = SLIDES_DATA.map((s,i) => `СЛАЙД ${i+1}: ${s.title}\n${s.body}`).join('\n\n');
-  const prompt = `Вот текущая презентация:\n${slidesSummary}\n\nЗапрос учителя: ${req}\n\nПереработай презентацию с учётом запроса. Верни ТОЛЬКО JSON-массив:\n[{"title":"...","body":"• ...\n• ..."},...]`;
-  showToast('Перерабатываю презентацию…');
-  const token = localStorage.getItem('prourok_session');
-  try {
-    const res = await fetch(`${API_URL}/api/generate`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, type: 'pres'})
-    });
-    const data = await res.json();
-    if(data.ok && data.slides) {
-      SLIDES_DATA.splice(0, SLIDES_DATA.length, ...data.slides);
-      renderSlideList();
-      showSlide(0);
-      showToast('Презентация обновлена!');
-    } else showToast('Ошибка: ' + (data.error||''));
-  } catch(e) { showToast('Ошибка сети'); }
-}
 
 // ══════ ОПТИМИЗАЦИЯ ПОД ВИЗУАЛ ══════
-async function aiVisualOptimize() {
-  const s = SLIDES_DATA[curSlide];
-  const token = localStorage.getItem('prourok_session');
-  if(!token) { showToast('Необходимо войти в аккаунт'); return; }
-
-  savePresHistory('Оптимизация под визуал');
-
-  const btn = document.getElementById('btnVisualOptimize');
-  btn.disabled = true;
-  btn.textContent = '✨ Анализирую…';
-
-  // Собираем визуальный контекст
-  const hasBgPhoto = !!s.bgImage;
-  const images     = s.images || [];
-  const tp = s.titlePos || { l:4, t:5,  w:92, rot:0 };
-  const bp = s.bodyPos  || { l:4, t:24, w:92, rot:0 };
-
-  // Вычисляем свободные зоны — куда НЕ попадают иллюстрации
-  let freeZoneHint = '';
-  if(images.length > 0) {
-    const imgDesc = images.map((img, i) =>
-      `  Иллюстрация ${i+1}: занимает left ${Math.round(img.x)}%–${Math.round(img.x+img.w)}%, top ${Math.round(img.y)}%–${Math.round(img.y+img.h)}%`
-    ).join('\n');
-
-    // Определяем: картинка больше справа или слева?
-    const avgImgCenter = images.reduce((s, img) => s + img.x + img.w/2, 0) / images.length;
-    const imgIsRight   = avgImgCenter > 50;
-    const imgIsBottom  = images.reduce((s, img) => s + img.y + img.h/2, 0) / images.length > 50;
-
-    const freeLeft  = imgIsRight  ? 'ЛЕВАЯ половина слайда (0–45%)' : 'ПРАВАЯ половина слайда (50–95%)';
-    const freeVert  = imgIsBottom ? 'ВЕРХНЯЯ часть слайда (top 0–40%)' : 'НИЖНЯЯ часть слайда (top 50–90%)';
-
-    freeZoneHint = `\nИЛЛЮСТРАЦИИ НА СЛАЙДЕ (${images.length} шт.) — ЗАНЯТЫЕ ЗОНЫ:\n${imgDesc}\n` +
-      `СВОБОДНАЯ ГОРИЗОНТАЛЬНАЯ ЗОНА: ${freeLeft}\n` +
-      `СВОБОДНАЯ ВЕРТИКАЛЬНАЯ ЗОНА: ${freeVert}\n` +
-      `ТРЕБОВАНИЕ: оба текстовых блока ОБЯЗАТЕЛЬНО размещать в свободных зонах, не пересекаясь с иллюстрациями.`;
-  }
-
-  const bgDesc = hasBgPhoto
-    ? 'фотографический фон (насыщенное изображение)'
-    : `градиент (${s.bgC1 || '#1b6b4a'} → ${s.bgC2 || '#1a5e78'})`;
-
-  const prompt = `Ты профессиональный дизайнер презентаций. Оптимизируй слайд под его визуальный контекст.
-
-КРИТИЧЕСКИ ВАЖНО:
-1. ЯЗЫК — весь текст ТОЛЬКО на русском языке. Никогда не переводить на другой язык.
-2. СМЫСЛ — сохранить содержание. Можно переформулировать, но не выбрасывать ключевые пункты.
-3. ПОЗИЦИИ — текст НЕ должен попадать под иллюстрации (см. занятые зоны ниже).
-
-ВИЗУАЛЬНЫЙ КОНТЕКСТ:
-• Фон: ${bgDesc}
-• Цвет текста: ${s.textClr === 'dark' ? 'тёмный' : 'светлый (белый)'}
-• Шрифт: ${s.font || 'PT Serif'}${freeZoneHint}
-
-ТЕКУЩИЕ ПОЗИЦИИ БЛОКОВ:
-• Заголовок: left ${tp.l}%, top ${tp.t}%, ширина ${tp.w ?? 92}%
-• Текст: left ${bp.l}%, top ${bp.t}%, ширина ${bp.w ?? 92}%
-
-ТЕКУЩИЙ КОНТЕНТ (на русском — оставь на русском!):
-Заголовок: ${s.title}
-Текст:
-${s.body}
-
-ЗАДАЧА:
-ЗАПРЕЩЕНО: сокращать, удалять или объединять пункты текста. Весь исходный смысл должен остаться.
-РАЗРЕШЕНО: переформулировать для ясности, изменять позиции блоков, менять шрифт.
-
-${images.length > 0
-  ? `— Сдвинь текстовые блоки в свободную зону (указана выше), чтобы НЕ перекрывать иллюстрации`
-  : `— Позиции блоков оставь как есть если они уже хорошие`}
-— Подбери шрифт: PT Serif — академично, Montserrat — современно, Playfair Display — торжественно
-— Ширина блоков: ${images.length > 0 ? '45–65% чтобы не перекрывать иллюстрации' : hasBgPhoto ? '60–80%' : '80–92% для читаемости'}
-
-Верни ТОЛЬКО JSON без markdown:
-{
-  "title": "заголовок на русском",
-  "body": "• пункт на русском\\n• пункт на русском",
-  "font": "один из: PT Serif / Montserrat / Merriweather / Roboto / Playfair Display — или null",
-  "titlePos": {"l": число_0–80, "t": число_0–80, "w": число_20–92},
-  "bodyPos":  {"l": число_0–80, "t": число_0–80, "w": число_20–92},
-  "comment": "коротко по-русски: что изменено и почему"
-}`;
-
-  try {
-    const res = await fetch(`${API_URL}/api/chat`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, history: []})
-    });
-    const data = await res.json();
-    if(!data.ok) {
-      showToast('Ошибка: ' + (data.error || ''));
-      if(data.unauthorized) doLogout();
-      return;
-    }
-
-    // Парсим JSON из ответа
-    let result;
-    try {
-      const clean = data.reply.replace(/```(?:json)?\n?|\n?```/g, '').trim();
-      const start = clean.indexOf('{');
-      const end   = clean.lastIndexOf('}');
-      result = JSON.parse(clean.slice(start, end + 1));
-    } catch(e) {
-      showToast('ИИ вернул неожиданный формат — попробуй ещё раз');
-      return;
-    }
-
-    // Применяем title (только если язык не изменился на латиницу)
-    if(result.title) {
-      const hasCyrillic = /[а-яёА-ЯЁ]/.test(result.title);
-      s.title    = hasCyrillic ? result.title : s.title; // откатываем если перевёл
-      s.titleHtml = null;
-    }
-    // Применяем body (только кириллица)
-    if(result.body) {
-      const hasCyrillic = /[а-яёА-ЯЁ]/.test(result.body);
-      s.body    = hasCyrillic ? result.body : s.body;
-      s.bodyHtml = null;
-    }
-    // Применяем шрифт
-    const VALID_FONTS = ['PT Serif','Montserrat','Merriweather','Roboto','Playfair Display'];
-    if(result.font && result.font !== 'null' && result.font !== null && VALID_FONTS.includes(result.font)) {
-      s.font = result.font;
-      document.querySelectorAll('.font-chip').forEach(c => {
-        c.classList.toggle('sel', c.textContent.trim().includes(result.font.split(' ')[0]));
-      });
-    }
-    // Санитизация позиций — ограничиваем диапазоны
-    function sanitizePos(pos, defaults) {
-      if(!pos || typeof pos !== 'object') return defaults;
-      return {
-        l: Math.max(0,  Math.min(80, Number(pos.l) || defaults.l)),
-        t: Math.max(0,  Math.min(80, Number(pos.t) || defaults.t)),
-        w: Math.max(20, Math.min(92, Number(pos.w) || defaults.w)),
-      };
-    }
-    if(result.titlePos) s.titlePos = sanitizePos(result.titlePos, tp);
-    if(result.bodyPos)  s.bodyPos  = sanitizePos(result.bodyPos,  bp);
-
-    showSlide(curSlide);
-    if(data.queries_used != null) updateBalance(data.queries_used, data.queries_limit);
-    scheduleAutosave();
-
-    showToast('✨ ' + (result.comment || 'Слайд оптимизирован под визуал'));
-
-  } catch(e) {
-    showToast('Ошибка сети');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '✨ Оптимизировать под визуал';
-  }
-}
-
 // ══════ CHAT ══════
 async function sendChat() {
   const input = document.getElementById('chatInput');
