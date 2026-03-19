@@ -4267,55 +4267,74 @@ async function aiVisualOptimize() {
   btn.textContent = '✨ Анализирую…';
 
   // Собираем визуальный контекст
-  const hasBgPhoto  = !!s.bgImage;
-  const images      = s.images || [];
-  const imgDesc     = images.length
-    ? images.map((img, i) =>
-        `Иллюстрация ${i+1}: left ${Math.round(img.x)}%, top ${Math.round(img.y)}%, ` +
-        `ширина ${Math.round(img.w)}%, высота ${Math.round(img.h)}%`
-      ).join('\n')
-    : 'нет';
-
-  const bgDesc = hasBgPhoto
-    ? 'фотографический фон (детализированное изображение)'
-    : `градиент (${s.bgC1 || '#1b6b4a'} → ${s.bgC2 || '#1a5e78'})`;
-
+  const hasBgPhoto = !!s.bgImage;
+  const images     = s.images || [];
   const tp = s.titlePos || { l:4, t:5,  w:92, rot:0 };
   const bp = s.bodyPos  || { l:4, t:24, w:92, rot:0 };
 
+  // Вычисляем свободные зоны — куда НЕ попадают иллюстрации
+  let freeZoneHint = '';
+  if(images.length > 0) {
+    const imgDesc = images.map((img, i) =>
+      `  Иллюстрация ${i+1}: занимает left ${Math.round(img.x)}%–${Math.round(img.x+img.w)}%, top ${Math.round(img.y)}%–${Math.round(img.y+img.h)}%`
+    ).join('\n');
+
+    // Определяем: картинка больше справа или слева?
+    const avgImgCenter = images.reduce((s, img) => s + img.x + img.w/2, 0) / images.length;
+    const imgIsRight   = avgImgCenter > 50;
+    const imgIsBottom  = images.reduce((s, img) => s + img.y + img.h/2, 0) / images.length > 50;
+
+    const freeLeft  = imgIsRight  ? 'ЛЕВАЯ половина слайда (0–45%)' : 'ПРАВАЯ половина слайда (50–95%)';
+    const freeVert  = imgIsBottom ? 'ВЕРХНЯЯ часть слайда (top 0–40%)' : 'НИЖНЯЯ часть слайда (top 50–90%)';
+
+    freeZoneHint = `\nИЛЛЮСТРАЦИИ НА СЛАЙДЕ (${images.length} шт.) — ЗАНЯТЫЕ ЗОНЫ:\n${imgDesc}\n` +
+      `СВОБОДНАЯ ГОРИЗОНТАЛЬНАЯ ЗОНА: ${freeLeft}\n` +
+      `СВОБОДНАЯ ВЕРТИКАЛЬНАЯ ЗОНА: ${freeVert}\n` +
+      `ТРЕБОВАНИЕ: оба текстовых блока ОБЯЗАТЕЛЬНО размещать в свободных зонах, не пересекаясь с иллюстрациями.`;
+  }
+
+  const bgDesc = hasBgPhoto
+    ? 'фотографический фон (насыщенное изображение)'
+    : `градиент (${s.bgC1 || '#1b6b4a'} → ${s.bgC2 || '#1a5e78'})`;
+
   const prompt = `Ты профессиональный дизайнер презентаций. Оптимизируй слайд под его визуальный контекст.
 
-ВИЗУАЛЬНЫЙ КОНТЕКСТ СЛАЙДА:
+КРИТИЧЕСКИ ВАЖНО:
+1. ЯЗЫК — весь текст ТОЛЬКО на русском языке. Никогда не переводить на другой язык.
+2. СМЫСЛ — сохранить содержание. Можно переформулировать, но не выбрасывать ключевые пункты.
+3. ПОЗИЦИИ — текст НЕ должен попадать под иллюстрации (см. занятые зоны ниже).
+
+ВИЗУАЛЬНЫЙ КОНТЕКСТ:
 • Фон: ${bgDesc}
-• Цвет текста: ${s.textClr === 'dark' ? 'тёмный (#1a1a2e)' : 'светлый (белый)'}
-• Шрифт слайда: ${s.font || 'PT Serif'}
-• Иллюстрации на слайде: ${images.length ? images.length + ' шт.' : 'нет'}
-${images.length ? imgDesc : ''}
+• Цвет текста: ${s.textClr === 'dark' ? 'тёмный' : 'светлый (белый)'}
+• Шрифт: ${s.font || 'PT Serif'}${freeZoneHint}
 
-ПОЗИЦИИ ТЕКСТОВЫХ БЛОКОВ (в % от размера слайда):
+ТЕКУЩИЕ ПОЗИЦИИ БЛОКОВ:
 • Заголовок: left ${tp.l}%, top ${tp.t}%, ширина ${tp.w ?? 92}%
-• Основной текст: left ${bp.l}%, top ${bp.t}%, ширина ${bp.w ?? 92}%
+• Текст: left ${bp.l}%, top ${bp.t}%, ширина ${bp.w ?? 92}%
 
-ТЕКУЩИЙ КОНТЕНТ:
+ТЕКУЩИЙ КОНТЕНТ (на русском — оставь на русском!):
 Заголовок: ${s.title}
-Основной текст:
+Текст:
 ${s.body}
 
-ЗАДАЧА — оптимизируй как дизайнер:
-1. Если есть фотофон — текст должен быть коротким, ёмким, крупным для читаемости
-2. Если есть иллюстрации — смести текстовые блоки чтобы не перекрывать рисунки
-3. Подбери шрифт под настроение слайда (PT Serif — академично, Montserrat — современно, Playfair Display — элегантно)
-4. Оптимизируй ширину блоков — на фото лучше уже (60-70%), на градиенте шире (85-92%)
-5. Заголовок — максимум 8 слов, тело — максимум 5 коротких пунктов
+ЗАДАЧА:
+${images.length > 0
+  ? `— Сдвинь текстовые блоки в свободную зону (указана выше), чтобы НЕ перекрывать иллюстрации`
+  : `— Позиции блоков можно не менять если они уже хорошие`}
+${hasBgPhoto ? `— На фотофоне сделай формулировки чёткими и лаконичными (не теряя смысл)` : ''}
+— Подбери шрифт: PT Serif — академично, Montserrat — современно, Playfair Display — торжественно
+— Ширина блоков: ${hasBgPhoto || images.length > 0 ? '50–70% чтобы не перекрывать визуал' : '80–92% для читаемости'}
+— Заголовок: до 10 слов. Текст: до 5 пунктов, каждый до 10 слов.
 
-Верни ТОЛЬКО JSON (без markdown, без пояснений вне JSON):
+Верни ТОЛЬКО JSON без markdown:
 {
-  "title": "оптимизированный заголовок",
-  "body": "• пункт\\n• пункт\\n• пункт",
-  "font": "название шрифта (один из: PT Serif, Montserrat, Merriweather, Roboto, Playfair Display) или null",
-  "titlePos": {"l": число, "t": число, "w": число},
-  "bodyPos":  {"l": число, "t": число, "w": число},
-  "comment": "одна строка — что изменено и почему, на русском"
+  "title": "заголовок на русском",
+  "body": "• пункт на русском\\n• пункт на русском",
+  "font": "один из: PT Serif / Montserrat / Merriweather / Roboto / Playfair Display — или null",
+  "titlePos": {"l": число_0–80, "t": число_0–80, "w": число_20–92},
+  "bodyPos":  {"l": число_0–80, "t": число_0–80, "w": число_20–92},
+  "comment": "коротко по-русски: что изменено и почему"
 }`;
 
   try {
@@ -4343,27 +4362,37 @@ ${s.body}
       return;
     }
 
-    // Применяем title
+    // Применяем title (только если язык не изменился на латиницу)
     if(result.title) {
-      s.title    = result.title;
+      const hasCyrillic = /[а-яёА-ЯЁ]/.test(result.title);
+      s.title    = hasCyrillic ? result.title : s.title; // откатываем если перевёл
       s.titleHtml = null;
     }
-    // Применяем body
+    // Применяем body (только кириллица)
     if(result.body) {
-      s.body    = result.body;
+      const hasCyrillic = /[а-яёА-ЯЁ]/.test(result.body);
+      s.body    = hasCyrillic ? result.body : s.body;
       s.bodyHtml = null;
     }
     // Применяем шрифт
-    if(result.font && result.font !== 'null' && result.font !== null) {
+    const VALID_FONTS = ['PT Serif','Montserrat','Merriweather','Roboto','Playfair Display'];
+    if(result.font && result.font !== 'null' && result.font !== null && VALID_FONTS.includes(result.font)) {
       s.font = result.font;
-      // Синхронизируем chip шрифта в панели
       document.querySelectorAll('.font-chip').forEach(c => {
         c.classList.toggle('sel', c.textContent.trim().includes(result.font.split(' ')[0]));
       });
     }
-    // Применяем позиции
-    if(result.titlePos) s.titlePos = Object.assign({}, tp, result.titlePos);
-    if(result.bodyPos)  s.bodyPos  = Object.assign({}, bp,  result.bodyPos);
+    // Санитизация позиций — ограничиваем диапазоны
+    function sanitizePos(pos, defaults) {
+      if(!pos || typeof pos !== 'object') return defaults;
+      return {
+        l: Math.max(0,  Math.min(80, Number(pos.l) || defaults.l)),
+        t: Math.max(0,  Math.min(80, Number(pos.t) || defaults.t)),
+        w: Math.max(20, Math.min(92, Number(pos.w) || defaults.w)),
+      };
+    }
+    if(result.titlePos) s.titlePos = sanitizePos(result.titlePos, tp);
+    if(result.bodyPos)  s.bodyPos  = sanitizePos(result.bodyPos,  bp);
 
     showSlide(curSlide);
     if(data.queries_used != null) updateBalance(data.queries_used, data.queries_limit);
