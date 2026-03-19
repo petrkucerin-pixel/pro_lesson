@@ -4433,7 +4433,7 @@ function buildCustomHtml() {
 <div class="counter" id="ctr">1 / ${SLIDES_DATA.length}</div>
 <div class="progress" id="prg" style="width:${(1/SLIDES_DATA.length*100).toFixed(1)}%;"></div>
 <div class="hint">← → Пробел — навигация &nbsp;·&nbsp; F — полный экран &nbsp;·&nbsp; Esc — закрыть</div>
-<script>
+<scr` + `ipt>
 let cur=0;const tot=${SLIDES_DATA.length};
 function scale(){const s=Math.min(innerWidth/${cW},innerHeight/${cH});document.getElementById('deck').style.transform='scale('+s+')';}
 scale();window.addEventListener('resize',scale);
@@ -4446,7 +4446,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
 });
 document.getElementById('deck').addEventListener('click',()=>go(cur+1));
-</script></body></html>`;
+</scr` + `ipt></body></html>`;
 }
 
 function openReveal() {
