@@ -676,7 +676,8 @@ def generate():
     max_chars_per_bullet = int(body.get("max_chars_per_bullet", 70))
     if not message:
         return jsonify({"ok": False, "error": "Сообщение не может быть пустым"}), 400
-    if len(message) > 6000:
+    max_msg_len = 12000 if gen_type == "pres" else 6000
+    if len(message) > max_msg_len:
         return jsonify({"ok": False, "error": "Сообщение слишком длинное"}), 400
     allowed, limit_msg = check_limit(email)
     if not allowed:

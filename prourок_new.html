@@ -951,6 +951,9 @@ header {
 .result-box .r-hr  { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .result-box .r-pre { background: #f4f8f5; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto; margin: 8px 0; white-space: pre; }
 .result-box .r-code { background: #eef6f2; border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; font-size: 12px; }
+.result-box .r-table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+.result-box .r-td { border: 1px solid var(--border); padding: 7px 12px; vertical-align: top; }
+.result-box .r-table th.r-td { background: var(--green-light); font-weight: 700; color: var(--green-dark); }
 .result-box b {
   color: var(--green-dark);
   font-weight: 700;
@@ -5012,10 +5015,23 @@ function renderMarkdown(text) {
   let codeBuf = '';
   let inUl = false;
   let inOl = false;
+  let tableRows = [];
 
   function closeList() {
     if(inUl) { html += '</ul>'; inUl = false; }
     if(inOl) { html += '</ol>'; inOl = false; }
+  }
+
+  function flushTable() {
+    if(!tableRows.length) return;
+    html += '<table class="r-table"><tbody>';
+    tableRows.forEach((row, ri) => {
+      const cells = row.split('|').map(c => c.trim()).filter((_, ci, arr) => ci > 0 && ci < arr.length - 1);
+      const tag = ri === 0 ? 'th' : 'td';
+      html += '<tr>' + cells.map(c => `<${tag} class="r-td">${_inlineFmt(escHtml(c))}</${tag}>`).join('') + '</tr>';
+    });
+    html += '</tbody></table>';
+    tableRows = [];
   }
 
   for(let i = 0; i < lines.length; i++) {
@@ -5024,11 +5040,21 @@ function renderMarkdown(text) {
 
     // Блок кода
     if(trim.startsWith('```')) {
-      if(!inCode) { closeList(); inCode = true; codeBuf = ''; html += '<pre class="r-pre">'; }
+      if(!inCode) { closeList(); flushTable(); inCode = true; codeBuf = ''; html += '<pre class="r-pre">'; }
       else { inCode = false; html += escHtml(codeBuf) + '</pre>'; }
       continue;
     }
     if(inCode) { codeBuf += raw + '\n'; continue; }
+
+    // Таблица — строка с | или разделитель |---|
+    if(trim.startsWith('|') && trim.endsWith('|')) {
+      closeList();
+      if(/^\|[\s\-:|]+\|/.test(trim)) { /* разделитель — пропускаем */ continue; }
+      tableRows.push(trim);
+      continue;
+    } else {
+      flushTable();
+    }
 
     // Пустая строка
     if(!trim) { closeList(); html += '<div style="height:8px"></div>'; continue; }
@@ -5063,6 +5089,7 @@ function renderMarkdown(text) {
   }
 
   closeList();
+  flushTable();
   if(inCode) html += escHtml(codeBuf) + '</pre>';
   return html;
 }
