@@ -3906,9 +3906,19 @@ function _polyXBoundsAtY(poly, yPct) {
   return { left: xs[0], right: xs[xs.length - 1] };
 }
 
+// Точное измерение ширины текста через canvas API
+let _polyMeasureCtx = null;
+function _measureTextWidth(text, fontSize, font) {
+  if(!_polyMeasureCtx) {
+    _polyMeasureCtx = document.createElement('canvas').getContext('2d');
+  }
+  _polyMeasureCtx.font = `${fontSize}px ${font || 'PT Serif'}, serif`;
+  return _polyMeasureCtx.measureText(text).width;
+}
+
 // Разбить текст на строки с учётом полигона
-function _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH) {
-  const charW = fontSize * 0.52;
+function _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH, font) {
+  const spaceW = _measureTextWidth(' ', fontSize, font);
   const lines = [];
   let lineIdx = 0;
   for(const para of paragraphs) {
@@ -3920,16 +3930,17 @@ function _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH) {
       const yPct = (lineIdx * lineH + lineH * 0.5) / blockH * 100;
       const bounds = _polyXBoundsAtY(poly, yPct);
       if(!bounds) { lineIdx++; continue; }
-      const availW = (bounds.right - bounds.left) / 100 * blockW - 4;
-      const wordW = word.length * charW + (lineWords.length ? charW : 0);
-      if(lineWords.length && lineWidth + wordW > availW) {
+      const availW = (bounds.right - bounds.left) / 100 * blockW - 6;
+      const wordW = _measureTextWidth(word, fontSize, font);
+      const addW = lineWords.length ? spaceW + wordW : wordW;
+      if(lineWords.length && lineWidth + addW > availW) {
         lines.push({ text: lineWords.join(' '), lineIdx, leftPct: bounds.left, rightPct: bounds.right });
         lineWords = [word];
-        lineWidth = word.length * charW;
+        lineWidth = wordW;
         lineIdx++;
       } else {
         lineWords.push(word);
-        lineWidth += wordW;
+        lineWidth += addW;
       }
     }
     if(lineWords.length) {
@@ -3938,7 +3949,6 @@ function _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH) {
       lines.push({ text: lineWords.join(' '), lineIdx, leftPct: bounds.left, rightPct: bounds.right });
       lineIdx++;
     }
-    lineIdx += 0; // нет gap между буллетами, перенос строки уже добавлен
   }
   return lines;
 }
@@ -3946,17 +3956,18 @@ function _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH) {
 // Получить текст блока в виде массива параграфов и размер шрифта
 function _getBlockTextInfo(which) {
   const s = SLIDES_DATA[curSlide];
+  const font = s.font || 'PT Serif';
   if(which === 'title') {
-    return { paragraphs: [s.title || ''], fontSize: 24, lineH: Math.ceil(24 * 1.35) };
+    return { paragraphs: [s.title || ''], fontSize: 24, lineH: Math.ceil(24 * 1.35), font };
   } else if(which === 'body') {
     const fs = 14.5;
-    return { paragraphs: (s.body || '').split('\n'), fontSize: fs, lineH: Math.ceil(fs * 1.9) };
+    return { paragraphs: (s.body || '').split('\n'), fontSize: fs, lineH: Math.ceil(fs * 1.9), font };
   } else {
     const tb = (s.textBlocks || []).find(b => b.id === which);
     const tmp = document.createElement('div');
     tmp.innerHTML = tb ? (tb.html || '') : '';
     const fs = 14;
-    return { paragraphs: (tmp.innerText || 'Текст').split('\n'), fontSize: fs, lineH: Math.ceil(fs * 1.9) };
+    return { paragraphs: (tmp.innerText || 'Текст').split('\n'), fontSize: fs, lineH: Math.ceil(fs * 1.9), font };
   }
 }
 
@@ -3967,7 +3978,7 @@ function renderPolyTextBlock(which) {
   const poly = getTbPolygon(which);
   if(!poly) return;
 
-  const { paragraphs, fontSize, lineH } = _getBlockTextInfo(which);
+  const { paragraphs, fontSize, lineH, font } = _getBlockTextInfo(which);
 
   // Запомнить текущую высоту до скрытия contenteditable
   const ceDiv = blockEl.querySelector('[contenteditable]');
@@ -3986,7 +3997,7 @@ function renderPolyTextBlock(which) {
   // Удалить старый poly-render
   blockEl.querySelectorAll('.poly-text-render').forEach(el => el.remove());
 
-  const layoutLines = _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH);
+  const layoutLines = _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH, font);
 
   const renderDiv = document.createElement('div');
   renderDiv.className = 'poly-text-render';
