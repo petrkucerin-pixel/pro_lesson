@@ -2083,14 +2083,14 @@ header {
 
     <div class="sb-section">
       <div class="sb-label">Создать</div>
-      <button class="nav-item" id="ni-plan" onclick="openForm('plan')">
+      <button class="nav-item" id="ni-plan" onclick="navToForm('plan')">
         <div class="nav-icon">📋</div>
         <div class="nav-text">
           <strong>План урока</strong>
           <small>Технол. карта ФГОС</small>
         </div>
       </button>
-      <button class="nav-item" id="ni-test" onclick="openForm('test')">
+      <button class="nav-item" id="ni-test" onclick="navToForm('test')">
         <div class="nav-icon">✅</div>
         <div class="nav-text">
           <strong>Тест / Задания</strong>
@@ -2501,6 +2501,7 @@ header {
             <div id="illusLayer"></div>
           </div>
           <div class="pres-controls">
+            <button class="btn-action" id="btnBackToResult" onclick="go('result')" style="display:none;font-size:12px;padding:5px 10px;" title="Вернуться к плану урока">← К плану</button>
             <button class="btn-slide-nav" onclick="showSlide(Math.max(0,curSlide-1))">←</button>
             <div class="slide-counter-text" id="slideCounter">1 / 8</div>
             <button class="btn-slide-nav" onclick="showSlide(Math.min(SLIDES_DATA.length-1,curSlide+1))">→</button>
@@ -2814,7 +2815,8 @@ let chatHistory = [];
 
 // ══════ STATE ══════
 let curForm = 'plan';
-let lastResultText = ''; // текст последнего сгенерированного результата
+let lastResultText = '';   // текст последнего сгенерированного результата
+let lastResultForm = '';   // тип формы, породившей результат ('plan','test',…)
 let selSubj = '';
 let selCls  = '';
 let selLt   = 'Урок открытия новых знаний';
@@ -2822,6 +2824,30 @@ let curSlide = 0;
 let kopFilter = 'all';
 
 // ══════ NAVIGATION ══════
+
+// Обновить видимость кнопки "← К плану" в редакторе презентации
+function _updatePresBackBtn() {
+  const btn = document.getElementById('btnBackToResult');
+  if(!btn) return;
+  if(lastResultText) {
+    const label = lastResultForm === 'test' ? '← К тесту' : '← К плану';
+    btn.textContent = label;
+    btn.style.display = '';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+// Умная навигация из сайдбара: если есть активный результат — показать его, иначе — открыть форму
+function navToForm(type) {
+  if(lastResultText && lastResultForm === type) {
+    curForm = type;
+    go('result');
+  } else {
+    openForm(type);
+  }
+}
+
 function go(name) {
   ['welcome','form','result','pres','chat','kopilka'].forEach(n => {
     const el = document.getElementById('s-'+n);
@@ -2840,7 +2866,7 @@ function go(name) {
   }
 
   if(name === 'kopilka') renderKopilka();
-  if(name === 'pres') checkAutosave();
+  if(name === 'pres') { checkAutosave(); _updatePresBackBtn(); }
 }
 
 // ══════ FORM ══════
@@ -2997,11 +3023,13 @@ async function doCreate() {
         }
       } else {
         lastResultText = data.reply;
+        lastResultForm = curForm;
         document.getElementById('resultBox').innerHTML = renderMarkdown(data.reply);
         document.querySelector('.result-actions').style.visibility = '';
         document.querySelector('.result-fix-chat').style.display = '';
         const _presBtn = document.getElementById('presFromPlanBtn');
-        if(_presBtn) _presBtn.style.display = (curForm === 'plan') ? '' : 'none';
+        if(_presBtn) _presBtn.style.display = (curForm === 'plan' || curForm === 'test') ? '' : 'none';
+        _updatePresBackBtn();
       }
       updateBalance(data.queries_used, data.queries_limit);
     } else if(data.unauthorized) {
