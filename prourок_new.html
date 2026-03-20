@@ -3477,12 +3477,14 @@ async function qEdit(action) {
   savePresHistory(labels[action] || 'Правка ИИ');
 
   const slideTitle = document.getElementById('sTitleEdit').value;
+  const c = presSlideConstraints;
+  const _climit = `\n\nОГРАНИЧЕНИЯ СЛАЙДА (строго соблюдать — это физический размер экрана):\n- Максимум ${c.max_bullets} буллетов\n- Максимум ${c.max_chars_per_bullet} символов в каждом буллете\nВерни ТОЛЬКО буллеты (• пункт), без заголовка, без пояснений. Не превышай лимиты.`;
   const prompts = {
-    rewrite:  `Перепиши содержание слайда методически грамотно, сохрани смысл:\nЗаголовок: ${slideTitle}\n${cur}`,
-    shorter:  `Сократи содержание слайда, оставь только самое важное:\nЗаголовок: ${slideTitle}\n${cur}`,
-    longer:   `Добавь полезные детали и подробности к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}`,
-    example:  `Добавь конкретный наглядный пример к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}`,
-    question: `Добавь вопрос классу для обсуждения к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}`
+    rewrite:  `Перепиши содержание слайда методически грамотно, сохрани смысл:\nЗаголовок: ${slideTitle}\n${cur}${_climit}`,
+    shorter:  `Сократи содержание слайда, оставь только самое важное:\nЗаголовок: ${slideTitle}\n${cur}${_climit}`,
+    longer:   `Добавь полезные детали и подробности к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}${_climit}`,
+    example:  `Добавь конкретный наглядный пример к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}${_climit}`,
+    question: `Добавь вопрос классу для обсуждения к содержанию слайда:\nЗаголовок: ${slideTitle}\n${cur}${_climit}`
   };
   const msgs = {rewrite:'Переписываю…',shorter:'Сокращаю…',longer:'Добавляю детали…',example:'Добавляю пример…',question:'Добавляю вопрос…'};
   ta.value = msgs[action];
@@ -4484,7 +4486,8 @@ async function aiEditSlide() {
   if(!req) { showToast('Введите запрос'); return; }
   savePresHistory('Свой запрос к слайду');
   const s = SLIDES_DATA[curSlide];
-  const prompt = `Измени содержание слайда согласно запросу учителя.\nЗаголовок слайда: ${s.title}\nТекущее содержание:\n${s.body}\n\nЗапрос: ${req}\n\nВерни ТОЛЬКО новое содержание слайда буллетами (• пункт), без заголовка, без пояснений.`;
+  const _c = presSlideConstraints;
+  const prompt = `Измени содержание слайда согласно запросу учителя.\nЗаголовок слайда: ${s.title}\nТекущее содержание:\n${s.body}\n\nЗапрос: ${req}\n\nОГРАНИЧЕНИЯ СЛАЙДА (строго соблюдать — это физический размер экрана):\n- Максимум ${_c.max_bullets} буллетов\n- Максимум ${_c.max_chars_per_bullet} символов в каждом буллете\nВерни ТОЛЬКО новое содержание слайда буллетами (• пункт), без заголовка, без пояснений. Не превышай лимиты.`;
   const ta = document.getElementById('sBodyEdit');
   const prev = ta.value;
   ta.value = 'Обрабатываю…';
