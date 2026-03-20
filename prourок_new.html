@@ -1933,6 +1933,10 @@ header {
 .tb-poly-btn { position:absolute; top:-18px; right:22px; width:18px; height:18px; background:rgba(0,0,0,.45); color:rgba(255,255,255,.65); border:none; border-radius:4px; cursor:pointer; font-size:11px; display:none; align-items:center; justify-content:center; z-index:10; padding:0; }
 .tb-poly-btn.active { color:#ff6b35; background:rgba(255,107,53,.25); }
 .text-block:hover .tb-poly-btn, .text-block:focus-within .tb-poly-btn { display:flex; }
+.poly-text-render { position:absolute;inset:0;overflow:hidden;cursor:pointer;user-select:none;z-index:1; }
+.poly-text-render:hover .poly-edit-hint { opacity:1; }
+.poly-edit-hint { position:absolute;top:4px;right:4px;font-size:10px;background:rgba(0,0,0,.55);color:#fff;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity .15s;pointer-events:none; }
+.poly-text-line { position:absolute;white-space:nowrap;overflow:hidden;line-height:inherit; }
 
 /* ══ ВКЛАДКА ТЕКСТ ══ */
 .font-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
@@ -3371,6 +3375,9 @@ function showSlide(i) {
   renderIllusList();
   renderExtraBlocks();
   renderSlideList();
+  // Poly-text render для блоков с полигоном
+  if(tp.polygon) renderPolyTextBlock('title'); else clearPolyTextBlock('title');
+  if(bp.polygon) renderPolyTextBlock('body');  else clearPolyTextBlock('body');
 }
 
 function addSlide() {
@@ -3829,8 +3836,9 @@ function toggleTbPolyMode(which) {
   // Open mode for new block
   if(!getTbPolygon(which)) setTbPolygon(which, getDefaultTbPolygon());
   tbPolyEditBlock = which;
-  const btn = document.getElementById(which === 'title' ? 'tbPolyBtnTitle' : which === 'body' ? 'tbPolyBtnBody' : null);
+  const btn = document.getElementById(which === 'title' ? 'tbPolyBtnTitle' : which === 'body' ? 'tbPolyBtnBody' : 'tbPolyBtn_' + which);
   if(btn) btn.classList.add('active');
+  renderPolyTextBlock(which);
   renderTbPolyNodes();
 }
 
@@ -3871,11 +3879,206 @@ function resetTbPoly(which) {
   setTbPolygon(which, null);
   const blockEl = document.getElementById(_tbBlockId(which));
   if(blockEl) blockEl.style.clipPath = '';
+  clearPolyTextBlock(which);
   if(tbPolyEditBlock === which) {
     tbPolyEditBlock = null;
     document.querySelectorAll('.tb-poly-node').forEach(el => el.remove());
     document.querySelectorAll('.tb-poly-btn').forEach(b => b.classList.remove('active'));
   }
+  scheduleAutosave();
+}
+
+// ══════ POLYGON TEXT LAYOUT ══════
+
+// Найти левую и правую границу полигона на заданной высоте yPct (% от высоты блока)
+function _polyXBoundsAtY(poly, yPct) {
+  const xs = [];
+  for(let i = 0; i < poly.length; i++) {
+    const [x0, y0] = poly[i];
+    const [x1, y1] = poly[(i + 1) % poly.length];
+    if((y0 <= yPct && y1 > yPct) || (y1 <= yPct && y0 > yPct)) {
+      const t = (yPct - y0) / (y1 - y0);
+      xs.push(x0 + t * (x1 - x0));
+    }
+  }
+  if(xs.length < 2) return null;
+  xs.sort((a, b) => a - b);
+  return { left: xs[0], right: xs[xs.length - 1] };
+}
+
+// Разбить текст на строки с учётом полигона
+function _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH) {
+  const charW = fontSize * 0.52;
+  const lines = [];
+  let lineIdx = 0;
+  for(const para of paragraphs) {
+    if(!para.trim()) continue;
+    const words = para.trim().split(/\s+/);
+    let lineWords = [];
+    let lineWidth = 0;
+    for(const word of words) {
+      const yPct = (lineIdx * lineH + lineH * 0.5) / blockH * 100;
+      const bounds = _polyXBoundsAtY(poly, yPct);
+      if(!bounds) { lineIdx++; continue; }
+      const availW = (bounds.right - bounds.left) / 100 * blockW - 4;
+      const wordW = word.length * charW + (lineWords.length ? charW : 0);
+      if(lineWords.length && lineWidth + wordW > availW) {
+        lines.push({ text: lineWords.join(' '), lineIdx, leftPct: bounds.left, rightPct: bounds.right });
+        lineWords = [word];
+        lineWidth = word.length * charW;
+        lineIdx++;
+      } else {
+        lineWords.push(word);
+        lineWidth += wordW;
+      }
+    }
+    if(lineWords.length) {
+      const yPct = (lineIdx * lineH + lineH * 0.5) / blockH * 100;
+      const bounds = _polyXBoundsAtY(poly, yPct) || { left: 0, right: 100 };
+      lines.push({ text: lineWords.join(' '), lineIdx, leftPct: bounds.left, rightPct: bounds.right });
+      lineIdx++;
+    }
+    lineIdx += 0; // нет gap между буллетами, перенос строки уже добавлен
+  }
+  return lines;
+}
+
+// Получить текст блока в виде массива параграфов и размер шрифта
+function _getBlockTextInfo(which) {
+  const s = SLIDES_DATA[curSlide];
+  if(which === 'title') {
+    return { paragraphs: [s.title || ''], fontSize: 24, lineH: Math.ceil(24 * 1.35) };
+  } else if(which === 'body') {
+    const fs = 14.5;
+    return { paragraphs: (s.body || '').split('\n'), fontSize: fs, lineH: Math.ceil(fs * 1.9) };
+  } else {
+    const tb = (s.textBlocks || []).find(b => b.id === which);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = tb ? (tb.html || '') : '';
+    const fs = 14;
+    return { paragraphs: (tmp.innerText || 'Текст').split('\n'), fontSize: fs, lineH: Math.ceil(fs * 1.9) };
+  }
+}
+
+// Отрисовать текст внутри полигона (выключает contenteditable)
+function renderPolyTextBlock(which) {
+  const blockEl = document.getElementById(_tbBlockId(which));
+  if(!blockEl) return;
+  const poly = getTbPolygon(which);
+  if(!poly) return;
+
+  const { paragraphs, fontSize, lineH } = _getBlockTextInfo(which);
+
+  // Запомнить текущую высоту до скрытия contenteditable
+  const ceDiv = blockEl.querySelector('[contenteditable]');
+  const currentH = blockEl.getBoundingClientRect().height;
+  if(ceDiv) { ceDiv.style.display = 'none'; ceDiv.style.visibility = 'hidden'; }
+
+  // Задать явную высоту чтобы блок не схлопнулся
+  const canvas = document.getElementById('slideCanvas');
+  const canvasH = canvas ? canvas.offsetHeight : 350;
+  const blockTopPct = parseFloat(blockEl.style.top) || 0;
+  const blockH = Math.max(currentH || 100, canvasH * (1 - blockTopPct / 100) - 10);
+  blockEl.style.height = blockH + 'px';
+
+  const blockW = blockEl.getBoundingClientRect().width || 400;
+
+  // Удалить старый poly-render
+  blockEl.querySelectorAll('.poly-text-render').forEach(el => el.remove());
+
+  const layoutLines = _layoutPolyText(paragraphs, poly, blockW, blockH, fontSize, lineH);
+
+  const renderDiv = document.createElement('div');
+  renderDiv.className = 'poly-text-render';
+
+  const hint = document.createElement('div');
+  hint.className = 'poly-edit-hint';
+  hint.textContent = '✏️ изменить';
+  renderDiv.appendChild(hint);
+
+  layoutLines.forEach(line => {
+    const lineEl = document.createElement('div');
+    lineEl.className = 'poly-text-line';
+    lineEl.textContent = line.text;
+    lineEl.style.cssText = `top:${line.lineIdx * lineH}px;left:${line.leftPct}%;width:${line.rightPct - line.leftPct}%;font-size:${fontSize}px;`;
+    renderDiv.appendChild(lineEl);
+  });
+
+  if(!layoutLines.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'position:absolute;top:8px;left:8px;opacity:0.5;font-size:12px;';
+    empty.textContent = '(текст не вписывается в форму)';
+    renderDiv.appendChild(empty);
+  }
+
+  renderDiv.addEventListener('click', () => openPolyEditModal(which));
+  blockEl.appendChild(renderDiv);
+}
+
+// Восстановить contenteditable (выход из poly-режима)
+function clearPolyTextBlock(which) {
+  const blockEl = document.getElementById(_tbBlockId(which));
+  if(!blockEl) return;
+  blockEl.querySelectorAll('.poly-text-render').forEach(el => el.remove());
+  blockEl.style.height = '';
+  const ceDiv = blockEl.querySelector('[contenteditable]');
+  if(ceDiv) { ceDiv.style.display = ''; ceDiv.style.visibility = ''; }
+}
+
+// Модальное окно редактирования текста в poly-режиме
+function openPolyEditModal(which) {
+  const { paragraphs } = _getBlockTextInfo(which);
+  const rawText = paragraphs.join('\n');
+
+  let modal = document.getElementById('polyEditModal');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'polyEditModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `<div style="background:#1e2a1e;border:1px solid #3a5a3a;border-radius:12px;padding:24px;width:460px;max-width:90vw;">
+      <div style="font-size:13px;color:#8fbf8f;margin-bottom:10px;">✏️ Редактирование текста (полигон-режим)</div>
+      <textarea id="polyEditTa" style="width:100%;height:150px;background:#0e1a0e;border:1px solid #3a5a3a;border-radius:8px;color:#e8f5e8;font-size:14px;padding:10px;resize:vertical;font-family:inherit;box-sizing:border-box;" spellcheck="true"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end;">
+        <button id="polyEditCancel" style="padding:8px 18px;border-radius:8px;border:1px solid #3a5a3a;background:transparent;color:#8fbf8f;cursor:pointer;font-size:13px;">Отмена</button>
+        <button id="polyEditApply" style="padding:8px 20px;border-radius:8px;border:none;background:#2d6a4f;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">✓ Применить</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  }
+
+  let _which = which;
+  const ta = document.getElementById('polyEditTa');
+  ta.value = rawText;
+  modal.style.display = 'flex';
+  setTimeout(() => ta.focus(), 50);
+
+  document.getElementById('polyEditCancel').onclick = () => { modal.style.display = 'none'; };
+  document.getElementById('polyEditApply').onclick = () => {
+    _applyPolyEdit(_which, ta.value);
+    modal.style.display = 'none';
+  };
+  modal.onclick = e => { if(e.target === modal) modal.style.display = 'none'; };
+}
+
+function _applyPolyEdit(which, newText) {
+  savePresHistory('Правка текста в полигоне');
+  const s = SLIDES_DATA[curSlide];
+  if(which === 'title') {
+    s.title = newText.trim();
+    s.titleHtml = escHtml(s.title);
+    const ta = document.getElementById('sTitleEdit');
+    if(ta) ta.value = s.title;
+  } else if(which === 'body') {
+    s.body = newText;
+    s.bodyHtml = newText.split('\n').filter(l => l.trim()).map(l => `<div>${escHtml(l)}</div>`).join('');
+    const ta = document.getElementById('sBodyEdit');
+    if(ta) ta.value = s.body;
+  } else {
+    const tb = (s.textBlocks || []).find(b => b.id === which);
+    if(tb) tb.html = newText.split('\n').map(l => `<div>${escHtml(l)}</div>`).join('');
+  }
+  clearPolyTextBlock(which);
+  renderPolyTextBlock(which);
   scheduleAutosave();
 }
 
@@ -3995,6 +4198,7 @@ document.addEventListener('mousemove', e => {
       poly[idx] = [Math.max(-20, Math.min(120, px)), Math.max(-20, Math.min(120, py))];
       const blockEl = document.getElementById(_tbBlockId(tbPolyEditBlock));
       applyTbClipPath(blockEl, poly);
+      renderPolyTextBlock(tbPolyEditBlock);
       renderTbPolyNodes();
     }
     return;
@@ -4187,6 +4391,7 @@ function renderExtraBlocks() {
       `<button class="tb-poly-btn" id="tbPolyBtn_${tb.id}" onclick="toggleTbPolyMode('${tb.id}')" title="Деформировать форму блока">◇</button>`;
     if(tb.polygon) div.style.clipPath = `polygon(${tb.polygon.map(([x,y]) => `${x}% ${y}%`).join(',')})`;
     canvas.appendChild(div);
+    if(tb.polygon) renderPolyTextBlock(tb.id);
   });
 }
 
