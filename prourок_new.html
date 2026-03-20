@@ -2362,6 +2362,7 @@ header {
               <button class="btn-action" onclick="doCopy()">📋 Копировать</button>
               <button class="btn-action save" onclick="saveToKopilka()">🗂️ В копилку</button>
               <button class="btn-action" id="dlBtn" onclick="doDownload()">⬇️ Скачать</button>
+              <button class="btn-action" id="presFromPlanBtn" onclick="planToPresentation()" style="display:none;background:var(--green);color:#fff;border-color:var(--green);">🖥️ В презентацию</button>
             </div>
           </div>
           <div class="result-box" id="resultBox"></div>
@@ -2802,6 +2803,7 @@ let chatHistory = [];
 
 // ══════ STATE ══════
 let curForm = 'plan';
+let lastResultText = ''; // текст последнего сгенерированного результата
 let selSubj = '';
 let selCls  = '';
 let selLt   = 'Урок открытия новых знаний';
@@ -2983,9 +2985,12 @@ async function doCreate() {
           document.getElementById('resultBox').innerHTML = `<span style="color:var(--rose)">⚠️ Не удалось создать слайды. Попробуйте ещё раз.</span>`;
         }
       } else {
+        lastResultText = data.reply;
         document.getElementById('resultBox').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
         document.querySelector('.result-actions').style.visibility = '';
         document.querySelector('.result-fix-chat').style.display = '';
+        const _presBtn = document.getElementById('presFromPlanBtn');
+        if(_presBtn) _presBtn.style.display = (curForm === 'plan') ? '' : 'none';
       }
       updateBalance(data.queries_used, data.queries_limit);
     } else if(data.unauthorized) {
@@ -4786,6 +4791,88 @@ function askByTemplate(id) {
   if(!item) return;
   document.getElementById('chatInput').value = `Сделай план урока по структуре задачи №${id} из копилки`;
   sendChat();
+}
+
+// ══════ ПЛАН → ПРЕЗЕНТАЦИЯ ══════
+
+function _guessSlideCount(text) {
+  if(!text) return 8;
+  // Считаем строки-заголовки: короткие, без буллета, не пустые
+  const headers = text.split('\n').filter(l => {
+    const t = l.trim();
+    return t && !t.startsWith('•') && !t.startsWith('-') && !t.startsWith('|') && t.length < 80 && t.length > 3;
+  });
+  return Math.min(12, Math.max(4, headers.length));
+}
+
+async function planToPresentation() {
+  if(!lastResultText) { showToast('Нет плана для конвертации'); return; }
+
+  const suggested = _guessSlideCount(lastResultText);
+  const countStr = prompt(`Сколько слайдов создать?\nРекомендуем ${suggested} — по числу этапов плана.\n(Можно изменить, от 1 до 20)`, suggested);
+  if(countStr === null) return;
+  const slideCount = Math.min(20, Math.max(1, parseInt(countStr) || suggested));
+
+  const btn = document.getElementById('presFromPlanBtn');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Генерирую…'; }
+
+  // Рассчитать вместимость слайда
+  const _canvas = document.getElementById('slideCanvas');
+  const _cW = (_canvas && _canvas.offsetWidth) || 620;
+  const _cH = (_canvas && _canvas.offsetHeight) || Math.round(_cW * 9 / 16);
+  const _bodyFsz = 14.5;
+  const _lineH = Math.ceil(_bodyFsz * 1.9);
+  const _availH = _cH - _cH * 0.24 - 14;
+  const _maxLines = Math.max(3, Math.floor(_availH / _lineH));
+  const _availW = _cW * 0.92 - 32;
+  const _maxChars = Math.max(40, Math.floor(_availW / (_bodyFsz * 0.52)));
+  const _maxBullets = Math.min(6, Math.max(3, Math.floor(_maxLines * 0.75)));
+  presSlideConstraints = { max_bullets: _maxBullets, max_chars_per_bullet: _maxChars };
+
+  const topic = document.getElementById('topicInput')?.value?.trim() || '';
+  const prompt = `Преобразуй технологическую карту урока в презентацию для показа классу.
+Предмет: ${selSubj || 'не указан'}${selCls ? ', ' + selCls + ' класс' : ''}${topic ? '\nТема: ' + topic : ''}
+
+ТЕХНОЛОГИЧЕСКАЯ КАРТА:
+${lastResultText}
+
+Создай ровно ${slideCount} слайдов. Каждый этап урока — отдельный слайд. Заголовок слайда = название этапа. Буллеты = ключевые действия/содержание этапа, кратко и ёмко для показа классу (не для учителя).
+
+Строго соблюдай формат:
+
+СЛАЙД 1: [заголовок]
+• [пункт]
+• [пункт]
+
+СЛАЙД 2: [заголовок]
+...`;
+
+  const token = localStorage.getItem('prourok_session');
+  try {
+    const res = await fetch(`${API_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+      body: JSON.stringify({ message: prompt, type: 'pres', ...presSlideConstraints })
+    });
+    const data = await res.json();
+    if(data.ok && data.slides && data.slides.length > 0) {
+      SLIDES_DATA.splice(0, SLIDES_DATA.length, ...data.slides);
+      SLIDES_ORIGINAL = JSON.parse(JSON.stringify(data.slides));
+      renderSlideList();
+      showSlide(0);
+      go('pres');
+      showToast('Презентация создана по плану урока!');
+    } else if(data.unauthorized) {
+      doLogout();
+    } else {
+      showToast('Не удалось создать презентацию. Попробуйте ещё раз.');
+    }
+    if(data.queries_used !== undefined) updateBalance(data.queries_used, data.queries_limit);
+  } catch(e) {
+    showToast('Ошибка сети');
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = '🖥️ В презентацию'; }
+  }
 }
 
 // ══════ ПРАВКИ РЕЗУЛЬТАТА ══════
