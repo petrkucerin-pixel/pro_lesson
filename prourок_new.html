@@ -5121,6 +5121,7 @@ function renderMarkdown(text) {
     if(/^---+$/.test(trim)) { closeList(); html += '<hr class="r-hr">'; continue; }
 
     // Заголовки
+    if(trim.startsWith('#### ')){ closeList(); html += `<div class="r-h3" style="font-size:13px;">${_inlineFmt(escHtml(trim.slice(5)))}</div>`; continue; }
     if(trim.startsWith('### ')) { closeList(); html += `<div class="r-h3">${_inlineFmt(escHtml(trim.slice(4)))}</div>`; continue; }
     if(trim.startsWith('## '))  { closeList(); html += `<div class="r-h2">${_inlineFmt(escHtml(trim.slice(3)))}</div>`; continue; }
     if(trim.startsWith('# '))   { closeList(); html += `<div class="r-h1">${_inlineFmt(escHtml(trim.slice(2)))}</div>`; continue; }

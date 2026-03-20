@@ -613,7 +613,7 @@ def chat():
     history = body.get("history", [])
     if not message:
         return jsonify({"ok": False, "error": "Сообщение не может быть пустым"}), 400
-    if len(message) > 4000:
+    if len(message) > 12000:
         return jsonify({"ok": False, "error": "Сообщение слишком длинное"}), 400
     allowed, limit_msg = check_limit(email)
     if not allowed:
