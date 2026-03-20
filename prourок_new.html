@@ -2374,6 +2374,8 @@ header {
               <button class="btn-action save" onclick="saveToKopilka()">🗂️ В копилку</button>
               <button class="btn-action" id="dlBtn" onclick="doDownload()">⬇️ Скачать</button>
               <button class="btn-action" id="presFromPlanBtn" onclick="planToPresentation()" style="display:none;background:var(--green);color:#fff;border-color:var(--green);">🖥️ В презентацию</button>
+              <button class="btn-action" id="presGoBtn" onclick="go('pres')" style="display:none;background:var(--green);color:#fff;border-color:var(--green);">→ Презентация</button>
+              <button class="btn-action" id="presRegenBtn" onclick="planToPresentation()" style="display:none;padding:6px 10px;" title="Пересоздать презентацию заново по текущему плану">↺</button>
             </div>
           </div>
           <div class="result-box" id="resultBox"></div>
@@ -2817,6 +2819,7 @@ let chatHistory = [];
 let curForm = 'plan';
 let lastResultText = '';   // текст последнего сгенерированного результата
 let lastResultForm = '';   // тип формы, породившей результат ('plan','test',…)
+let presReady     = false; // true — презентация уже создана и можно в неё вернуться
 let selSubj = '';
 let selCls  = '';
 let selLt   = 'Урок открытия новых знаний';
@@ -2824,6 +2827,28 @@ let curSlide = 0;
 let kopFilter = 'all';
 
 // ══════ NAVIGATION ══════
+
+// Обновить кнопки в s-result: "В презентацию" / "→ Презентация" + "↺"
+function _updatePresButtons() {
+  const isPlanOrTest = (curForm === 'plan' || curForm === 'test');
+  const fromBtn  = document.getElementById('presFromPlanBtn');
+  const goBtn    = document.getElementById('presGoBtn');
+  const regenBtn = document.getElementById('presRegenBtn');
+  if(!fromBtn) return;
+  if(!isPlanOrTest) {
+    fromBtn.style.display = goBtn.style.display = regenBtn.style.display = 'none';
+    return;
+  }
+  if(presReady) {
+    fromBtn.style.display  = 'none';
+    goBtn.style.display    = '';
+    regenBtn.style.display = '';
+  } else {
+    fromBtn.style.display  = '';
+    goBtn.style.display    = 'none';
+    regenBtn.style.display = 'none';
+  }
+}
 
 // Обновить видимость кнопки "← К плану" в редакторе презентации
 function _updatePresBackBtn() {
@@ -3024,11 +3049,11 @@ async function doCreate() {
       } else {
         lastResultText = data.reply;
         lastResultForm = curForm;
+        presReady = false; // новый результат — старая презентация уже не актуальна
         document.getElementById('resultBox').innerHTML = renderMarkdown(data.reply);
         document.querySelector('.result-actions').style.visibility = '';
         document.querySelector('.result-fix-chat').style.display = '';
-        const _presBtn = document.getElementById('presFromPlanBtn');
-        if(_presBtn) _presBtn.style.display = (curForm === 'plan' || curForm === 'test') ? '' : 'none';
+        _updatePresButtons();
         _updatePresBackBtn();
       }
       updateBalance(data.queries_used, data.queries_limit);
@@ -4897,6 +4922,8 @@ ${lastResultText}
       SLIDES_ORIGINAL = JSON.parse(JSON.stringify(data.slides));
       renderSlideList();
       showSlide(0);
+      presReady = true;
+      _updatePresButtons();
       go('pres');
       showToast('Презентация создана по плану урока!');
     } else if(data.unauthorized) {
@@ -5066,11 +5093,14 @@ function renderMarkdown(text) {
     const raw = lines[i];
     const trim = raw.trim();
 
-    // Блок кода
-    if(trim.startsWith('```')) {
+    // Блок кода (`` или ```)
+    if(/^`{2,}/.test(trim) && trim.replace(/`/g,'').trim() === '') {
       if(!inCode) { closeList(); flushTable(); inCode = true; codeBuf = ''; html += '<pre class="r-pre">'; }
       else { inCode = false; html += escHtml(codeBuf) + '</pre>'; }
       continue;
+    }
+    if(!inCode && /^```\S/.test(trim)) { // ```python etc — открывающий с языком
+      closeList(); flushTable(); inCode = true; codeBuf = ''; html += '<pre class="r-pre">'; continue;
     }
     if(inCode) { codeBuf += raw + '\n'; continue; }
 
