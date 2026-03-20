@@ -935,14 +935,22 @@ header {
   border-radius: var(--r);
   padding: 32px 36px;
   font-size: 14px;
-  line-height: 2;
+  line-height: 1.85;
   color: var(--ink);
   flex: 1;
   overflow-y: auto;
-  white-space: pre-wrap;
   font-family: 'Times New Roman', Times, Georgia, serif;
   box-shadow: var(--shadow-sm);
 }
+.result-box .r-h1 { font-size: 20px; font-weight: 700; color: var(--green-dark); margin: 18px 0 8px; line-height: 1.3; }
+.result-box .r-h2 { font-size: 17px; font-weight: 700; color: var(--green-dark); margin: 16px 0 6px; border-bottom: 1.5px solid var(--green-light); padding-bottom: 4px; line-height: 1.3; }
+.result-box .r-h3 { font-size: 15px; font-weight: 700; color: var(--ink2); margin: 14px 0 4px; line-height: 1.3; }
+.result-box .r-p  { margin: 0 0 6px; }
+.result-box .r-list { margin: 4px 0 8px 20px; padding: 0; }
+.result-box .r-list li { margin-bottom: 3px; }
+.result-box .r-hr  { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.result-box .r-pre { background: #f4f8f5; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; overflow-x: auto; margin: 8px 0; white-space: pre; }
+.result-box .r-code { background: #eef6f2; border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; font-size: 12px; }
 .result-box b {
   color: var(--green-dark);
   font-weight: 700;
@@ -2986,7 +2994,7 @@ async function doCreate() {
         }
       } else {
         lastResultText = data.reply;
-        document.getElementById('resultBox').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
+        document.getElementById('resultBox').innerHTML = renderMarkdown(data.reply);
         document.querySelector('.result-actions').style.visibility = '';
         document.querySelector('.result-fix-chat').style.display = '';
         const _presBtn = document.getElementById('presFromPlanBtn');
@@ -4765,7 +4773,7 @@ async function sendChat() {
     const data = await res.json();
     const el = document.getElementById(loadId);
     if(data.ok) {
-      if(el) el.querySelector('.msg-bubble').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
+      if(el) el.querySelector('.msg-bubble').innerHTML = renderMarkdown(data.reply);
       chatHistory.push({role:'user',content:text});
       chatHistory.push({role:'assistant',content:data.reply});
       if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
@@ -4808,10 +4816,8 @@ function _guessSlideCount(text) {
 async function planToPresentation() {
   if(!lastResultText) { showToast('Нет плана для конвертации'); return; }
 
-  const suggested = _guessSlideCount(lastResultText);
-  const countStr = prompt(`Сколько слайдов создать?\nРекомендуем ${suggested} — по числу этапов плана.\n(Можно изменить, от 1 до 20)`, suggested);
-  if(countStr === null) return;
-  const slideCount = Math.min(20, Math.max(1, parseInt(countStr) || suggested));
+  const slideCount = _guessSlideCount(lastResultText);
+  showToast(`Генерирую презентацию (${slideCount} слайдов)…`);
 
   const btn = document.getElementById('presFromPlanBtn');
   if(btn) { btn.disabled = true; btn.textContent = '⏳ Генерирую…'; }
@@ -4910,7 +4916,7 @@ async function fixResult() {
     });
     const data = await res.json();
     if(data.ok) {
-      document.getElementById('resultBox').innerHTML = escHtml(data.reply).replace(/\n/g,'<br>');
+      document.getElementById('resultBox').innerHTML = renderMarkdown(data.reply);
       updateBalance(data.queries_used, data.queries_limit);
       input.value = '';
       showToast('Правки внесены!');
@@ -4988,6 +4994,77 @@ const API_URL = 'http://95.140.147.248:5001';
 
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _inlineFmt(s) {
+  // Применяется к уже escHtml-строке
+  return s
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="r-code">$1</code>');
+}
+
+function renderMarkdown(text) {
+  if(!text) return '';
+  const lines = text.split('\n');
+  let html = '';
+  let inCode = false;
+  let codeBuf = '';
+  let inUl = false;
+  let inOl = false;
+
+  function closeList() {
+    if(inUl) { html += '</ul>'; inUl = false; }
+    if(inOl) { html += '</ol>'; inOl = false; }
+  }
+
+  for(let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trim = raw.trim();
+
+    // Блок кода
+    if(trim.startsWith('```')) {
+      if(!inCode) { closeList(); inCode = true; codeBuf = ''; html += '<pre class="r-pre">'; }
+      else { inCode = false; html += escHtml(codeBuf) + '</pre>'; }
+      continue;
+    }
+    if(inCode) { codeBuf += raw + '\n'; continue; }
+
+    // Пустая строка
+    if(!trim) { closeList(); html += '<div style="height:8px"></div>'; continue; }
+
+    // Горизонтальная черта
+    if(/^---+$/.test(trim)) { closeList(); html += '<hr class="r-hr">'; continue; }
+
+    // Заголовки
+    if(trim.startsWith('### ')) { closeList(); html += `<div class="r-h3">${_inlineFmt(escHtml(trim.slice(4)))}</div>`; continue; }
+    if(trim.startsWith('## '))  { closeList(); html += `<div class="r-h2">${_inlineFmt(escHtml(trim.slice(3)))}</div>`; continue; }
+    if(trim.startsWith('# '))   { closeList(); html += `<div class="r-h1">${_inlineFmt(escHtml(trim.slice(2)))}</div>`; continue; }
+
+    // Маркированный список
+    const ulMatch = trim.match(/^([•\-\*])\s+(.+)/);
+    if(ulMatch) {
+      if(!inUl) { closeList(); html += '<ul class="r-list">'; inUl = true; }
+      html += `<li>${_inlineFmt(escHtml(ulMatch[2]))}</li>`;
+      continue;
+    }
+
+    // Нумерованный список
+    const olMatch = trim.match(/^(\d+)\.\s+(.+)/);
+    if(olMatch) {
+      if(!inOl) { closeList(); html += '<ol class="r-list">'; inOl = true; }
+      html += `<li>${_inlineFmt(escHtml(olMatch[2]))}</li>`;
+      continue;
+    }
+
+    // Обычный абзац
+    closeList();
+    html += `<div class="r-p">${_inlineFmt(escHtml(trim))}</div>`;
+  }
+
+  closeList();
+  if(inCode) html += escHtml(codeBuf) + '</pre>';
+  return html;
 }
 
 function updateBalance(used, limit) {
