@@ -1781,8 +1781,62 @@ header {
 #loginOverlay {
   position: fixed; inset: 0; z-index: 9999;
   background: linear-gradient(135deg, var(--green-dark) 0%, var(--teal) 100%);
-  display: flex; align-items: center; justify-content: center;
+  display: none; align-items: center; justify-content: center;
 }
+#loginOverlay.show { display: flex; }
+
+/* ══ ONBOARDING TOUR ══ */
+#tourOverlay {
+  position: fixed; inset: 0; z-index: 5000;
+  background: rgba(0,0,0,0); pointer-events: none;
+}
+#tourOverlay.active { pointer-events: all; }
+#tourDim {
+  position: fixed; inset: 0; z-index: 5000;
+  background: rgba(0,0,0,0.52); transition: opacity .3s;
+}
+#tourHighlight {
+  position: fixed; z-index: 5001; border-radius: 12px;
+  border: 3px solid rgba(255,255,255,.95);
+  box-shadow: 0 0 0 3px var(--green-mid), 0 0 28px rgba(36,144,106,.5);
+  pointer-events: none;
+  transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease;
+  display: none;
+}
+#tourBox {
+  position: fixed; z-index: 5002;
+  display: flex; align-items: flex-end; gap: 0;
+  transition: left .35s ease, top .35s ease;
+}
+#tourRobot {
+  width: 82px; flex-shrink: 0;
+  filter: drop-shadow(0 4px 18px rgba(0,0,0,.35));
+  align-self: flex-end;
+}
+#tourBubble {
+  background: #fff; border-radius: 16px 16px 16px 4px;
+  padding: 16px 18px 14px; max-width: 270px; min-width: 210px;
+  box-shadow: 0 8px 36px rgba(0,0,0,.22); position: relative;
+  font-size: 13px; line-height: 1.55; color: var(--ink);
+}
+#tourBubble b { color: var(--green-dark); }
+.tour-close {
+  position: absolute; right: 10px; top: 10px;
+  background: none; border: none; cursor: pointer;
+  color: var(--ink4); font-size: 14px; line-height: 1; padding: 2px 4px;
+  border-radius: 4px; transition: .15s;
+}
+.tour-close:hover { background: var(--bg2); color: var(--ink2); }
+#tourText { margin: 4px 0 12px; padding-right: 16px; }
+.tour-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tour-progress { font-size: 11px; color: var(--ink4); font-weight: 600; }
+#tourNextBtn {
+  padding: 8px 18px; border: none; border-radius: 9px;
+  background: linear-gradient(135deg, var(--green-dark), var(--teal));
+  color: #fff; font-family: 'Montserrat', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: .15s;
+}
+#tourNextBtn:hover { opacity: .88; transform: translateY(-1px); }
 .login-card {
   background: #fff; border-radius: 20px;
   padding: 40px 36px; width: 100%; max-width: 400px;
@@ -2027,6 +2081,23 @@ header {
     </div>
 
     <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ONBOARDING TOUR -->
+<div id="tourOverlay">
+  <div id="tourDim"></div>
+  <div id="tourHighlight"></div>
+  <div id="tourBox">
+    <img id="tourRobot" src="robot.png" alt="Помощник">
+    <div id="tourBubble">
+      <button class="tour-close" onclick="tourClose()" title="Пропустить">✕</button>
+      <div id="tourText"></div>
+      <div class="tour-footer">
+        <span id="tourProgress" class="tour-progress"></span>
+        <button id="tourNextBtn" onclick="tourNext()">Далее →</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2864,7 +2935,16 @@ function _updatePresBackBtn() {
 }
 
 // Умная навигация из сайдбара: если есть активный результат — показать его, иначе — открыть форму
+function requireAuth() {
+  const token = localStorage.getItem('prourok_session');
+  if(token) return true;
+  document.getElementById('loginOverlay').classList.add('show');
+  showAuthForm('register');
+  return false;
+}
+
 function navToForm(type) {
+  if(!requireAuth()) return;
   if(lastResultText && lastResultForm === type) {
     curForm = type;
     go('result');
@@ -2874,6 +2954,7 @@ function navToForm(type) {
 }
 
 function go(name) {
+  if(['chat','kopilka','pres','form','result'].includes(name) && !requireAuth()) return;
   ['welcome','form','result','pres','chat','kopilka'].forEach(n => {
     const el = document.getElementById('s-'+n);
     if(el) el.classList.remove('on');
@@ -2896,6 +2977,7 @@ function go(name) {
 
 // ══════ FORM ══════
 function openForm(type) {
+  if(!requireAuth()) return;
   curForm = type;
   const cfg = FORMS[type];
   document.getElementById('formTitle').textContent = cfg.title;
@@ -2970,7 +3052,7 @@ async function doCreate() {
   if(!topic && curForm !== 'excel') { alert('Введите тему урока'); return; }
 
   const token = localStorage.getItem('prourok_session');
-  if(!token) { showAuthForm('login'); document.getElementById('loginOverlay').style.display='flex'; return; }
+  if(!token) { showAuthForm('register'); document.getElementById('loginOverlay').classList.add('show'); return; }
 
   document.getElementById('resultTitle').textContent = cfg.title;
   document.getElementById('resultBox').innerHTML = `<div style="text-align:center;padding:50px;color:var(--ink4);">
@@ -5161,7 +5243,9 @@ function updateBalance(used, limit) {
 }
 
 function onLoggedIn(data) {
-  document.getElementById('loginOverlay').style.display = 'none';
+  const overlay = document.getElementById('loginOverlay');
+  overlay.classList.remove('show');
+  const isFirst = !localStorage.getItem('prourok_tour_done');
   const name = data.name || data.email.split('@')[0];
   document.getElementById('hdrName').textContent = name;
   document.getElementById('hdrAvatar').textContent = name.charAt(0).toUpperCase();
@@ -5171,6 +5255,7 @@ function onLoggedIn(data) {
   if(cg) cg.textContent = name + '!';
   updateBalance(data.queries_used, data.queries_limit);
   loadKopilka();
+  if(isFirst) setTimeout(startTour, 400);
 }
 
 function newSession() {
@@ -5218,7 +5303,8 @@ function doLogout() {
   localStorage.removeItem('prourok_session');
   chatHistory = [];
   KOPILKA = [];
-  document.getElementById('loginOverlay').style.display = 'flex';
+  go('welcome');
+  document.getElementById('loginOverlay').classList.add('show');
   showAuthForm('login');
 }
 
@@ -5410,18 +5496,96 @@ function dismissAutosave() {
   if(banner) banner.style.display = 'none';
 }
 
+// ══════ ONBOARDING TOUR ══════
+const TOUR_STEPS = [
+  { target: null,
+    text: 'Добро пожаловать в <b>ПроУрок</b>!<br>Я — ваш помощник. Покажу основные возможности — займёт минуту.',
+    btn: 'Начать →' },
+  { target: '#ni-plan',
+    text: '📋 <b>Технологическая карта урока</b><br>Укажите предмет, класс и тему — ИИ создаст план по ФГОС за несколько секунд.',
+    btn: 'Далее →' },
+  { target: '#ni-test',
+    text: '✅ <b>Тесты и задания</b><br>Готовые проверочные работы с ключами ответов для любой темы и класса.',
+    btn: 'Далее →' },
+  { target: '#ni-pres',
+    text: '🖥️ <b>Презентация к уроку</b><br>Редактор слайдов: фото фона, стили, шрифты. Экспорт в PPTX одной кнопкой.',
+    btn: 'Далее →' },
+  { target: '#ni-kopilka',
+    text: '🗂️ <b>Методическая копилка</b><br>Все ваши материалы сохраняются здесь. Открывайте и используйте как шаблоны.',
+    btn: 'Далее →' },
+  { target: '#ni-chat',
+    text: '💬 <b>Чат с ИИ</b><br>Задайте любой вопрос по методике, ФГОС или структуре урока в свободной форме.',
+    btn: 'Далее →' },
+  { target: null,
+    text: '🎉 Готово! Вам доступно <b>20 пробных запросов</b>.<br>Нажмите на карточку и создайте первый материал прямо сейчас!',
+    btn: 'Начать работу!' }
+];
+let _tourStep = 0;
+
+function startTour() {
+  _tourStep = 0;
+  const ov = document.getElementById('tourOverlay');
+  ov.style.display = 'block';
+  ov.classList.add('active');
+  _renderTourStep();
+}
+
+function _renderTourStep() {
+  const step = TOUR_STEPS[_tourStep];
+  document.getElementById('tourText').innerHTML = step.text;
+  document.getElementById('tourNextBtn').textContent = step.btn;
+  document.getElementById('tourProgress').textContent = (_tourStep + 1) + ' / ' + TOUR_STEPS.length;
+
+  const hl = document.getElementById('tourHighlight');
+  const box = document.getElementById('tourBox');
+
+  if(step.target) {
+    const el = document.querySelector(step.target);
+    if(el) {
+      const r = el.getBoundingClientRect();
+      const pad = 7;
+      hl.style.display = 'block';
+      hl.style.left  = (r.left  - pad) + 'px';
+      hl.style.top   = (r.top   - pad) + 'px';
+      hl.style.width  = (r.width  + pad*2) + 'px';
+      hl.style.height = (r.height + pad*2) + 'px';
+      // Позиционируем бокс справа от сайдбара
+      const bLeft = r.right + 18;
+      const bTop  = Math.max(10, Math.min(r.top - 10, window.innerHeight - 180));
+      box.style.cssText = 'left:' + bLeft + 'px; top:' + bTop + 'px; transform:none; bottom:auto; right:auto;';
+    }
+  } else {
+    hl.style.display = 'none';
+    // Центрируем
+    box.style.cssText = 'left:50%; top:45%; transform:translate(-50%,-50%); bottom:auto; right:auto;';
+  }
+}
+
+function tourNext() {
+  _tourStep++;
+  if(_tourStep >= TOUR_STEPS.length) { tourClose(); return; }
+  _renderTourStep();
+}
+
+function tourClose() {
+  localStorage.setItem('prourok_tour_done', '1');
+  const ov = document.getElementById('tourOverlay');
+  ov.classList.remove('active');
+  ov.style.display = 'none';
+}
+
 // ══════ ИНИЦИАЛИЗАЦИЯ ══════
 renderCls([]);
 
 window.addEventListener('DOMContentLoaded', async () => {
   const token = localStorage.getItem('prourok_session');
-  if(!token) { showAuthForm('login'); return; }
+  if(!token) return; // интерфейс виден, авторизация запросится при действии
   try {
     const r = await fetch(`${API_URL}/api/auth/me`,{headers:{'X-Session-Token':token}});
     const d = await r.json();
     if(d.ok) { onLoggedIn(d); }
-    else { localStorage.removeItem('prourok_session'); showAuthForm('login'); }
-  } catch(e) { showAuthForm('login'); }
+    else { localStorage.removeItem('prourok_session'); }
+  } catch(e) { /* сервер недоступен — интерфейс всё равно виден */ }
 });
 </script>
 </body>
