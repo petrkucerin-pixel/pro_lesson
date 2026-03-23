@@ -1802,63 +1802,64 @@ header {
   pointer-events: none;
   display: none;
 }
-#tourBox {
-  position: fixed; z-index: 5010;
-  pointer-events: all;
+/* ── Welcome-карточка (шаги 0 и 6) — центрируется через flex на родителе ── */
+#tourWelcome {
+  position: fixed; inset: 0; z-index: 5010;
+  display: none; align-items: center; justify-content: center;
+  pointer-events: none;
 }
-/* Центрирование через CSS — надёжнее чем JS-расчёт */
-#tourBox.tour-centered {
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%, -50%) !important;
+#tourWelcome.show { display: flex; }
+#tourCard {
+  background: linear-gradient(145deg, #d6f5f0, #beeae3);
+  border: 1.5px solid rgba(26,143,160,.2);
+  border-radius: 24px;
+  padding: 36px 40px 28px;
+  width: 500px;
+  box-shadow: 0 16px 56px rgba(26,143,160,.28), 0 2px 8px rgba(0,0,0,.08);
+  position: relative; pointer-events: all;
 }
-#tourBubble {
-  background: linear-gradient(145deg, #d6f5f0, #c2eee8);
-  border: 1.5px solid rgba(26,143,160,.25);
-  border-radius: 20px;
-  padding: 28px 32px 24px;
-  width: 480px;
-  box-shadow: 0 12px 48px rgba(26,143,160,.22), 0 2px 8px rgba(0,0,0,.08);
-  position: relative;
-  font-size: 16px; line-height: 1.6; color: var(--ink);
-}
-#tourBubble b { color: var(--green-dark); }
-/* Шапка первого шага с логотипом */
-.tour-header {
-  display: none;
-  text-align: center;
-  margin-bottom: 18px;
-  padding-bottom: 16px;
+.tc-logo-row {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px; padding-bottom: 18px;
   border-bottom: 1.5px solid rgba(26,143,160,.2);
 }
-#tourBox.tour-centered .tour-header { display: block; }
-.tour-logo-name {
-  font-family: 'Merriweather', serif;
-  font-size: 26px; font-weight: 700;
-  color: var(--green-dark); letter-spacing: -.3px;
+.tc-logo-svg { width: 52px; height: 50px; flex-shrink: 0; }
+.tc-logo-text { font-family:'Merriweather',serif; font-size:28px; font-weight:700; color:var(--green-dark); }
+.tc-logo-text em { font-style:normal; color:var(--teal); }
+.tc-logo-sub { font-size:11px; font-weight:600; color:var(--teal); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+#tourCardText { font-size:16px; line-height:1.65; color:var(--ink); margin-bottom:22px; }
+#tourCardText b { color:var(--green-dark); }
+
+/* ── Тултип (шаги 1-5) — позиционируется через JS ── */
+#tourTip {
+  position: fixed; z-index: 5010; display: none;
+  background: linear-gradient(145deg, #d6f5f0, #beeae3);
+  border: 1.5px solid rgba(26,143,160,.2);
+  border-radius: 20px; padding: 20px 22px 16px; width: 360px;
+  box-shadow: 0 8px 36px rgba(26,143,160,.25), 0 2px 8px rgba(0,0,0,.07);
+  pointer-events: all;
 }
-.tour-logo-name em { font-style: normal; color: var(--teal); }
-.tour-logo-tag {
-  font-size: 11px; font-weight: 600; color: var(--teal);
-  letter-spacing: 1.2px; text-transform: uppercase; margin-top: 3px;
-}
+#tourTip.show { display: block; }
+#tourTipText { font-size:15px; line-height:1.6; color:var(--ink); margin-bottom:14px; }
+#tourTipText b { color:var(--green-dark); }
+
+/* ── Общие элементы ── */
 .tour-close {
-  position: absolute; right: 14px; top: 14px;
-  background: rgba(255,255,255,.6); border: none; cursor: pointer;
-  color: var(--ink3); font-size: 16px; line-height: 1; padding: 4px 7px;
+  position: absolute; right: 13px; top: 13px;
+  background: rgba(255,255,255,.55); border: none; cursor: pointer;
+  color: var(--ink3); font-size: 15px; line-height: 1; padding: 3px 7px;
   border-radius: 6px; transition: .15s;
 }
 .tour-close:hover { background: rgba(255,255,255,.9); color: var(--ink); }
-#tourText { margin: 6px 0 20px; }
-.tour-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.tour-progress { font-size: 13px; color: var(--teal); font-weight: 700; }
-#tourNextBtn {
-  padding: 12px 28px; border: none; border-radius: 12px;
+.tour-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.tour-progress { font-size:12px; color:var(--teal); font-weight:700; }
+.tour-btn {
+  padding: 11px 26px; border: none; border-radius: 11px;
   background: linear-gradient(135deg, var(--green-dark), var(--teal));
-  color: #fff; font-family: 'Montserrat', sans-serif;
-  font-size: 15px; font-weight: 700; cursor: pointer; transition: .15s;
+  color: #fff; font-family:'Montserrat',sans-serif;
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: .15s;
 }
-#tourNextBtn:hover { opacity: .88; transform: translateY(-1px); }
+.tour-btn:hover { opacity:.88; transform:translateY(-1px); }
 .login-card {
   background: #fff; border-radius: 20px;
   padding: 40px 36px; width: 100%; max-width: 400px;
@@ -2110,18 +2111,38 @@ header {
 <div id="tourOverlay">
   <div id="tourDim"></div>
   <div id="tourHighlight"></div>
-  <div id="tourBox">
-    <div id="tourBubble">
+  <!-- Welcome-карточка: центрируется через flex -->
+  <div id="tourWelcome">
+    <div id="tourCard">
       <button class="tour-close" onclick="tourClose()" title="Пропустить">✕</button>
-      <div class="tour-header">
-        <div class="tour-logo-name">Про<em>Урок</em></div>
-        <div class="tour-logo-tag">AI‑помощник учителя</div>
+      <div class="tc-logo-row">
+        <svg class="tc-logo-svg" viewBox="0 0 541 517" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M262.191 0.638924C284.136-2.38166 310.786 5.63514 328.561 17.7804C350.246 32.4292 364.796 54.5146 369.006 79.1731C389.731 73.725 411.496 72.6381 432.726 75.9921C458.411 79.8837 484.771 90.3834 504.411 106.665C506.061 108.032 507.466 109.378 508.761 111.052C508.766 114.069 508.606 117.102 508.486 120.119C516.456 125.739 534.271 136.076 540.686 141.823C541.056 150.726 540.756 161.569 540.761 170.63L540.791 226.086V396.541L540.801 473.235C540.801 479.138 541.216 503.371 540.151 508.178C535.761 513.415 529.371 507.666 525.451 504.882C500.501 487.172 474.931 472.014 444.731 463.485C398.641 450.476 349.766 461.751 311.796 488.105C300.906 495.663 288.851 509.629 277.806 515.201C273.646 516.637 267.376 517.504 263.406 515.233C250.69 507.955 241.226 496.424 229.118 488.082C215.834 478.929 202.195 471.683 186.58 466.53C132.201 447.273 79.9314 462.637 34.3029 492.11C28.6749 495.58 23.7019 499.184 18.1784 502.858C14.1474 505.539 6.97588 513.298 1.79588 508.999C0.283875 507.745 0.220377 505.511 0.216377 503.725C0.170377 483.493 0.246384 463.262 0.245384 443.029L0.233375 319.348L0.220878 204.411C0.212378 184.442-0.345117 161.614 0.344383 141.838C5.37438 137.43 25.7394 124.594 32.3004 120.276L32.2464 93.0907C32.2404 90.2548 31.5964 76.4654 33.8389 75.6098C39.5419 73.4341 51.7664 74.1382 58.1044 74.1526L89.0799 74.1531C115.668 74.1475 146.672 72.1541 171.955 79.0099C174.681 62.7376 182.014 47.4383 193.197 34.6911C210.658 14.8312 234.928 3.21327 262.191 0.638924Z" fill="#1a5e78"/>
+          <path d="M382.566 213.804C383.936 214.696 386.072 218.511 387.052 220.085C398.222 238.636 410.627 257.029 421.757 275.536C436.701 300.393 437.797 296.383 451.892 274.566C458.507 264.224 465.227 253.933 472.037 243.7C477.652 251.294 484.377 262.004 489.647 270.02C490.222 307.714 489.657 346.462 489.727 384.268C463.477 366.652 434.797 356.529 402.222 355.821C373.712 355.34 345.631 362.358 321.191 376.062C316.586 378.636 313.067 380.767 308.867 383.942C302.022 389.122 307.887 396.308 313.657 394.62C317.837 393.394 325.607 387.947 330.037 385.537C344.452 377.801 360.222 372.523 376.617 369.94C420.907 362.819 454.577 375.838 489.657 398.84L489.751 462.142C462.406 448.569 431.377 439.733 400.162 440.866C353.197 442.558 308.917 461.723 277.212 494.078L277.222 388.894C307.112 341.613 368.822 324.64 424.457 332.716C498.785 347.189 504.285 348.218 509.725 349.48C515.125 350.742 528.35 356.037 532.87 351.748C534.87 349.85 533.79 345.232 531.155 343.595C526.64 340.797 521.385 339.933 516.205 338.579C458.91 323.413 383.405 335.744 345.945 380.993C345.945 377.312 346.95 368.071 344.39 365.296C340.795 361.405 332.97 362.689 332.49 368.762C332.155 372.986 332.41 377.079 332.52 381.372C302.54 348.469 264.959 334.569 219.087 332.411C198.187 332.068 179.494 333.742 159.282 338.959C141.196 352.685 145.194 354.436 151.494 353.508C157.097 352.685 162.292 350.628 167.824 349.402C181.555 346.348 195.613 344.693 209.742 344.473C256.838 343.961 307.878 361.999 331.745 401.175C264.142 390.563 263.697 418.62 263.697 423.138L263.762 493.705C247.446 478.686 233.716 468.027 213.074 458.216C159.869 432.93 103.039 435.914 51.1065 462.357L51.077 398C68.7495 386.861 75.8535 382.842 84.514 379.331C121.089 364.144 162.905 364.381 199.28 379.979C228.278 395.263 232.919 395.133 234.081 390.983C235.766 384.963 227.451 380.79 222.344 377.755C204.69 367.095 184.796 360.078 163.996 357.182C124.047 351.61 83.367 361.15 50.9995 383.686C51.4785 360.409 51.095 335.938 51.0095 312.591C72.338 296.239 121.47 258.932 128.69 261.706C140.293 267.283 147.147 270.724C167.93 281.169 166.67 278.161 178.423 262.699C184.835 254.287 191.304 245.919 197.83 237.588C282.963 269.788 298.157 288.014 314.326 304.886C320.1 310.907 327.615 318.717 332.5 325.242C338.71 347.582 346.77 342.923 345.965 335.571C354.015 316.536 363.82 306.692 372.455 298.187C378.21 301.927 391.25 311.822 397.395 311.849C403.265 309.513 415.955 286.601 419.66 280.652L382.566 213.804Z" fill="#fff" opacity=".7"/>
+          <path d="M265.586 17.9003C283.681 15.996 304.276 22.4204 318.726 32.5616C336.536 45.0678 348.241 63.6953 351.241 84.2961C356.836 123.178 335.631 141.326 312.191 169.172C299.251 184.435 286.441 199.793 273.761 215.243L270.771 218.92C255.804 201.021 240.735 183.197 225.564 165.448C217.839 156.393 204.532 141.958 198.909 132.542C193.47 123.625 190.121 113.734 189.084 103.52C186.767 82.3755 193.677 61.2515 208.255 44.913C223.016 28.4219 242.864 19.7234 265.586 17.9003Z" fill="#24906a"/>
+          <path d="M267.691 61.023C286.826 59.7296 303.511 73.0513 305.086 90.8843C306.666 108.717 292.546 124.407 273.436 126.054C254.063 127.724 236.949 114.33 235.351 96.2456C233.752 78.1608 248.283 62.3342 267.691 61.023Z" fill="#1b6b4a"/>
+          <circle cx="270" cy="96" r="14" fill="white"/>
+        </svg>
+        <div>
+          <div class="tc-logo-text">Про<em>Урок</em></div>
+          <div class="tc-logo-sub">AI‑помощник учителя</div>
+        </div>
       </div>
-      <div id="tourText"></div>
+      <div id="tourCardText"></div>
       <div class="tour-footer">
-        <span id="tourProgress" class="tour-progress"></span>
-        <button id="tourNextBtn" onclick="tourNext()">Далее →</button>
+        <span id="tourCardProg" class="tour-progress"></span>
+        <button class="tour-btn" id="tourCardBtn" onclick="tourNext()">Далее →</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Тултип для шагов с подсветкой -->
+  <div id="tourTip">
+    <button class="tour-close" onclick="tourClose()" title="Пропустить">✕</button>
+    <div id="tourTipText"></div>
+    <div class="tour-footer">
+      <span id="tourTipProg" class="tour-progress"></span>
+      <button class="tour-btn" id="tourTipBtn" onclick="tourNext()">Далее →</button>
     </div>
   </div>
 </div>
@@ -5551,42 +5572,46 @@ let _tourName = '';
 function startTour(name) {
   _tourStep = 0;
   _tourName = name || '';
-  const ov = document.getElementById('tourOverlay');
-  ov.style.display = 'block';
-  ov.classList.add('active');
+  document.getElementById('tourOverlay').style.display = 'block';
+  document.getElementById('tourOverlay').classList.add('active');
   _renderTourStep();
 }
 
 function _renderTourStep() {
-  const step = TOUR_STEPS[_tourStep];
-  const text = step.text.replace('{name}', _tourName || 'коллега');
-  document.getElementById('tourText').innerHTML = text;
-  document.getElementById('tourNextBtn').textContent = step.btn;
-  document.getElementById('tourProgress').textContent = (_tourStep + 1) + ' / ' + TOUR_STEPS.length;
-
-  const hl  = document.getElementById('tourHighlight');
-  const box = document.getElementById('tourBox');
+  const step  = TOUR_STEPS[_tourStep];
+  const total = TOUR_STEPS.length;
+  const text  = step.text.replace('{name}', _tourName || 'коллега');
+  const prog  = (_tourStep + 1) + ' / ' + total;
+  const hl    = document.getElementById('tourHighlight');
 
   if(step.target) {
-    box.classList.remove('tour-centered');
-    box.style.transform = 'none';
+    // ── Тултип (шаги 1-5) ──
+    document.getElementById('tourWelcome').classList.remove('show');
+    const tip = document.getElementById('tourTip');
+    tip.classList.add('show');
+    document.getElementById('tourTipText').innerHTML = text;
+    document.getElementById('tourTipBtn').textContent = step.btn;
+    document.getElementById('tourTipProg').textContent = prog;
+
     const el = document.querySelector(step.target);
     if(el) {
-      const r   = el.getBoundingClientRect();
-      const pad = 7;
+      const r = el.getBoundingClientRect(), pad = 7;
       hl.style.display = 'block';
       hl.style.left   = (r.left  - pad) + 'px';
       hl.style.top    = (r.top   - pad) + 'px';
-      hl.style.width  = (r.width  + pad * 2) + 'px';
-      hl.style.height = (r.height + pad * 2) + 'px';
-      box.style.left = (r.right + 18) + 'px';
-      box.style.top  = Math.max(10, Math.min(r.top - 10, window.innerHeight - 200)) + 'px';
+      hl.style.width  = (r.width  + pad*2) + 'px';
+      hl.style.height = (r.height + pad*2) + 'px';
+      tip.style.left  = (r.right + 18) + 'px';
+      tip.style.top   = Math.max(10, Math.min(r.top - 10, window.innerHeight - 220)) + 'px';
     }
   } else {
+    // ── Welcome-карточка (шаги 0 и 6) — центрируется через CSS flex ──
+    document.getElementById('tourTip').classList.remove('show');
     hl.style.display = 'none';
-    box.style.left = '';
-    box.style.top  = '';
-    box.classList.add('tour-centered'); // CSS делает translate(-50%,-50%)
+    document.getElementById('tourCardText').innerHTML = text;
+    document.getElementById('tourCardBtn').textContent = step.btn;
+    document.getElementById('tourCardProg').textContent = prog;
+    document.getElementById('tourWelcome').classList.add('show');
   }
 }
 
