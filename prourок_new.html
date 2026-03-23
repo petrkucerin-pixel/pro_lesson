@@ -1806,6 +1806,12 @@ header {
   position: fixed; z-index: 5010;
   pointer-events: all;
 }
+/* Центрирование через CSS — надёжнее чем JS-расчёт */
+#tourBox.tour-centered {
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
 #tourBubble {
   background: linear-gradient(145deg, #d6f5f0, #c2eee8);
   border: 1.5px solid rgba(26,143,160,.25);
@@ -1814,9 +1820,28 @@ header {
   width: 480px;
   box-shadow: 0 12px 48px rgba(26,143,160,.22), 0 2px 8px rgba(0,0,0,.08);
   position: relative;
-  font-size: 17px; line-height: 1.6; color: var(--ink);
+  font-size: 16px; line-height: 1.6; color: var(--ink);
 }
 #tourBubble b { color: var(--green-dark); }
+/* Шапка первого шага с логотипом */
+.tour-header {
+  display: none;
+  text-align: center;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1.5px solid rgba(26,143,160,.2);
+}
+#tourBox.tour-centered .tour-header { display: block; }
+.tour-logo-name {
+  font-family: 'Merriweather', serif;
+  font-size: 26px; font-weight: 700;
+  color: var(--green-dark); letter-spacing: -.3px;
+}
+.tour-logo-name em { font-style: normal; color: var(--teal); }
+.tour-logo-tag {
+  font-size: 11px; font-weight: 600; color: var(--teal);
+  letter-spacing: 1.2px; text-transform: uppercase; margin-top: 3px;
+}
 .tour-close {
   position: absolute; right: 14px; top: 14px;
   background: rgba(255,255,255,.6); border: none; cursor: pointer;
@@ -2088,6 +2113,10 @@ header {
   <div id="tourBox">
     <div id="tourBubble">
       <button class="tour-close" onclick="tourClose()" title="Пропустить">✕</button>
+      <div class="tour-header">
+        <div class="tour-logo-name">Про<em>Урок</em></div>
+        <div class="tour-logo-tag">AI‑помощник учителя</div>
+      </div>
       <div id="tourText"></div>
       <div class="tour-footer">
         <span id="tourProgress" class="tour-progress"></span>
@@ -5251,7 +5280,7 @@ function onLoggedIn(data) {
   if(cg) cg.textContent = name + '!';
   updateBalance(data.queries_used, data.queries_limit);
   loadKopilka();
-  if(isFirst) setTimeout(startTour, 400);
+  if(isFirst) setTimeout(() => startTour(name), 400);
 }
 
 function newSession() {
@@ -5495,51 +5524,52 @@ function dismissAutosave() {
 // ══════ ONBOARDING TOUR ══════
 const TOUR_STEPS = [
   { target: null,
-    text: 'Добро пожаловать в <b>ПроУрок</b>!<br>Я — ваш помощник. Покажу основные возможности — займёт минуту.',
-    btn: 'Начать →' },
+    text: 'Здравствуйте, <b>{name}</b>! 👋<br><br>Рады приветствовать вас в ПроУроке. Теперь у вас есть личный ИИ-помощник, который готовит планы уроков, тесты и презентации по ФГОС — за секунды, а не часы.<br><br>Давайте покажем, как всё устроено.',
+    btn: 'Показывай! →' },
   { target: '#ni-plan',
-    text: '📋 <b>Технологическая карта урока</b><br>Укажите предмет, класс и тему — ИИ создаст план по ФГОС за несколько секунд.',
+    text: '📋 <b>Технологическая карта урока</b><br><br>Укажите предмет, класс и тему — ИИ создаст подробный план по ФГОС за несколько секунд.',
     btn: 'Далее →' },
   { target: '#ni-test',
-    text: '✅ <b>Тесты и задания</b><br>Готовые проверочные работы с ключами ответов для любой темы и класса.',
+    text: '✅ <b>Тесты и задания</b><br><br>Готовые проверочные работы с ключами ответов для любой темы и класса.',
     btn: 'Далее →' },
   { target: '#ni-pres',
-    text: '🖥️ <b>Презентация к уроку</b><br>Редактор слайдов: фото фона, стили, шрифты. Экспорт в PPTX одной кнопкой.',
+    text: '🖥️ <b>Презентация к уроку</b><br><br>Редактор слайдов: фото фона, стили, шрифты. Экспорт в PPTX одной кнопкой.',
     btn: 'Далее →' },
   { target: '#ni-kopilka',
-    text: '🗂️ <b>Методическая копилка</b><br>Все ваши материалы сохраняются здесь. Открывайте и используйте как шаблоны.',
+    text: '🗂️ <b>Методическая копилка</b><br><br>Все созданные материалы сохраняются здесь. Открывайте и используйте как шаблоны.',
     btn: 'Далее →' },
   { target: '#ni-chat',
-    text: '💬 <b>Чат с ИИ</b><br>Задайте любой вопрос по методике, ФГОС или структуре урока в свободной форме.',
+    text: '💬 <b>Чат с ИИ</b><br><br>Задайте любой вопрос по методике, ФГОС или структуре урока — в свободной форме.',
     btn: 'Далее →' },
   { target: null,
-    text: '🎉 Готово! Вам доступно <b>20 пробных запросов</b>.<br>Нажмите на карточку и создайте первый материал прямо сейчас!',
+    text: '🎉 <b>Всё готово!</b><br><br>Вам доступно <b>20 бесплатных запросов</b> для старта. Нажмите на любую карточку и создайте первый материал прямо сейчас!',
     btn: 'Начать работу!' }
 ];
 let _tourStep = 0;
+let _tourName = '';
 
-function startTour() {
+function startTour(name) {
   _tourStep = 0;
+  _tourName = name || '';
   const ov = document.getElementById('tourOverlay');
   ov.style.display = 'block';
   ov.classList.add('active');
-  // requestAnimationFrame — браузер успевает посчитать layout до позиционирования
-  requestAnimationFrame(() => _renderTourStep());
+  _renderTourStep();
 }
 
 function _renderTourStep() {
   const step = TOUR_STEPS[_tourStep];
-  document.getElementById('tourText').innerHTML = step.text;
+  const text = step.text.replace('{name}', _tourName || 'коллега');
+  document.getElementById('tourText').innerHTML = text;
   document.getElementById('tourNextBtn').textContent = step.btn;
   document.getElementById('tourProgress').textContent = (_tourStep + 1) + ' / ' + TOUR_STEPS.length;
 
   const hl  = document.getElementById('tourHighlight');
   const box = document.getElementById('tourBox');
 
-  // Сброс transform перед позиционированием
-  box.style.transform = 'none';
-
   if(step.target) {
+    box.classList.remove('tour-centered');
+    box.style.transform = 'none';
     const el = document.querySelector(step.target);
     if(el) {
       const r   = el.getBoundingClientRect();
@@ -5549,17 +5579,14 @@ function _renderTourStep() {
       hl.style.top    = (r.top   - pad) + 'px';
       hl.style.width  = (r.width  + pad * 2) + 'px';
       hl.style.height = (r.height + pad * 2) + 'px';
-      // Позиционируем бокс справа от подсвеченного элемента
       box.style.left = (r.right + 18) + 'px';
       box.style.top  = Math.max(10, Math.min(r.top - 10, window.innerHeight - 200)) + 'px';
     }
   } else {
     hl.style.display = 'none';
-    // Центрируем по пикселям (без процентов — чтобы не ломалась анимация)
-    const bw = box.offsetWidth  || 360;
-    const bh = box.offsetHeight || 160;
-    box.style.left = Math.round((window.innerWidth  - bw) / 2) + 'px';
-    box.style.top  = Math.round((window.innerHeight - bh) / 2) + 'px';
+    box.style.left = '';
+    box.style.top  = '';
+    box.classList.add('tour-centered'); // CSS делает translate(-50%,-50%)
   }
 }
 
