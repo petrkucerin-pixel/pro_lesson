@@ -2166,6 +2166,81 @@ label, .form-label, .fg-label { font-size: 14px; }
 @media (min-width: 769px) {
   .mobile-nav-bar { display: none; }
 }
+
+/* ─── Ссылка "Подробнее" в конце тура ─── */
+.guide-link-btn {
+  display: inline-block;
+  font-size: 13px; font-weight: 600; color: var(--teal);
+  text-decoration: none; padding: 6px 0;
+  border-bottom: 1.5px dashed var(--teal);
+  transition: .15s;
+}
+.guide-link-btn:hover { color: var(--green-dark); border-color: var(--green-dark); }
+
+/* ═══════════════════════════════════
+   GUIDE OVERLAY — подробный гайд
+═══════════════════════════════════ */
+#guideOverlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--bg);
+  overflow-y: auto;
+}
+#guideOverlay.show { display: block; }
+.guide-header {
+  position: sticky; top: 0; z-index: 10;
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--teal) 100%);
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 2px 12px rgba(27,107,74,.25);
+}
+.guide-back-btn {
+  background: rgba(255,255,255,.15);
+  border: 1.5px solid rgba(255,255,255,.35);
+  border-radius: 10px;
+  color: white; font-size: 18px;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: .18s; flex-shrink: 0;
+  font-family: 'Montserrat', sans-serif;
+}
+.guide-back-btn:hover { background: rgba(255,255,255,.28); }
+.guide-header-title {
+  font-size: 17px; font-weight: 700; color: white;
+  font-family: 'Merriweather', serif;
+}
+.guide-header-sub { font-size: 11px; color: rgba(255,255,255,.7); margin-top: 2px; }
+.guide-body {
+  max-width: 760px; margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+.guide-section {
+  background: white; border-radius: var(--r);
+  padding: 24px 28px; margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--green-mid);
+}
+.guide-section.teal { border-left-color: var(--teal); }
+.guide-section.amber { border-left-color: var(--amber); }
+.guide-section.purple { border-left-color: var(--purple); }
+.guide-section-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.guide-icon { font-size: 28px; flex-shrink: 0; }
+.guide-section-title { font-size: 17px; font-weight: 800; color: var(--ink); }
+.guide-section-sub { font-size: 13px; color: var(--teal); font-weight: 600; margin-top: 2px; }
+.guide-text { font-size: 14px; line-height: 1.7; color: var(--ink2); }
+.guide-text ul { padding-left: 20px; margin-top: 8px; }
+.guide-text li { margin-bottom: 6px; }
+.guide-tips {
+  background: var(--green-xl); border-radius: var(--r);
+  padding: 20px 24px; margin-bottom: 20px;
+  border: 1.5px solid var(--border);
+}
+.guide-tips-title { font-size: 14px; font-weight: 700; color: var(--green-dark); margin-bottom: 10px; }
+.guide-tip { font-size: 13px; color: var(--ink2); margin-bottom: 8px; line-height: 1.5; }
+.guide-tip b { color: var(--green-dark); }
 </style>
 </head>
 <body>
@@ -2251,6 +2326,11 @@ label, .form-label, .fg-label { font-size: 14px; }
         <span id="tourCardProg" class="tour-progress"></span>
         <button class="tour-btn" id="tourCardBtn" onclick="tourNext()">Далее →</button>
       </div>
+      <div id="tourGuideLink" style="display:none; text-align:center; margin-top:14px;">
+        <a href="#" onclick="tourClose(); openGuide(); return false;" class="guide-link-btn">
+          📖 Подробнее о функционале →
+        </a>
+      </div>
     </div>
   </div>
 
@@ -2262,6 +2342,152 @@ label, .form-label, .fg-label { font-size: 14px; }
       <span id="tourTipProg" class="tour-progress"></span>
       <button class="tour-btn" id="tourTipBtn" onclick="tourNext()">Далее →</button>
     </div>
+  </div>
+</div>
+
+<!-- GUIDE OVERLAY — подробный гайд по функционалу -->
+<div id="guideOverlay">
+  <div class="guide-header">
+    <button class="guide-back-btn" onclick="closeGuide()" title="Назад">←</button>
+    <div>
+      <div class="guide-header-title">Функционал ПроУрок</div>
+      <div class="guide-header-sub">Подробное описание всех инструментов</div>
+    </div>
+  </div>
+
+  <div class="guide-body">
+
+    <div class="guide-section">
+      <div class="guide-section-head">
+        <div class="guide-icon">📋</div>
+        <div>
+          <div class="guide-section-title">Технологическая карта урока</div>
+          <div class="guide-section-sub">⏱ ~30 секунд · ФГОС ООО</div>
+        </div>
+      </div>
+      <div class="guide-text">
+        Создаёт полноценную технологическую карту по ФГОС ООО (Приказ №287 от 31.05.2021) с учётом всех требований.
+        <ul>
+          <li>Выберите <b>предмет</b> из списка или введите свой</li>
+          <li>Укажите <b>класс</b> (5–11) и <b>тип урока</b> (открытие знаний, рефлексия, контроль и др.)</li>
+          <li>Введите <b>тему урока</b> — максимально точно, например «Теорема Пифагора»</li>
+          <li>Нажмите <b>Создать</b> — ИИ сформирует карту со всеми этапами, УУД и ожидаемыми результатами</li>
+          <li>Готовый материал можно <b>скачать в Word (.docx)</b> или сохранить в копилку</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-section teal">
+      <div class="guide-section-head">
+        <div class="guide-icon">✅</div>
+        <div>
+          <div class="guide-section-title">Тест и задания</div>
+          <div class="guide-section-sub">⏱ ~30 секунд · Ключи ответов включены</div>
+        </div>
+      </div>
+      <div class="guide-text">
+        Генерирует готовые проверочные работы для любого предмета и класса.
+        <ul>
+          <li>Выберите <b>тип работы</b>: тест с вариантами, открытые задания или комбинированный</li>
+          <li>Укажите <b>тему</b> и ИИ создаст задания разного уровня сложности</li>
+          <li>Каждая работа содержит <b>ключи правильных ответов</b></li>
+          <li>Скачайте в <b>Word</b> или используйте как шаблон из копилки</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-section">
+      <div class="guide-section-head">
+        <div class="guide-icon">🖥️</div>
+        <div>
+          <div class="guide-section-title">Презентация к уроку</div>
+          <div class="guide-section-sub">⏱ ~30 секунд · Экспорт PPTX</div>
+        </div>
+      </div>
+      <div class="guide-text">
+        Полноценный редактор презентаций прямо в браузере.
+        <ul>
+          <li>ИИ генерирует <b>структуру и текст слайдов</b> по теме урока</li>
+          <li>Редактируйте текст, меняйте <b>фоновое изображение</b> каждого слайда</li>
+          <li>Настраивайте <b>шрифты, цвета, размеры</b> текста</li>
+          <li>Добавляйте и удаляйте слайды (до 20 в презентации)</li>
+          <li>Экспортируйте готовую презентацию в <b>PPTX (PowerPoint)</b> одной кнопкой</li>
+          <li>Автосохранение — работа не потеряется при перезагрузке страницы</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-section amber">
+      <div class="guide-section-head">
+        <div class="guide-icon">📊</div>
+        <div>
+          <div class="guide-section-title">Таблица Excel</div>
+          <div class="guide-section-sub">⏱ ~30 секунд · Скачать .xlsx</div>
+        </div>
+      </div>
+      <div class="guide-text">
+        Создаёт таблицу успеваемости или журнал для класса.
+        <ul>
+          <li>Укажите название класса (например, «9А, 3 четверть»)</li>
+          <li>ИИ подготовит таблицу с <b>формулами расчёта среднего балла</b></li>
+          <li>Готовый файл скачивается в формате <b>.xlsx</b> для Excel или Google Таблиц</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-section teal">
+      <div class="guide-section-head">
+        <div class="guide-icon">🗂️</div>
+        <div>
+          <div class="guide-section-title">Методическая копилка</div>
+          <div class="guide-section-sub">Все ваши разработки в одном месте</div>
+        </div>
+      </div>
+      <div class="guide-text">
+        Автоматически сохраняет все созданные материалы.
+        <ul>
+          <li>Каждый готовый план, тест или таблица <b>сохраняется в копилку</b> по кнопке «Сохранить»</li>
+          <li>Открывайте сохранённые материалы и используйте как <b>шаблоны для новых работ</b></li>
+          <li>Фильтрация по типу материала: план / тест / презентация / Excel</li>
+          <li>Можно попросить ИИ-помощника <b>доработать материал из копилки</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-section purple">
+      <div class="guide-section-head">
+        <div class="guide-icon">💬</div>
+        <div>
+          <div class="guide-section-title">Чат с ИИ-помощником</div>
+          <div class="guide-section-sub">Любой вопрос по методике и ФГОС</div>
+        </div>
+      </div>
+      <div class="guide-text">
+        Свободный диалог с искусственным интеллектом на темы образования.
+        <ul>
+          <li>Задавайте <b>любые методические вопросы</b>: структура урока, требования ФГОС, формулировки целей</li>
+          <li>Просите <b>доработать или улучшить</b> уже созданный материал</li>
+          <li>Используйте команду «<em>По структуре №2 из копилки</em>» — ИИ возьмёт шаблон и адаптирует его</li>
+          <li>История чата сохраняется в рамках одной сессии</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="guide-tips">
+      <div class="guide-tips-title">💡 Советы для быстрой работы</div>
+      <div class="guide-tip">🔍 <b>Главный поиск</b> — на главной странице есть поле «Что готовим сегодня?». Введите тему и сразу выберите тип материала — откроется нужная форма с уже заполненной темой.</div>
+      <div class="guide-tip">⏱ <b>Всё за 30 секунд</b> — среднее время генерации любого материала. Заполните форму и нажмите «Создать».</div>
+      <div class="guide-tip">💾 <b>Сохраняйте в копилку</b> — хорошие наработки сохраните как шаблон, чтобы использовать их в будущем.</div>
+      <div class="guide-tip">📱 <b>Работает на телефоне</b> — интерфейс адаптирован для мобильных устройств, нижняя панель навигации всегда доступна.</div>
+      <div class="guide-tip">🎓 <b>Кнопка «Обучение»</b> в шапке — запускает этот тур в любой момент.</div>
+    </div>
+
+    <div style="text-align:center; margin-top:8px;">
+      <button onclick="closeGuide()" style="background:var(--green-dark); color:white; border:none; border-radius:12px; padding:14px 36px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Montserrat',sans-serif;">
+        ← Вернуться к работе
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -2373,9 +2599,6 @@ label, .form-label, .fg-label { font-size: 14px; }
     <div class="sb-bottom">
       <button class="btn-new-session" onclick="newSession()">
         ✨ Начать сначала
-      </button>
-      <button class="btn-new-session" style="margin-top:6px;font-size:11px;opacity:.7;" onclick="replayTour()">
-        🗺 Повторить тур
       </button>
     </div>
   </nav>
@@ -5814,6 +6037,9 @@ function _renderTourStep() {
     document.getElementById('tourCardBtn').textContent = step.btn;
     document.getElementById('tourCardProg').textContent = prog;
     document.getElementById('tourWelcome').classList.add('show');
+    // Показываем ссылку на гайд только на последнем шаге
+    const guideLink = document.getElementById('tourGuideLink');
+    if (guideLink) guideLink.style.display = (_tourStep === TOUR_STEPS.length - 1) ? 'block' : 'none';
   }
 }
 
@@ -5834,9 +6060,21 @@ function tourClose() {
 }
 
 function replayTour() {
-  localStorage.removeItem('prourok_tour_done');
-  const name = document.getElementById('hdrName').textContent || 'коллега';
-  startTour(name);
+  // Повторный запуск — пропускаем приветственный шаг (0)
+  _tourStep = 1;
+  _tourName = document.getElementById('hdrName').textContent || 'коллега';
+  document.getElementById('tourOverlay').style.display = 'block';
+  document.getElementById('tourOverlay').classList.add('active');
+  _renderTourStep();
+}
+
+function openGuide() {
+  document.getElementById('guideOverlay').classList.add('show');
+  window.scrollTo(0, 0);
+}
+
+function closeGuide() {
+  document.getElementById('guideOverlay').classList.remove('show');
 }
 
 // ══════ ИНИЦИАЛИЗАЦИЯ ══════
