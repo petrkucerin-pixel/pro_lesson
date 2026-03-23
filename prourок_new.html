@@ -2257,6 +2257,9 @@ header {
       <button class="btn-new-session" onclick="newSession()">
         ✨ Начать сначала
       </button>
+      <button class="btn-new-session" style="margin-top:6px;font-size:11px;opacity:.7;" onclick="replayTour()">
+        🗺 Повторить тур
+      </button>
     </div>
   </nav>
 
@@ -5628,6 +5631,15 @@ function tourClose() {
   const ov = document.getElementById('tourOverlay');
   ov.classList.remove('active');
   ov.style.display = 'none';
+  document.getElementById('tourWelcome').classList.remove('show');
+  document.getElementById('tourTip').classList.remove('show');
+  document.getElementById('tourHighlight').style.display = 'none';
+}
+
+function replayTour() {
+  localStorage.removeItem('prourok_tour_done');
+  const name = document.getElementById('hdrName').textContent || 'коллега';
+  startTour(name);
 }
 
 // ══════ ИНИЦИАЛИЗАЦИЯ ══════
