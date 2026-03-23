@@ -1793,20 +1793,19 @@ header {
 #tourOverlay.active { pointer-events: all; }
 #tourDim {
   position: fixed; inset: 0; z-index: 5000;
-  background: rgba(0,0,0,0.52); transition: opacity .3s;
+  background: rgba(0,0,0,0.52); pointer-events: none;
 }
 #tourHighlight {
   position: fixed; z-index: 5001; border-radius: 12px;
   border: 3px solid rgba(255,255,255,.95);
   box-shadow: 0 0 0 3px var(--green-mid), 0 0 28px rgba(36,144,106,.5);
   pointer-events: none;
-  transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease;
   display: none;
 }
 #tourBox {
-  position: fixed; z-index: 5002;
+  position: fixed; z-index: 5010;
   display: flex; align-items: flex-end; gap: 0;
-  transition: left .35s ease, top .35s ease;
+  pointer-events: all;
 }
 #tourRobot {
   width: 82px; flex-shrink: 0;
@@ -5527,7 +5526,8 @@ function startTour() {
   const ov = document.getElementById('tourOverlay');
   ov.style.display = 'block';
   ov.classList.add('active');
-  _renderTourStep();
+  // requestAnimationFrame — браузер успевает посчитать layout до позиционирования
+  requestAnimationFrame(() => _renderTourStep());
 }
 
 function _renderTourStep() {
@@ -5536,28 +5536,33 @@ function _renderTourStep() {
   document.getElementById('tourNextBtn').textContent = step.btn;
   document.getElementById('tourProgress').textContent = (_tourStep + 1) + ' / ' + TOUR_STEPS.length;
 
-  const hl = document.getElementById('tourHighlight');
+  const hl  = document.getElementById('tourHighlight');
   const box = document.getElementById('tourBox');
+
+  // Сброс transform перед позиционированием
+  box.style.transform = 'none';
 
   if(step.target) {
     const el = document.querySelector(step.target);
     if(el) {
-      const r = el.getBoundingClientRect();
+      const r   = el.getBoundingClientRect();
       const pad = 7;
       hl.style.display = 'block';
-      hl.style.left  = (r.left  - pad) + 'px';
-      hl.style.top   = (r.top   - pad) + 'px';
-      hl.style.width  = (r.width  + pad*2) + 'px';
-      hl.style.height = (r.height + pad*2) + 'px';
-      // Позиционируем бокс справа от сайдбара
-      const bLeft = r.right + 18;
-      const bTop  = Math.max(10, Math.min(r.top - 10, window.innerHeight - 180));
-      box.style.cssText = 'left:' + bLeft + 'px; top:' + bTop + 'px; transform:none; bottom:auto; right:auto;';
+      hl.style.left   = (r.left  - pad) + 'px';
+      hl.style.top    = (r.top   - pad) + 'px';
+      hl.style.width  = (r.width  + pad * 2) + 'px';
+      hl.style.height = (r.height + pad * 2) + 'px';
+      // Позиционируем бокс справа от подсвеченного элемента
+      box.style.left = (r.right + 18) + 'px';
+      box.style.top  = Math.max(10, Math.min(r.top - 10, window.innerHeight - 200)) + 'px';
     }
   } else {
     hl.style.display = 'none';
-    // Центрируем
-    box.style.cssText = 'left:50%; top:45%; transform:translate(-50%,-50%); bottom:auto; right:auto;';
+    // Центрируем по пикселям (без процентов — чтобы не ломалась анимация)
+    const bw = box.offsetWidth  || 360;
+    const bh = box.offsetHeight || 160;
+    box.style.left = Math.round((window.innerWidth  - bw) / 2) + 'px';
+    box.style.top  = Math.round((window.innerHeight - bh) / 2) + 'px';
   }
 }
 
