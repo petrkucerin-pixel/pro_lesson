@@ -1804,36 +1804,34 @@ header {
 }
 #tourBox {
   position: fixed; z-index: 5010;
-  display: flex; align-items: flex-end; gap: 0;
   pointer-events: all;
 }
-#tourRobot {
-  width: 82px; flex-shrink: 0;
-  filter: drop-shadow(0 4px 18px rgba(0,0,0,.35));
-  align-self: flex-end;
-}
 #tourBubble {
-  background: #fff; border-radius: 16px 16px 16px 4px;
-  padding: 16px 18px 14px; max-width: 270px; min-width: 210px;
-  box-shadow: 0 8px 36px rgba(0,0,0,.22); position: relative;
-  font-size: 13px; line-height: 1.55; color: var(--ink);
+  background: linear-gradient(145deg, #d6f5f0, #c2eee8);
+  border: 1.5px solid rgba(26,143,160,.25);
+  border-radius: 20px;
+  padding: 28px 32px 24px;
+  width: 480px;
+  box-shadow: 0 12px 48px rgba(26,143,160,.22), 0 2px 8px rgba(0,0,0,.08);
+  position: relative;
+  font-size: 17px; line-height: 1.6; color: var(--ink);
 }
 #tourBubble b { color: var(--green-dark); }
 .tour-close {
-  position: absolute; right: 10px; top: 10px;
-  background: none; border: none; cursor: pointer;
-  color: var(--ink4); font-size: 14px; line-height: 1; padding: 2px 4px;
-  border-radius: 4px; transition: .15s;
+  position: absolute; right: 14px; top: 14px;
+  background: rgba(255,255,255,.6); border: none; cursor: pointer;
+  color: var(--ink3); font-size: 16px; line-height: 1; padding: 4px 7px;
+  border-radius: 6px; transition: .15s;
 }
-.tour-close:hover { background: var(--bg2); color: var(--ink2); }
-#tourText { margin: 4px 0 12px; padding-right: 16px; }
-.tour-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.tour-progress { font-size: 11px; color: var(--ink4); font-weight: 600; }
+.tour-close:hover { background: rgba(255,255,255,.9); color: var(--ink); }
+#tourText { margin: 6px 0 20px; }
+.tour-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.tour-progress { font-size: 13px; color: var(--teal); font-weight: 700; }
 #tourNextBtn {
-  padding: 8px 18px; border: none; border-radius: 9px;
+  padding: 12px 28px; border: none; border-radius: 12px;
   background: linear-gradient(135deg, var(--green-dark), var(--teal));
   color: #fff; font-family: 'Montserrat', sans-serif;
-  font-size: 13px; font-weight: 700; cursor: pointer; transition: .15s;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: .15s;
 }
 #tourNextBtn:hover { opacity: .88; transform: translateY(-1px); }
 .login-card {
@@ -2088,7 +2086,6 @@ header {
   <div id="tourDim"></div>
   <div id="tourHighlight"></div>
   <div id="tourBox">
-    <img id="tourRobot" src="robot.png" alt="Помощник">
     <div id="tourBubble">
       <button class="tour-close" onclick="tourClose()" title="Пропустить">✕</button>
       <div id="tourText"></div>
