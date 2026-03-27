@@ -361,10 +361,10 @@ header {
   letter-spacing: .2px;
 }
 .btn-new-session:hover {
-  background: linear-gradient(135deg, var(--green-mid), var(--teal-mid));
-  color: #fff;
-  border-color: transparent;
-  box-shadow: var(--shadow);
+  background: #fff0f0;
+  color: var(--rose);
+  border-color: var(--rose);
+  box-shadow: none;
 }
 
 /* ═══════════════════════════════════
@@ -2125,8 +2125,8 @@ header {
 .replay-tour-btn:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.5); }
 
 /* ─── Увеличенный шрифт (аудитория 45+) ─── */
-body { font-size: 15px; }
-.nav-item { font-size: 14px; }
+body { font-size: 15px; font-weight: 400; }
+.nav-item { font-size: 15px; }
 label, .form-label, .fg-label { font-size: 14px; }
 
 /* ─── SVG-логотип (для login и favicon) ─── */
@@ -2286,6 +2286,7 @@ label, .form-label, .fg-label { font-size: 14px; }
       <input class="login-input" type="text" id="riName" placeholder="Имя"/>
       <input class="login-input" type="text" id="riSurname" placeholder="Фамилия"/>
       <button class="login-btn" id="regBtn" onclick="doRegister()">Зарегистрироваться →</button>
+      <a class="forgot-link" onclick="showAuthForm('login')">← Назад ко входу</a>
     </div>
 
     <!-- ЗАБЫЛИ ПАРОЛЬ -->
@@ -2522,7 +2523,7 @@ label, .form-label, .fg-label { font-size: 14px; }
       <div class="user-avatar" id="hdrAvatar">?</div>
       <span class="user-name" id="hdrName">—</span>
     </div>
-    <button class="replay-tour-btn" onclick="replayTour()" title="Повторить обучение">🎓 Обучение</button>
+    <button class="replay-tour-btn" onclick="replayTour()" title="Повторить обучение">🎓 Инструкция</button>
     <button class="btn-logout" onclick="doLogout()">Выйти</button>
   </div>
 </header>
@@ -2831,7 +2832,7 @@ label, .form-label, .fg-label { font-size: 14px; }
 
             <div>
               <div style="font-size:11px; font-weight:600; color:var(--ink3); margin-bottom:8px;">Особые условия (необязательно)</div>
-              <textarea id="specialCond" class="form-textarea" placeholder="Напр.: ОВЗ в классе, дистанционный формат, использование цифровых ресурсов..."></textarea>
+              <textarea id="specialCond" class="form-textarea" placeholder="Напр.: дистанционный формат, использование цифровых ресурсов, работа в группах..."></textarea>
             </div>
           </div>
 
@@ -3194,8 +3195,8 @@ label, .form-label, .fg-label { font-size: 14px; }
 <script>
 // ══════ КОНФИГ ══════
 const FORMS = {
-  plan:  {title:'Технологическая карта урока', hint:'Создаю по ФГОС ООО с учётом типа урока, УУД и планируемых результатов', btnText:'Создать карту урока', dl:'⬇️ Скачать DOCX', showLt:true, showOpts:true},
-  test:  {title:'Тест / Контрольная работа',   hint:'Тест с заданиями разного уровня и ключами ответов', btnText:'Создать тест', dl:'⬇️ Скачать DOCX', showLt:false, showOpts:false, extra:`
+  plan:  {title:'Технологическая карта урока', hint:'Создаю по ФГОС с учётом типа урока, УУД и планируемых результатов', btnText:'Создать карту урока', dl:'⬇️ Скачать Word', showLt:true, showOpts:true},
+  test:  {title:'Тест / Контрольная работа',   hint:'Тест с заданиями разного уровня и ключами ответов', btnText:'Создать тест', dl:'⬇️ Скачать Word', showLt:false, showOpts:false, extra:`
     <div class="form-card">
       <div class="fg-label">Тип проверочной работы</div>
       <div class="opt-row">
@@ -3496,10 +3497,10 @@ async function doCreate() {
   if(curForm === 'plan') {
     const opts = [...document.querySelectorAll('#fg-opts .o-chip.sel')].map(c=>c.textContent).join(', ');
     const special = document.getElementById('specialCond')?.value.trim() || '';
-    prompt = `Составь технологическую карту урока по ФГОС ООО.\nПредмет: ${selSubj}, ${selCls} класс${subjNote}\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}${special ? '\nОсобые условия: '+special : ''}\nДай полную структуру: цели (предметные/метапредметные/личностные), оборудование, ход урока с деятельностью учителя и ученика.${NODIALOG}`;
+    prompt = `Составь технологическую карту урока по ФГОС.\nПредмет: ${selSubj}, ${selCls} класс${subjNote}\nТема: ${topic}\nТип урока: ${selLt}\n${opts ? 'Параметры: '+opts : ''}${special ? '\nОсобые условия: '+special : ''}\nДай полную структуру: цели (предметные/метапредметные/личностные), оборудование, ход урока с деятельностью учителя и ученика.${NODIALOG}`;
   } else if(curForm === 'test') {
     const testOpts = [...document.querySelectorAll('#extraFields .o-chip.sel')].map(c=>c.textContent).join(', ');
-    prompt = `Составь ${testOpts || 'тематический тест'} по ФГОС ООО.\nПредмет: ${selSubj}, ${selCls} класс${subjNote}\nТема: ${topic}\nДай конкретные задания с вариантами ответов и ключом ответов.${NODIALOG}`;
+    prompt = `Составь ${testOpts || 'тематический тест'} по ФГОС.\nПредмет: ${selSubj}, ${selCls} класс${subjNote}\nТема: ${topic}\nДай конкретные задания с вариантами ответов и ключом ответов.${NODIALOG}`;
   } else if(curForm === 'excel') {
     const students = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>['20','25','30','35'].includes(c.textContent)).map(c=>c.textContent).join('') || '25';
     const quarter = [...document.querySelectorAll('#extraFields .o-chip.sel')].filter(c=>c.textContent.includes('четверть')||c.textContent==='Год').map(c=>c.textContent).join('') || '1 четверть';
@@ -3530,7 +3531,7 @@ async function doCreate() {
     const res = await fetch(`${API_URL}/api/generate`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, type: curForm, ...presSlideConstraints})
+      body: JSON.stringify({message: prompt, type: curForm, grade: selCls || null, ...presSlideConstraints})
     });
     const data = await res.json();
     if(data.ok) {
@@ -4068,7 +4069,7 @@ async function qEdit(action) {
     const res = await fetch(`${API_URL}/api/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompts[action], history: []})
+      body: JSON.stringify({message: prompts[action], history: [], grade: selCls || null})
     });
     const data = await res.json();
     if(data.ok) {
@@ -5280,7 +5281,7 @@ async function aiEditSlide() {
     const res = await fetch(`${API_URL}/api/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, history: []})
+      body: JSON.stringify({message: prompt, history: [], grade: selCls || null})
     });
     const data = await res.json();
     if(data.ok) { ta.value = data.reply; syncSlide(); showToast('Слайд обновлён'); }
@@ -5322,7 +5323,7 @@ async function sendChat() {
     const res = await fetch(`${API_URL}/api/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message:text, history:chatHistory})
+      body: JSON.stringify({message:text, history:chatHistory, grade: selCls || null})
     });
     const data = await res.json();
     const el = document.getElementById(loadId);
@@ -5412,7 +5413,7 @@ ${lastResultText}
     const res = await fetch(`${API_URL}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-      body: JSON.stringify({ message: prompt, type: 'pres', ...presSlideConstraints })
+      body: JSON.stringify({ message: prompt, type: 'pres', grade: selCls || null, ...presSlideConstraints })
     });
     const data = await res.json();
     if(data.ok && data.slides && data.slides.length > 0) {
@@ -5468,7 +5469,7 @@ async function fixResult() {
     const res = await fetch(`${API_URL}/api/chat`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Session-Token':token},
-      body: JSON.stringify({message: prompt, history: []})
+      body: JSON.stringify({message: prompt, history: [], grade: selCls || null})
     });
     const data = await res.json();
     if(data.ok) {
@@ -5546,7 +5547,7 @@ function showToast(msg) {
 }
 
 // ══════ HELPERS ══════
-const API_URL = 'http://95.140.147.248:5001';
+const API_URL = 'https://pro-urok.ru';
 
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -5706,14 +5707,15 @@ function newSession() {
 }
 
 function doDownload() {
-  const content = document.getElementById('resultBox')?.innerText || '';
-  if(!content.trim()) { showToast('Нет содержимого для скачивания'); return; }
+  const box = document.getElementById('resultBox');
+  if(!box || !box.innerText.trim()) { showToast('Нет содержимого для скачивания'); return; }
   const title = (document.getElementById('topicInput')?.value.trim() || document.getElementById('resultTitle')?.textContent || 'материал').replace(/[\\/:*?"<>|]/g, '_');
-  const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+  const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${title}</title><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.5;}h1,h2,h3{color:#1a5c3a;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;padding:6px;}</style></head><body>${box.innerHTML}</body></html>`;
+  const blob = new Blob(['\ufeff', html], {type: 'application/msword'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = title + '.txt';
+  a.download = title + '.doc';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -5789,8 +5791,12 @@ async function doRegister() {
     const r = await fetch(`${API_URL}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd,name,surname})});
     const d = await r.json();
     if(d.ok) {
-      setLoginMsg('📬 Письмо отправлено! Проверьте почту и подтвердите регистрацию.','ok');
-      btn.disabled = true;
+      if(d.auto_confirmed && d.session_token) {
+        onLoginSuccess(d);
+      } else {
+        setLoginMsg('📬 Письмо отправлено! Проверьте почту и подтвердите регистрацию.','ok');
+        btn.disabled = true;
+      }
     } else {
       setLoginMsg(d.error||'Ошибка регистрации','err');
       btn.disabled = false; btn.textContent = 'Зарегистрироваться →';

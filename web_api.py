@@ -1,5 +1,5 @@
 """
-ПроУрок — Web API v3.1
+ПроУрок — Web API v3.2
 Файл:    /root/pro-lesson-bot/web_api.py
 Порт:    5001
 """
@@ -12,12 +12,11 @@ import re
 import os
 import secrets
 import hashlib
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests as http_requests
 from datetime import datetime, timedelta
 import threading
 from dotenv import load_dotenv
+from fgos_context import FGOS_MAP
 
 # ─────────────────────────────────────────────────────────────
 # КОНФИГ
@@ -26,8 +25,8 @@ from dotenv import load_dotenv
 load_dotenv()  # читает /root/pro-lesson-bot/.env
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-SMTP_EMAIL        = os.getenv("SMTP_EMAIL", "")
-SMTP_PASSWORD     = os.getenv("SMTP_PASSWORD", "")
+RESEND_API_KEY    = os.getenv("RESEND_API_KEY", "")
+FROM_EMAIL        = "ПроУрок <noreply@pro-urok.ru>"
 
 USER_LIMITS_FILE  = "/root/pro-lesson-bot/user_limits.json"
 USERS_FILE        = "/root/pro-lesson-bot/users.json"
@@ -38,9 +37,7 @@ MAX_TOKENS        = 2048
 MODEL_GEN         = "claude-haiku-4-5-20251001"
 MAX_TOKENS_GEN    = 4096
 
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-BASE_URL  = "http://95.140.147.248"
+BASE_URL  = "https://pro-urok.ru"
 
 
 TARIFF_LIMITS = {
@@ -50,7 +47,30 @@ TARIFF_LIMITS = {
     "premium": {"queries": 999999, "generations": 999999},
 }
 
-SYSTEM_PROMPT = """Ты — ПроУрок, AI-помощник учителя. Помогаешь составлять планы уроков, тесты, конспекты и другие учебные материалы строго по ФГОС ООО (Приказ №287 от 31.05.2021).
+def get_fgos_level(grade):
+    try:
+        g = int(grade)
+    except (TypeError, ValueError):
+        return None
+    if 1 <= g <= 4: return 'НОО'
+    elif 5 <= g <= 9: return 'ООО'
+    elif 10 <= g <= 11: return 'СОО'
+    return None
+
+def build_system_prompt(base_prompt, grade=None):
+    level = get_fgos_level(grade)
+    if level and level in FGOS_MAP:
+        fgos_block = (
+            f"\n\n=== ФГОС {level} (класс {grade}) ===\n"
+            f"{FGOS_MAP[level]}\n"
+            f"ОБЯЗАТЕЛЬНО: цели в деятельностной форме, три вида результатов, УУД по уровню.\n"
+            f"=== КОНЕЦ ФГОС ==="
+        )
+        return base_prompt + fgos_block
+    return base_prompt
+
+
+SYSTEM_PROMPT = """Ты — ПроУрок, AI-помощник учителя. Помогаешь составлять планы уроков, тесты, конспекты и другие учебные материалы строго по ФГОС.
 
 ВАЖНО: Никогда не задавай уточняющих вопросов. Всегда создавай готовый материал сразу на основе полученных данных. Если данных достаточно для создания материала — создавай. Учитель ждёт готовый результат, а не диалог.
 
@@ -213,16 +233,19 @@ def verify_reset_token(token: str):
 
 def _send_email_sync(to: str, subject: str, html: str):
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"ПроУрок <{SMTP_EMAIL}>"
-        msg["To"] = to
-        msg.attach(MIMEText(html, "html", "utf-8"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as s:
-            s.starttls()
-            s.login(SMTP_EMAIL, SMTP_PASSWORD)
-            s.sendmail(SMTP_EMAIL, to, msg.as_string())
-        print(f"Email sent to {to}")
+        resp = http_requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html},
+            timeout=15,
+        )
+        if resp.status_code == 200 or resp.status_code == 201:
+            print(f"Email sent to {to}")
+        else:
+            print(f"Email error {resp.status_code}: {resp.text}")
     except Exception as e:
         print(f"Email error: {e}")
 
@@ -324,8 +347,22 @@ def increment_query(user_id: str):
 # ПРЕДОБРАБОТКА
 # ─────────────────────────────────────────────────────────────
 
-def preprocess_message(text: str):
+def preprocess_message(text: str, grade=None):
     lower = text.lower()
+    level = get_fgos_level(grade)
+
+    # НОО: алгебра/геометрия не существуют как отдельные предметы
+    if level == 'НОО':
+        noo_math_specific = ["алгебр", "геометр"]
+        if any(k in lower for k in noo_math_specific):
+            return text, "⚠️ В 1–4 классе (НОО) математика изучается как единый курс «Математика» — без разделения на алгебру и геометрию.\n\nПопробуйте: «план урока по математике, {grade} класс»"
+
+    # СОО: напомнить про профильное обучение
+    if level == 'СОО':
+        profile_keywords = ["профил", "естественнонауч", "гуманитар", "социально-эконом", "технологич", "агротехнолог", "универсал"]
+        if not any(k in lower for k in profile_keywords):
+            text = text + "\n[Примечание: класс 10–11, СОО — если требуется, уточни профиль обучения: естественно-научный, гуманитарный, социально-экономический, технологический, агротехнологический или универсальный]"
+
     math_keywords = ["математик", "контрольн", "тест по матем", "урок матем", "план матем"]
     math_specific = ["алгебр", "геометр", "вероятност", "статистик"]
     # Не задавать уточнение если: уже указан класс 1-6, идёт редактирование, или есть примечание от фронтенда
@@ -333,7 +370,8 @@ def preprocess_message(text: str):
     if any(k in lower for k in math_keywords):
         if not any(k in lower for k in math_specific):
             if not any(m in lower for m in early_grade_markers):
-                return text, "⚠️ Уточните курс математики:\n\n• Алгебра\n• Геометрия\n• Вероятность и статистика\n\nДобавьте уточнение в запрос, например: «план урока по алгебре 8 класс»"
+                if level != 'НОО':  # для НОО уже обработано выше
+                    return text, "⚠️ Уточните курс математики:\n\n• Алгебра\n• Геометрия\n• Вероятность и статистика\n\nДобавьте уточнение в запрос, например: «план урока по алгебре 8 класс»"
     text = re.sub(r'\bобж\b', 'Основы безопасности и защиты Родины', text, flags=re.IGNORECASE)
     text = re.sub(r'\bтехнологи[яиюей]\b', 'Труд (технология)', text, flags=re.IGNORECASE)
     if any(k in lower for k in ["истори", "по истор", "урок истор", "план истор"]):
@@ -468,9 +506,13 @@ def register():
     if get_user(email):
         return jsonify({"ok": False, "error": "Пользователь с таким email уже существует"}), 400
     create_user(email, password, name, surname, patronymic)
-    token = create_confirm_token(email)
-    send_confirm_email(email, token)
-    return jsonify({"ok": True, "message": f"Письмо отправлено на {email}. Подтвердите регистрацию."})
+    confirm_token = create_confirm_token(email)
+    send_confirm_email(email, confirm_token)
+    return jsonify({
+        "ok": True,
+        "auto_confirmed": False,
+        "message": "Письмо отправлено! Проверьте почту и подтвердите регистрацию."
+    })
 
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -611,6 +653,7 @@ def chat():
     body    = request.get_json(force=True)
     message = str(body.get("message", "")).strip()
     history = body.get("history", [])
+    grade   = body.get("grade", None)
     if not message:
         return jsonify({"ok": False, "error": "Сообщение не может быть пустым"}), 400
     if len(message) > 12000:
@@ -618,7 +661,7 @@ def chat():
     allowed, limit_msg = check_limit(email)
     if not allowed:
         return jsonify({"ok": False, "error": limit_msg, "limit_exceeded": True}), 403
-    processed, clarification = preprocess_message(message)
+    processed, clarification = preprocess_message(message, grade)
     if clarification:
         return jsonify({"ok": True, "reply": clarification, "clarification": True})
     messages = []
@@ -631,7 +674,7 @@ def chat():
     try:
         response = client.messages.create(
             model=MODEL, max_tokens=MAX_TOKENS,
-            system=SYSTEM_PROMPT, messages=messages
+            system=build_system_prompt(SYSTEM_PROMPT, grade), messages=messages
         )
         reply = response.content[0].text
     except anthropic.APIError as e:
@@ -649,7 +692,7 @@ def chat():
     })
 
 
-SYSTEM_PROMPT_PRES = """Ты генератор содержания слайдов для школьных презентаций по ФГОС ООО.
+SYSTEM_PROMPT_PRES = """Ты генератор содержания слайдов для школьных презентаций по ФГОС.
 
 КРИТИЧЕСКИ ВАЖНО: Отвечай ТОЛЬКО валидным JSON-массивом. Никакого другого текста до и после. Никаких markdown-блоков (```). Только чистый JSON.
 
@@ -672,6 +715,7 @@ def generate():
     body     = request.get_json(force=True)
     message  = str(body.get("message", "")).strip()
     gen_type = str(body.get("type", "")).strip()
+    grade    = body.get("grade", None)
     max_bullets        = int(body.get("max_bullets", 5))
     max_chars_per_bullet = int(body.get("max_chars_per_bullet", 70))
     if not message:
@@ -682,12 +726,12 @@ def generate():
     allowed, limit_msg = check_limit(email)
     if not allowed:
         return jsonify({"ok": False, "error": limit_msg, "limit_exceeded": True}), 403
-    processed, clarification = preprocess_message(message)
+    processed, clarification = preprocess_message(message, grade)
     if clarification:
         return jsonify({"ok": True, "reply": clarification, "clarification": True})
     if gen_type == "pres":
         # Формируем системный промпт с точными ограничениями вместимости слайда
-        pres_system = SYSTEM_PROMPT_PRES + f"\n\nВМЕСТИМОСТЬ СЛАЙДА (рассчитано по размеру экрана):\n- Максимум буллетов на слайд: {max_bullets}\n- Максимум символов в одном буллете: {max_chars_per_bullet}\nЭТИ ЧИСЛА — физический предел слайда. Превышение = текст выйдет за границы. Строго соблюдай."
+        pres_system = build_system_prompt(SYSTEM_PROMPT_PRES, grade) + f"\n\nВМЕСТИМОСТЬ СЛАЙДА (рассчитано по размеру экрана):\n- Максимум буллетов на слайд: {max_bullets}\n- Максимум символов в одном буллете: {max_chars_per_bullet}\nЭТИ ЧИСЛА — физический предел слайда. Превышение = текст выйдет за границы. Строго соблюдай."
         try:
             response = client.messages.create(
                 model=MODEL_GEN, max_tokens=MAX_TOKENS_GEN,
@@ -719,7 +763,7 @@ def generate():
         try:
             response = client.messages.create(
                 model=MODEL_GEN, max_tokens=MAX_TOKENS_GEN,
-                system=SYSTEM_PROMPT,
+                system=build_system_prompt(SYSTEM_PROMPT, grade),
                 messages=[{"role": "user", "content": processed}]
             )
             reply = response.content[0].text
