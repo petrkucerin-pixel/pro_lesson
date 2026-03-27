@@ -355,7 +355,7 @@ def preprocess_message(text: str, grade=None):
     if level == 'НОО':
         noo_math_specific = ["алгебр", "геометр"]
         if any(k in lower for k in noo_math_specific):
-            return text, "⚠️ В 1–4 классе (НОО) математика изучается как единый курс «Математика» — без разделения на алгебру и геометрию.\n\nПопробуйте: «план урока по математике, {grade} класс»"
+            return text, f"⚠️ В 1–4 классе (НОО) математика изучается как единый курс «Математика» — без разделения на алгебру и геометрию.\n\nПопробуйте: «план урока по математике, {grade} класс»"
 
     # СОО: напомнить про профильное обучение
     if level == 'СОО':
@@ -370,7 +370,7 @@ def preprocess_message(text: str, grade=None):
     if any(k in lower for k in math_keywords):
         if not any(k in lower for k in math_specific):
             if not any(m in lower for m in early_grade_markers):
-                if level != 'НОО':  # для НОО уже обработано выше
+                if level not in ('НОО', 'СОО'):  # НОО — единый курс; СОО — нет деления
                     return text, "⚠️ Уточните курс математики:\n\n• Алгебра\n• Геометрия\n• Вероятность и статистика\n\nДобавьте уточнение в запрос, например: «план урока по алгебре 8 класс»"
     text = re.sub(r'\bобж\b', 'Основы безопасности и защиты Родины', text, flags=re.IGNORECASE)
     text = re.sub(r'\bтехнологи[яиюей]\b', 'Труд (технология)', text, flags=re.IGNORECASE)
